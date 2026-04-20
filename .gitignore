@@ -35,6 +35,7 @@ coverage/
 .turbo/
 .nx/
 .claude/worktrees/
+.omc/
 
 tsconfig.local.json
 
