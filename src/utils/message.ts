@@ -43,6 +43,8 @@ interface ProtocolMap {
   openSelectionCustomActionFromContextMenu: (data: { actionId: string, selectionText: string }) => void
   // analytics
   trackFeatureUsedEvent: (data: FeatureUsedEventProperties) => void
+  // feature flags (via PostHog)
+  getFeatureFlag: (data: { key: string }) => Promise<boolean | string | undefined>
   // user guide
   pinStateChanged: (data: { isPinned: boolean }) => void
   getPinState: () => boolean

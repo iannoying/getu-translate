@@ -13,6 +13,7 @@ describe("background analytics", () => {
   let posthogInitMock: ReturnType<typeof vi.fn>
   let posthogCaptureMock: ReturnType<typeof vi.fn>
   let posthogRegisterMock: ReturnType<typeof vi.fn>
+  let posthogGetFeatureFlagMock: ReturnType<typeof vi.fn>
   let loggerWarnMock: ReturnType<typeof vi.fn>
 
   function getRegisteredMessageHandler(name: string) {
@@ -41,11 +42,14 @@ describe("background analytics", () => {
       distinctIdOverride: overrides?.distinctIdOverride,
       extensionVersion: "1.0.0",
       getStorageItem: storageGetItemMock as (key: string) => Promise<unknown>,
-      onMessage: onMessageMock as (type: "trackFeatureUsedEvent", handler: RegisteredMessageHandler) => unknown,
+      // Test double: the real runtime.onMessage is a webext-core polymorphic
+      // handler-registrar. Here we just record calls for later inspection.
+      onMessage: onMessageMock as any,
       posthog: {
         init: posthogInitMock as (token: string, config: Record<string, unknown>) => void,
         capture: posthogCaptureMock as (eventName: string, properties: FeatureUsedEventProperties) => void,
         register: posthogRegisterMock as (properties: { extension_version: string }) => void,
+        getFeatureFlag: posthogGetFeatureFlagMock as (key: string) => boolean | string | undefined,
       },
       setStorageItem: storageSetItemMock as (key: string, value: unknown) => Promise<void>,
       warn: loggerWarnMock as (...args: any[]) => void,
@@ -59,6 +63,7 @@ describe("background analytics", () => {
     posthogInitMock = vi.fn()
     posthogCaptureMock = vi.fn()
     posthogRegisterMock = vi.fn()
+    posthogGetFeatureFlagMock = vi.fn()
     loggerWarnMock = vi.fn()
   })
 
@@ -92,7 +97,7 @@ describe("background analytics", () => {
         capture_pageleave: false,
         disable_external_dependency_loading: true,
         disable_session_recording: true,
-        advanced_disable_flags: true,
+        advanced_disable_flags: false,
         person_profiles: "never",
         persistence: "memory",
         respect_dnt: true,
@@ -245,6 +250,66 @@ describe("background analytics", () => {
     expect(posthogInitMock).not.toHaveBeenCalled()
     expect(posthogCaptureMock).not.toHaveBeenCalled()
     expect(loggerWarnMock).toHaveBeenCalledOnce()
+  })
+
+  describe("getFeatureFlagInBackground", () => {
+    it("returns the PostHog flag value when analytics is enabled", async () => {
+      storageGetItemMock
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce("install-123")
+      posthogGetFeatureFlagMock.mockReturnValue("variant-b")
+
+      const { getFeatureFlagInBackground } = createAnalytics()
+      await expect(getFeatureFlagInBackground("ab_test")).resolves.toBe("variant-b")
+      expect(posthogGetFeatureFlagMock).toHaveBeenCalledWith("ab_test")
+    })
+
+    it("returns undefined when analytics is disabled", async () => {
+      storageGetItemMock.mockResolvedValueOnce(false)
+
+      const { getFeatureFlagInBackground } = createAnalytics()
+      await expect(getFeatureFlagInBackground("any_flag")).resolves.toBeUndefined()
+      expect(posthogInitMock).not.toHaveBeenCalled()
+      expect(posthogGetFeatureFlagMock).not.toHaveBeenCalled()
+    })
+
+    it("returns undefined when PostHog env is missing", async () => {
+      storageGetItemMock.mockResolvedValueOnce(true)
+
+      const { getFeatureFlagInBackground } = createAnalytics({
+        apiHost: undefined,
+        apiKey: undefined,
+      })
+      await expect(getFeatureFlagInBackground("any_flag")).resolves.toBeUndefined()
+    })
+
+    it("returns undefined and warns on PostHog error", async () => {
+      storageGetItemMock
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce("install-123")
+      posthogGetFeatureFlagMock.mockImplementation(() => {
+        throw new Error("posthog kaboom")
+      })
+
+      const { getFeatureFlagInBackground } = createAnalytics()
+      await expect(getFeatureFlagInBackground("any_flag")).resolves.toBeUndefined()
+      expect(loggerWarnMock).toHaveBeenCalledOnce()
+    })
+
+    it("registers a getFeatureFlag message handler", async () => {
+      storageGetItemMock
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce("install-123")
+      posthogGetFeatureFlagMock.mockReturnValue(true)
+
+      const { setupAnalyticsMessageHandlers } = createAnalytics()
+      setupAnalyticsMessageHandlers()
+
+      const registration = onMessageMock.mock.calls.find(call => call[0] === "getFeatureFlag")
+      expect(registration).toBeDefined()
+      const handler = registration![1] as (message: { data: { key: string } }) => Promise<boolean | string | undefined>
+      await expect(handler({ data: { key: "new_pdf" } })).resolves.toBe(true)
+    })
   })
 
   it("filters PostHog properties down to the allowlist", () => {

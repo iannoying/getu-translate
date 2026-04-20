@@ -17,6 +17,18 @@ interface BackgroundAnalyticsClient {
   capture: (eventName: string, properties: FeatureUsedEventProperties) => void
   init: (token: string, config: Record<string, unknown>) => void
   register: (properties: { extension_version: string }) => void
+  getFeatureFlag?: (key: string) => boolean | string | undefined
+}
+
+interface AnalyticsOnMessage {
+  (
+    type: "trackFeatureUsedEvent",
+    handler: (message: { data: FeatureUsedEventProperties }) => Promise<void>,
+  ): unknown
+  (
+    type: "getFeatureFlag",
+    handler: (message: { data: { key: string } }) => Promise<boolean | string | undefined>,
+  ): unknown
 }
 
 interface BackgroundAnalyticsRuntime {
@@ -27,7 +39,7 @@ interface BackgroundAnalyticsRuntime {
   distinctIdOverride?: string
   extensionVersion: string
   getStorageItem: (key: string) => Promise<unknown>
-  onMessage: (type: "trackFeatureUsedEvent", handler: (message: { data: FeatureUsedEventProperties }) => Promise<void>) => unknown
+  onMessage: AnalyticsOnMessage
   posthog: BackgroundAnalyticsClient
   setStorageItem: (key: string, value: unknown) => Promise<void>
   warn: typeof logger.warn
@@ -166,7 +178,7 @@ export function createBackgroundAnalytics(
           capture_pageleave: false,
           disable_external_dependency_loading: true,
           disable_session_recording: true,
-          advanced_disable_flags: true,
+          advanced_disable_flags: false,
           person_profiles: "never",
           persistence: "memory",
           respect_dnt: true,
@@ -206,14 +218,36 @@ export function createBackgroundAnalytics(
     }
   }
 
+  async function getFeatureFlagInBackground(key: string): Promise<boolean | string | undefined> {
+    if (!await isAnalyticsEnabled()) {
+      return undefined
+    }
+
+    try {
+      const client = await getPostHogClient()
+      if (!client?.getFeatureFlag) {
+        return undefined
+      }
+      return client.getFeatureFlag(key)
+    }
+    catch (error) {
+      runtime.warn("[Analytics] Failed to read feature flag in background", error)
+      return undefined
+    }
+  }
+
   function setupAnalyticsMessageHandlers(): void {
     runtime.onMessage("trackFeatureUsedEvent", async (message) => {
       await captureFeatureUsedEventInBackground(message.data)
+    })
+    runtime.onMessage("getFeatureFlag", async (message) => {
+      return getFeatureFlagInBackground(message.data.key)
     })
   }
 
   return {
     captureFeatureUsedEventInBackground,
+    getFeatureFlagInBackground,
     setupAnalyticsMessageHandlers,
   }
 }
