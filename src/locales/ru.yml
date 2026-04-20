@@ -922,6 +922,29 @@ translationHub:
   translationFailed: Ошибка перевода
   translationFailedFallback: Ошибка перевода
   retryTranslation: Повторить перевод
+billing:
+  tier:
+    free: Бесплатный
+    pro: Pro
+    enterprise: Корпоративный
+  upgrade:
+    cta: Перейти на Pro
+    title: Разблокируйте эту функцию с Pro
+    description: Pro открывает доступ к переводу PDF, неограниченному переводу полей ввода, облачной синхронизации словаря и многому другому.
+  quota:
+    outOf: из
+    remaining: осталось
+    exhausted: Лимит за этот период исчерпан
+  expiry:
+    active: Активна
+    expired: Истекла
+  account:
+    section: Аккаунт и подписка
+    signIn: Войти
+    signInPrompt: Войдите, чтобы синхронизировать данные и разблокировать функции Pro
+    signOut: Выйти
+    managePlan: Управление подпиской
+    viewUsage: Посмотреть использование
 languages:
   eng: Английский
   cmn: Упрощённый китайский

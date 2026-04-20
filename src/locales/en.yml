@@ -1037,6 +1037,29 @@ translationHub:
   translationFailed: Translation Failed
   translationFailedFallback: Translation failed
   retryTranslation: Retry translation
+billing:
+  tier:
+    free: Free
+    pro: Pro
+    enterprise: Enterprise
+  upgrade:
+    cta: Upgrade to Pro
+    title: Unlock this feature with Pro
+    description: Pro unlocks PDF translation, unlimited input-field translation, cloud-synced vocabulary, and more.
+  quota:
+    outOf: of
+    remaining: remaining
+    exhausted: Quota exhausted for this billing period
+  expiry:
+    active: Active
+    expired: Expired
+  account:
+    section: Account & Subscription
+    signIn: Sign in
+    signInPrompt: Sign in to sync your data and unlock Pro features
+    signOut: Sign out
+    managePlan: Manage plan
+    viewUsage: View usage
 languages:
   eng: English
   cmn: Simplified Chinese

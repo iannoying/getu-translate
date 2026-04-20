@@ -1037,6 +1037,29 @@ translationHub:
   translationFailed: 翻译失败
   translationFailedFallback: 翻译失败
   retryTranslation: 重试翻译
+billing:
+  tier:
+    free: 免费版
+    pro: 专业版
+    enterprise: 企业版
+  upgrade:
+    cta: 升级到专业版
+    title: 使用专业版解锁此功能
+    description: 专业版包含 PDF 翻译、无限次输入框翻译、云同步生词本等更多高级功能。
+  quota:
+    outOf: /
+    remaining: 剩余
+    exhausted: 本周期额度已用完
+  expiry:
+    active: 有效
+    expired: 已过期
+  account:
+    section: 账户与订阅
+    signIn: 登录
+    signInPrompt: 登录以同步数据并解锁专业版功能
+    signOut: 退出登录
+    managePlan: 管理订阅
+    viewUsage: 查看用量
 languages:
   eng: 英语
   cmn: 简体中文

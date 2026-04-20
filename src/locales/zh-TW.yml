@@ -922,6 +922,29 @@ translationHub:
   translationFailed: 翻譯失敗
   translationFailedFallback: 翻譯失敗
   retryTranslation: 重試翻譯
+billing:
+  tier:
+    free: 免費版
+    pro: 專業版
+    enterprise: 企業版
+  upgrade:
+    cta: 升級至專業版
+    title: 使用專業版解鎖此功能
+    description: 專業版包含 PDF 翻譯、無限次輸入框翻譯、雲端同步生字本等更多進階功能。
+  quota:
+    outOf: /
+    remaining: 剩餘
+    exhausted: 本週期額度已用完
+  expiry:
+    active: 有效
+    expired: 已過期
+  account:
+    section: 帳戶與訂閱
+    signIn: 登入
+    signInPrompt: 登入以同步資料並解鎖專業版功能
+    signOut: 登出
+    managePlan: 管理訂閱
+    viewUsage: 查看用量
 languages:
   eng: 英語
   cmn: 簡體中文
