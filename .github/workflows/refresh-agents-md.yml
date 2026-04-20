@@ -1,0 +1,152 @@
+name: Refresh AGENTS.md
+
+# Auto-refresh stale AGENTS.md files weekly.
+# A directory's AGENTS.md is "stale" when any non-AGENTS.md, non-__tests__ file
+# inside it has a newer git commit timestamp than the AGENTS.md itself.
+#
+# This workflow opens (or updates) a single PR per run; humans review and merge.
+# Cost-capped to N directories per run (default 20) — change via
+# workflow_dispatch input or by editing the env var below.
+
+on:
+  schedule:
+    # Sunday 03:00 UTC (= 11:00 Asia/Shanghai)
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+    inputs:
+      max_dirs:
+        description: Max stale directories to refresh in this run
+        default: "20"
+        type: string
+      dry_run:
+        description: "List stale dirs only, do not call Claude or open PR"
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: refresh-agents-md
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for staleness detection)
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect stale AGENTS.md
+        id: detect
+        run: |
+          chmod +x ./scripts/find-stale-agents.sh
+          MAX="${{ inputs.max_dirs || '20' }}"
+
+          STALE_FILE="$(mktemp)"
+          ./scripts/find-stale-agents.sh > "$STALE_FILE" || true
+          TOTAL_COUNT=$(wc -l < "$STALE_FILE" | tr -d ' ')
+          echo "Total stale AGENTS.md found: $TOTAL_COUNT"
+
+          if [ "$TOTAL_COUNT" -eq 0 ]; then
+            echo "stale_count=0" >> "$GITHUB_OUTPUT"
+            echo "dirs=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Top-N stalest, just the directory column.
+          DIRS=$(head -n "$MAX" "$STALE_FILE" | awk -F'\t' '{print $2}')
+          echo "----- Top $MAX stalest dirs (this run) -----"
+          echo "$DIRS"
+          echo "--------------------------------------------"
+
+          {
+            echo "stale_count=$TOTAL_COUNT"
+            echo "refreshed_count=$(echo "$DIRS" | wc -l | tr -d ' ')"
+            echo 'dirs<<DIRS_EOF'
+            echo "$DIRS"
+            echo 'DIRS_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Skip — nothing stale
+        if: steps.detect.outputs.stale_count == '0'
+        run: echo "All AGENTS.md are fresh. No PR to open."
+
+      - name: Skip — dry run requested
+        if: steps.detect.outputs.stale_count != '0' && inputs.dry_run == true
+        run: |
+          echo "Dry run: would refresh the following directories:"
+          echo "${{ steps.detect.outputs.dirs }}"
+
+      - name: Refresh AGENTS.md via Claude Code
+        if: steps.detect.outputs.stale_count != '0' && inputs.dry_run != true
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: --model opus
+          prompt: |
+            You are refreshing stale AGENTS.md files in this repo.
+
+            For EACH directory listed below, do the following IN ORDER:
+              1. READ the existing `<dir>/AGENTS.md`.
+              2. Extract every line from `<!-- MANUAL: -->` to end-of-file. This block MUST be preserved verbatim — do not edit, reformat, or remove any of its content.
+              3. READ enough of the actual source files in `<dir>` (skipping `__tests__/`) to understand current state.
+              4. REWRITE `<dir>/AGENTS.md` using the existing template:
+                 - Keep `<!-- Parent: ... -->` exactly as it was.
+                 - Keep the original `Generated:` date; set `Updated:` to today (UTC).
+                 - Sections: Purpose / Key Files / Subdirectories / For AI Agents (Working In This Directory / Testing Requirements / Common Patterns) / Dependencies (Internal / External).
+                 - Re-append the preserved MANUAL block at the very end.
+              5. Use the Write tool. Do not Read the file back after writing.
+
+            HARD RULES:
+              - Do NOT touch any AGENTS.md not listed below.
+              - Do NOT create any new files.
+              - Do NOT modify content under the `<!-- MANUAL: -->` marker.
+              - Skip `__tests__/` everywhere.
+              - Generic boilerplate is unacceptable — every Key File row and Working bullet must be grounded in code you actually read.
+
+            DIRECTORIES TO REFRESH (one per line, paths relative to repo root):
+            ${{ steps.detect.outputs.dirs }}
+
+            When finished, print a one-line summary listing every file you wrote.
+
+      - name: Create / update Pull Request
+        if: steps.detect.outputs.stale_count != '0' && inputs.dry_run != true
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/refresh-agents-md
+          delete-branch: true
+          commit-message: "docs(agents): refresh stale AGENTS.md"
+          title: "docs(agents): refresh stale AGENTS.md"
+          labels: |
+            documentation
+            automated
+          body: |
+            Auto-generated by `.github/workflows/refresh-agents-md.yml`.
+
+            ## What this PR does
+
+            Refreshes `AGENTS.md` files whose directories had source-file changes more
+            recent than the `AGENTS.md` itself.
+
+            - Detector: `scripts/find-stale-agents.sh`
+            - Trigger: `${{ github.event_name }}`
+            - Stale count detected: **${{ steps.detect.outputs.stale_count }}**
+            - Refreshed this run: **${{ steps.detect.outputs.refreshed_count }}** (capped at `${{ inputs.max_dirs || '20' }}`)
+
+            ## Manual review checklist
+
+            - [ ] `<!-- MANUAL: -->` blocks are preserved verbatim
+            - [ ] No new files added; only stale dirs touched
+            - [ ] Content reflects current code, not hallucination
+            - [ ] Parent references still resolve (`grep -r '<!-- Parent:'`)
+
+            ## How to extend
+
+            - Run more dirs in one pass: trigger workflow manually with `max_dirs` > 20.
+            - Inspect locally: `pnpm agents:stale`.
+            - If this PR is wrong, close it and re-trigger — it'll regenerate.

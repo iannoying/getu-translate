@@ -22,6 +22,7 @@
     "test:watch": "vitest",
     "type-check": "tsc --noEmit",
     "scrape:ai-sdk-models": "npx tsx scripts/scrape-ai-sdk-provider-models.ts --out scripts/output/ai-sdk-provider-models.json",
+    "agents:stale": "bash scripts/find-stale-agents.sh",
     "zip": "WXT_ZIP_MODE=true wxt zip",
     "zip:edge": "WXT_ZIP_MODE=true wxt zip -b edge",
     "zip:firefox": "WXT_ZIP_MODE=true wxt zip -b firefox --mv3",
