@@ -922,6 +922,29 @@ translationHub:
   translationFailed: Dịch Thất Bại
   translationFailedFallback: Dịch thất bại
   retryTranslation: Thử lại dịch
+billing:
+  tier:
+    free: Miễn phí
+    pro: Pro
+    enterprise: Doanh nghiệp
+  upgrade:
+    cta: Nâng cấp lên Pro
+    title: Mở khóa tính năng này với Pro
+    description: Pro cho phép dịch PDF, dịch ô nhập không giới hạn, sổ từ vựng đồng bộ đám mây và nhiều hơn nữa.
+  quota:
+    outOf: /
+    remaining: còn lại
+    exhausted: Đã hết hạn mức cho kỳ này
+  expiry:
+    active: Đang hoạt động
+    expired: Đã hết hạn
+  account:
+    section: Tài khoản & Đăng ký
+    signIn: Đăng nhập
+    signInPrompt: Đăng nhập để đồng bộ dữ liệu và mở khóa Pro
+    signOut: Đăng xuất
+    managePlan: Quản lý gói
+    viewUsage: Xem mức sử dụng
 languages:
   eng: Tiếng Anh
   cmn: Tiếng Trung giản thể

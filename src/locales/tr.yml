@@ -922,6 +922,29 @@ translationHub:
   translationFailed: Çeviri Başarısız
   translationFailedFallback: Çeviri başarısız
   retryTranslation: Çeviriyi yeniden dene
+billing:
+  tier:
+    free: Ücretsiz
+    pro: Pro
+    enterprise: Kurumsal
+  upgrade:
+    cta: Pro'ya Yükselt
+    title: Bu özelliği Pro ile açın
+    description: Pro; PDF çevirisi, sınırsız alan çevirisi, bulut eşzamanlı kelime defteri ve daha fazlasını sunar.
+  quota:
+    outOf: /
+    remaining: kaldı
+    exhausted: Bu dönem için kota tükendi
+  expiry:
+    active: Aktif
+    expired: Süresi doldu
+  account:
+    section: Hesap ve Abonelik
+    signIn: Oturum aç
+    signInPrompt: Verilerinizi eşitlemek ve Pro özelliklerini açmak için oturum açın
+    signOut: Oturumu kapat
+    managePlan: Planı yönet
+    viewUsage: Kullanımı görüntüle
 languages:
   eng: İngilizce
   cmn: Basitleştirilmiş Çince

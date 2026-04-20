@@ -922,6 +922,29 @@ translationHub:
   translationFailed: 번역 실패
   translationFailedFallback: 번역 실패
   retryTranslation: 번역 재시도
+billing:
+  tier:
+    free: 무료
+    pro: Pro
+    enterprise: 엔터프라이즈
+  upgrade:
+    cta: Pro로 업그레이드
+    title: Pro로 이 기능 잠금 해제
+    description: Pro를 사용하면 PDF 번역, 무제한 입력창 번역, 클라우드 동기화 단어장 등을 이용할 수 있습니다.
+  quota:
+    outOf: /
+    remaining: 남음
+    exhausted: 이번 기간의 할당량이 소진되었습니다
+  expiry:
+    active: 활성
+    expired: 만료됨
+  account:
+    section: 계정 및 구독
+    signIn: 로그인
+    signInPrompt: 로그인하여 데이터를 동기화하고 Pro 기능을 이용하세요
+    signOut: 로그아웃
+    managePlan: 플랜 관리
+    viewUsage: 사용량 보기
 languages:
   eng: 영어
   cmn: 중국어 간체
