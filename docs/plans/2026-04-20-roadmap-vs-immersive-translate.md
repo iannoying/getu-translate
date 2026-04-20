@@ -13,12 +13,12 @@
 
 ## 战略定位
 
-| 维度 | 沉浸式翻译 | Read Frog 现状 | Read Frog 目标 |
-|------|-----------|---------------|---------------|
-| 触达面 | 网页/PDF/EPUB/字幕/输入框/图片 | 网页 + YouTube 字幕 | 追平 |
-| 引擎 | DeepL/有道/腾讯/Google/AI 全家桶 | 3 免费 + 20+ AI | 补传统引擎 |
-| 学习闭环 | 基础生词本 | 精读 + TTS（无闭环） | **差异化护城河** |
-| 商业化 | Pro 订阅 + 免费额度池 | BYO-Key 开源 | 三层：免费 / Pro / Enterprise |
+| 维度     | 沉浸式翻译                       | Read Frog 现状       | Read Frog 目标                |
+| -------- | -------------------------------- | -------------------- | ----------------------------- |
+| 触达面   | 网页/PDF/EPUB/字幕/输入框/图片   | 网页 + YouTube 字幕  | 追平                          |
+| 引擎     | DeepL/有道/腾讯/Google/AI 全家桶 | 3 免费 + 20+ AI      | 补传统引擎                    |
+| 学习闭环 | 基础生词本                       | 精读 + TTS（无闭环） | **差异化护城河**              |
+| 商业化   | Pro 订阅 + 免费额度池            | BYO-Key 开源         | 三层：免费 / Pro / Enterprise |
 
 **护城河**：沉浸式翻译 = "更快更全的翻译工具"；Read Frog = "AI 语言学习伴侣"（精读 + 生词本 + Anki + 自适应解释）。**不能在引擎数量上内卷**，要在学习闭环上做深。
 
@@ -29,7 +29,9 @@
 每个 **M** 约 2–4 周 / 1 人。优先级按"用户留存 × 付费意愿 / 工程复杂度"排序。
 
 ### M0 · 商业化基础设施（2 周，先行依赖）
+
 为所有付费功能铺路。
+
 - 打通 better-auth 登录态在 extension 三端（popup/options/content）的同步
 - 后端 `@read-frog/api-contract` 新增 `billing.*` 路由：`getEntitlements`、`consumeQuota`、Stripe webhook
 - 本地 `EntitlementsContext` atom + Dexie 缓存（离线降级）
@@ -38,6 +40,7 @@
 **交付验证**：在任意功能入口加 `if (!entitlement.pro) showUpgrade()` 能正常拦截。
 
 ### M1 · 官方免费翻译引擎矩阵（2 周）⭐ 本文档详细拆解
+
 沉浸式的免费用户全靠 Google/Bing Web 接口。Read Frog 当前已有 `google.ts`/`microsoft.ts`/`deeplx.ts`，但**只有 1–2 种实现**，稳定性不足。
 
 目标：扩展 `TranslationProvider` 到 **Google Web / Microsoft Edge Auth / Bing Web / Yandex Web / LibreTranslate** 五家免费；增加健康探测 + 自动回退 + 限频熔断。
@@ -45,25 +48,32 @@
 这是免费用户的生命线，也是承载千万级调用的基础设施。详见下文 **M1 任务拆解**。
 
 ### M2 · 输入框增强翻译（1.5 周）
+
 沉浸式招牌功能。触发词如 `//en ` 自动把中文翻译为英文回填。
+
 - 通用监听器：`contenteditable`、`<textarea>`、`<input>`
 - 配置表：按域名 allowlist + 触发 token
 - 冲突处理：飞书/Slack/WeChat Web 等富文本编辑器需单独适配
 - **定价**：免费版每日 50 次；Pro 无限
 
 ### M3 · PDF 双语翻译（3 周）
+
 基于 pdf.js viewer 注入覆盖层；不解析 PDF 源文件，而是在浏览器渲染后对 text layer 分段翻译并悬浮叠加。
+
 - 复用现有段落批量翻译 pipeline
 - 支持下载"带翻译标注的 PDF"（Pro 专享）
 - **定价**：免费版水印 + 50 页/天；Pro 无水印无限制
 
 ### M4 · 字幕/视频平台扩展（2 周）
+
 从 YouTube 扩展到 Netflix / Bilibili / X(Twitter) / TED / Udemy / Coursera。
+
 - 抽象 `SubtitleAdapter` 接口，YouTube 改造成首个实现
 - 每个平台独立 content script + manifest host permission
 - 社区贡献友好：`src/entrypoints/subtitles.content/adapters/` 插件式目录
 
 ### M5 · 生词本 + Anki 闭环（3 周）⭐ 差异化核心
+
 - Dexie schema：`words` 表（word / context / translation / mastery / next_review_at）
 - 划词工具栏新增"加入生词本"按钮（复用现有 selection toolbar）
 - SM-2 遗忘曲线调度，popup 新增"今日复习"页
@@ -71,10 +81,12 @@
 - **定价**：免费版 100 词；Pro 无限 + 云同步
 
 ### M6 · 术语表 + 风格库（1 周）
+
 - 术语表：`{src, dst, context?}` 绑定到自定义 prompt，注入 `[GLOSSARY]` token
 - 显示样式模板库：下划线/模糊/遮罩/行内替换 20+ preset
 
 ### 后续（非优先）
+
 - EPUB / SRT / DOCX 文件上传翻译（M7）
 - 图片 OCR 翻译（M8，需 Vision 模型）
 - 会议实时语音翻译（M9，复杂度高）
@@ -84,27 +96,29 @@
 
 ## 商业化分层（三档）
 
-| 档位 | 功能 | 定价 |
-|------|------|------|
-| Free | 全部官方免费引擎 / 基础网页翻译 / 50 次·日输入框 / 50 页·日 PDF / 100 词生词本 | ¥0 |
-| Pro | 无限引擎调用 / 去水印 PDF 下载 / 无限输入框 / 无限生词本 + 云同步 / 所有付费 AI 引擎额度池 | ¥28/月 或 ¥198/年 |
-| Enterprise | 团队术语表共享 / SSO / 审计日志 / SLA | 按座席 |
+| 档位       | 功能                                                                                       | 定价              |
+| ---------- | ------------------------------------------------------------------------------------------ | ----------------- |
+| Free       | 全部官方免费引擎 / 基础网页翻译 / 50 次·日输入框 / 50 页·日 PDF / 100 词生词本             | ¥0                |
+| Pro        | 无限引擎调用 / 去水印 PDF 下载 / 无限输入框 / 无限生词本 + 云同步 / 所有付费 AI 引擎额度池 | ¥28/月 或 ¥198/年 |
+| Enterprise | 团队术语表共享 / SSO / 审计日志 / SLA                                                      | 按座席            |
 
 **免费额度池**（Pro 专享 AI 调用）：后端走我们自己的 key，限流 + 计费，类似沉浸式的 "BabelDOC 额度"。用 M0 的 entitlements 接口扣减。
 
 ---
 
-# M1 任务拆解（可执行 TDD 计划）
+## M1 任务拆解（可执行 TDD 计划）
 
 **M1 目标**：新增 3 个免费翻译 provider（Bing Web / Yandex Web / LibreTranslate），抽出统一 `FreeProviderHealth` 熔断层，失败自动回退。
 
 **前置阅读**：
+
 - `src/utils/host/translate/api/index.ts` — 现有免费 provider 调度器
 - `src/utils/host/translate/api/google.ts` / `microsoft.ts` — 参考实现
 - `src/utils/host/translate/api/__tests__/` — 测试惯例
 - `AGENTS.md` — Testing Notes 段落（`SKIP_FREE_API=true`）
 
 **通用约定**：
+
 - 所有新 provider 放在 `src/utils/host/translate/api/`
 - 测试放在 `src/utils/host/translate/api/__tests__/`，仿照现有 `free-api.test.ts` 的 describe 分组
 - 每个 provider 必须导出 `translate(input: TranslateInput): Promise<TranslateOutput>` 签名和 `kind: "bing" | "yandex" | "libre"` 常量
@@ -115,6 +129,7 @@
 ## Task 1: 抽取 `FreeProviderHealth` 熔断层
 
 **Files:**
+
 - Create: `src/utils/host/translate/api/health.ts`
 - Create: `src/utils/host/translate/api/__tests__/health.test.ts`
 
@@ -227,6 +242,7 @@ git commit -m "feat(translate): add FreeProviderHealth circuit breaker"
 Bing 免费翻译通过 `https://www.bing.com/ttranslatev3` 接口，需要先抓 IG/IID token。
 
 **Files:**
+
 - Create: `src/utils/host/translate/api/bing.ts`
 - Create: `src/utils/host/translate/api/__tests__/bing.test.ts`
 
@@ -315,6 +331,7 @@ git commit -m "feat(translate): add Bing web translation provider"
 ## Task 3: Yandex Web 翻译 provider
 
 **Files:**
+
 - Create: `src/utils/host/translate/api/yandex.ts`
 - Create: `src/utils/host/translate/api/__tests__/yandex.test.ts`
 
@@ -402,6 +419,7 @@ git commit -m "feat(translate): add Yandex web translation provider"
 ## Task 4: LibreTranslate provider（可配置 endpoint）
 
 **Files:**
+
 - Create: `src/utils/host/translate/api/libre.ts`
 - Create: `src/utils/host/translate/api/__tests__/libre.test.ts`
 
@@ -483,6 +501,7 @@ git commit -m "feat(translate): add LibreTranslate provider"
 ## Task 5: 调度器集成 + 自动回退链
 
 **Files:**
+
 - Modify: `src/utils/host/translate/api/index.ts`（整合 health tracker + 回退顺序）
 - Create: `src/utils/host/translate/api/__tests__/dispatch.test.ts`
 
@@ -595,6 +614,7 @@ git commit -m "feat(translate): add multi-provider dispatch with circuit breaker
 ## Task 6: 在 options 页面暴露新 provider 选择
 
 **Files:**
+
 - Modify: `src/entrypoints/options/` 内的 translate provider 设置 UI（具体文件需先读 `src/entrypoints/options/AGENTS.md`）
 - Modify: `src/utils/config/` zod schema 中 `freeProvider` 枚举，新增 `'bing' | 'yandex' | 'libre'`
 - Modify: `src/utils/config/migration-scripts/` 增加一条迁移 script，旧配置默认 `google`

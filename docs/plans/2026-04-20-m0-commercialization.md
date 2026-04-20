@@ -7,6 +7,7 @@
 **Goal:** 为所有付费功能铺设基础：entitlements 契约、feature flag、paywall 组件、后端联调规范。完成后任意业务功能只需 `if (!entitlement.canUse("x")) showUpgrade()` 即可接入商业化。
 
 **Architecture:**
+
 - 复用已就绪的 `better-auth` + `oRPC` + `PostHog` 三件套
 - 后端（独立 repo）新增 `billing.*` oRPC 路由，本 repo 消费它
 - Entitlements 双写：oRPC 实时查询 + Dexie 离线缓存（断网降级）
@@ -21,30 +22,30 @@
 
 ## 已有基础设施（不要重复造轮子）
 
-| 已有 | 文件 |
-|------|------|
-| better-auth React client | `src/utils/auth/auth-client.ts` — `authClient` |
-| oRPC client + tanstack-query utils | `src/utils/orpc/client.ts` — `orpcClient`, `orpc` |
-| Background fetch proxy | `src/utils/message.ts` — `sendMessage("backgroundFetch", ...)` |
-| PostHog analytics | `src/entrypoints/background/analytics.ts` |
-| Dexie app DB | `src/utils/db/dexie/app-db.ts` |
-| Jotai atoms | `src/utils/atoms/` |
-| shadcn Dialog/Button | `src/components/ui/` |
+| 已有                               | 文件                                                           |
+| ---------------------------------- | -------------------------------------------------------------- |
+| better-auth React client           | `src/utils/auth/auth-client.ts` — `authClient`                 |
+| oRPC client + tanstack-query utils | `src/utils/orpc/client.ts` — `orpcClient`, `orpc`              |
+| Background fetch proxy             | `src/utils/message.ts` — `sendMessage("backgroundFetch", ...)` |
+| PostHog analytics                  | `src/entrypoints/background/analytics.ts`                      |
+| Dexie app DB                       | `src/utils/db/dexie/app-db.ts`                                 |
+| Jotai atoms                        | `src/utils/atoms/`                                             |
+| shadcn Dialog/Button               | `src/components/ui/`                                           |
 
 ---
 
 ## Task 清单总览（8 个 Task / 8 个 Issue / 8 个 PR）
 
-| # | Task | 输出 | 预计 |
-|---|------|------|------|
-| 1 | Entitlements 契约类型定义 | `types/entitlements.ts` + zod schema | 0.5d |
-| 2 | Dexie `entitlements_cache` 表 + migration | 新表 + 读写 helper | 0.5d |
-| 3 | `useEntitlements` hook + 离线降级 | Jotai atom + hook | 1d |
-| 4 | PostHog Feature Flag 打开 + `useFeatureFlag` | 放开 flags + hook | 0.5d |
-| 5 | `<ProGate>` / `<UpgradeDialog>` 组件 | 可复用 paywall 基元 | 1d |
-| 6 | Options 页"账户与订阅"区块 | 登录态 + 订阅状态 + 升级入口 | 1d |
-| 7 | i18n 文案 | 中英 key | 0.5d |
-| 8 | 后端契约 spec 文档 | `docs/contracts/billing.md` 交给后端 | 1d |
+| #   | Task                                         | 输出                                 | 预计 |
+| --- | -------------------------------------------- | ------------------------------------ | ---- |
+| 1   | Entitlements 契约类型定义                    | `types/entitlements.ts` + zod schema | 0.5d |
+| 2   | Dexie `entitlements_cache` 表 + migration    | 新表 + 读写 helper                   | 0.5d |
+| 3   | `useEntitlements` hook + 离线降级            | Jotai atom + hook                    | 1d   |
+| 4   | PostHog Feature Flag 打开 + `useFeatureFlag` | 放开 flags + hook                    | 0.5d |
+| 5   | `<ProGate>` / `<UpgradeDialog>` 组件         | 可复用 paywall 基元                  | 1d   |
+| 6   | Options 页"账户与订阅"区块                   | 登录态 + 订阅状态 + 升级入口         | 1d   |
+| 7   | i18n 文案                                    | 中英 key                             | 0.5d |
+| 8   | 后端契约 spec 文档                           | `docs/contracts/billing.md` 交给后端 | 1d   |
 
 总计约 **6 个工作日**，但加上 PR review + 等后端联调，现实 2 周。
 
@@ -53,6 +54,7 @@
 ## Task 1: Entitlements 契约类型定义
 
 **Files:**
+
 - Create: `src/types/entitlements.ts`
 - Create: `src/types/__tests__/entitlements.test.ts`
 
@@ -179,6 +181,7 @@ git commit -m "feat(types): add entitlements schema and predicates"
 ## Task 2: Dexie `entitlements_cache` 表 + migration
 
 **Files:**
+
 - Create: `src/utils/db/dexie/tables/entitlements-cache.ts`
 - Modify: `src/utils/db/dexie/app-db.ts`（注册新表，bump version）
 - Create: `src/utils/db/dexie/tables/__tests__/entitlements-cache.test.ts`
@@ -225,11 +228,13 @@ git commit -m "feat(db): add entitlements_cache Dexie table"
 ## Task 3: `useEntitlements` hook + 离线降级
 
 **Files:**
+
 - Create: `src/utils/atoms/entitlements.ts`
 - Create: `src/hooks/use-entitlements.ts`
 - Create: `src/hooks/__tests__/use-entitlements.test.tsx`
 
 **行为契约**：
+
 1. 优先读取 oRPC `billing.getEntitlements` 返回值 → 写入 atom + Dexie
 2. 网络失败或未登录 → 读 Dexie 缓存
 3. 两者都无 → 返回 `FREE_ENTITLEMENTS`
@@ -286,6 +291,7 @@ git commit -m "feat(hooks): add useEntitlements with offline fallback"
 **当前状态**：`analytics.ts` 第 169 行 `advanced_disable_flags: true` 明确关闭了 flags。
 
 **Files:**
+
 - Modify: `src/entrypoints/background/analytics.ts:169`（改为 `false`）
 - Create: `src/utils/message.ts` 新增 `getFeatureFlag` 消息类型（content/popup 需通过 background 查询）
 - Create: `src/hooks/use-feature-flag.ts`
@@ -296,6 +302,7 @@ git commit -m "feat(hooks): add useEntitlements with offline fallback"
 **Step 1-5:** 标准 TDD 循环
 
 **Commit:**
+
 ```bash
 git commit -m "feat(analytics): enable PostHog feature flags and expose useFeatureFlag"
 ```
@@ -305,6 +312,7 @@ git commit -m "feat(analytics): enable PostHog feature flags and expose useFeatu
 ## Task 5: `<ProGate>` / `<UpgradeDialog>` 组件
 
 **Files:**
+
 - Create: `src/components/billing/pro-gate.tsx`
 - Create: `src/components/billing/upgrade-dialog.tsx`
 - Create: `src/components/billing/__tests__/pro-gate.test.tsx`
@@ -368,10 +376,12 @@ git commit -m "feat(billing): add ProGate and UpgradeDialog components"
 ## Task 6: Options 页"账户与订阅"区块
 
 **Files:**
+
 - Create: `src/entrypoints/options/routes/account.tsx`（复用 existing options routing）
 - Modify: options 侧边栏导航加入"账户"入口
 
 **UI 内容**：
+
 - 未登录：展示"登录后享受云同步 / Pro 额度"按钮 → 跳转 `${WEBSITE_URL}/login`
 - 已登录 Free：展示 `tier: Free` + "升级到 Pro" 按钮 → 跳转 `${WEBSITE_URL}/pricing`
 - Pro：tier + expiresAt + 配额进度条 + "管理订阅"（跳 Stripe Customer Portal）
@@ -379,6 +389,7 @@ git commit -m "feat(billing): add ProGate and UpgradeDialog components"
 本 Task **不做 Stripe 集成**，只跳转到 Web 站点（Web 站点的 pricing/portal 由后端团队维护）。
 
 **Commit:**
+
 ```bash
 git commit -m "feat(options): add account and subscription section"
 ```
@@ -388,9 +399,11 @@ git commit -m "feat(options): add account and subscription section"
 ## Task 7: i18n 文案
 
 **Files:**
+
 - Modify: `src/locales/en.json` / `src/locales/zh-CN.json`（和其他已有语种）
 
 新增 key：
+
 ```
 billing.tier.free / tier.pro / tier.enterprise
 billing.upgrade.cta / upgrade.title / upgrade.description
@@ -402,6 +415,7 @@ billing.account.signIn / signOut / managePlan
 所有 `<ProGate fallback>` 和 `<UpgradeDialog>` 使用 `@wxt-dev/i18n` 的 `t()`。
 
 **Commit:**
+
 ```bash
 git commit -m "feat(i18n): add billing and paywall copy"
 ```
@@ -411,6 +425,7 @@ git commit -m "feat(i18n): add billing and paywall copy"
 ## Task 8: 后端契约 spec
 
 **Files:**
+
 - Create: `docs/contracts/billing.md`
 
 **不是代码**，是交付给后端 repo（`read-frog-monorepo` / `@read-frog/api-contract`）的规范。内容：
@@ -450,6 +465,7 @@ git commit -m "feat(i18n): add billing and paywall copy"
 ```
 
 **Commit:**
+
 ```bash
 git add docs/contracts/billing.md
 git commit -m "docs(contracts): spec billing oRPC procedures for backend"

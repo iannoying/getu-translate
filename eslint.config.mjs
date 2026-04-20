@@ -83,7 +83,7 @@ export default antfu({
   },
 ], [
   {
-    ignores: ["**/*.md/**", ".agents/**/*", ".claude/**/*", ".codex/**/*", ".cursor/**/*"],
+    ignores: ["**/*.md/**", ".agents/**/*", ".claude/**/*", ".codex/**/*", ".cursor/**/*", ".omc/**/*"],
   },
 ]).append({
   plugins: {

@@ -56,6 +56,7 @@ const EntitlementsSchema = z.object({
 ```
 
 **字段约定：**
+
 - `tier`：订阅层。`free` 始终可用；`pro` 有 `expiresAt`；`enterprise` 可为 `null`（座席制，后端自行续期）。
 - `features`：当前层级**已生效**的 feature list。`free` 下通常为空数组。
 - `quota`：配额桶字典，key 见 §3.2。每个桶返回本账单周期的 `used` / `limit`。
@@ -65,12 +66,12 @@ const EntitlementsSchema = z.object({
 
 ### 3.2 `QuotaBucket` keys（初版）
 
-| Key | 单位 | Free 上限 | Pro 上限 | 补充 |
-|-----|------|----------|---------|------|
-| `input_translate_daily`   | 次/天  | 50    | null (无限) | 自然日 UTC 重置 |
-| `pdf_translate_daily`     | 页/天  | 50    | null        | 自然日 UTC 重置 |
-| `vocab_count`             | 条     | 100   | null        | 生命周期累计 |
-| `ai_translate_monthly`    | 次/月  | 0     | 50_000      | 自然月 UTC 重置，仅 Pro 可用 |
+| Key                     | 单位  | Free 上限 | Pro 上限    | 补充                         |
+| ----------------------- | ----- | --------- | ----------- | ---------------------------- |
+| `input_translate_daily` | 次/天 | 50        | null (无限) | 自然日 UTC 重置              |
+| `pdf_translate_daily`   | 页/天 | 50        | null        | 自然日 UTC 重置              |
+| `vocab_count`           | 条    | 100       | null        | 生命周期累计                 |
+| `ai_translate_monthly`  | 次/月 | 0         | 50_000      | 自然月 UTC 重置，仅 Pro 可用 |
 
 > **`null` 或字段缺失** 视为"无限制"。扩展端 `hasFeature / quota` 检查需同时允许这两种表达。
 
@@ -84,14 +85,14 @@ const EntitlementsSchema = z.object({
 
 ### 4.1 `billing.getEntitlements`
 
-| 项 | 值 |
-|----|----|
-| Auth | Required |
-| Input | `{}` |
-| Output | `Entitlements` |
+| 项            | 值                    |
+| ------------- | --------------------- |
+| Auth          | Required              |
+| Input         | `{}`                  |
+| Output        | `Entitlements`        |
 | Cache-Control | `private, max-age=30` |
-| Idempotent | Yes |
-| Rate limit | 60 req / min / user |
+| Idempotent    | Yes                   |
+| Rate limit    | 60 req / min / user   |
 
 **错误：**
 | oRPC code | HTTP | 语义 |
@@ -100,6 +101,7 @@ const EntitlementsSchema = z.object({
 | `INTERNAL_SERVER_ERROR` | 500 | 不可恢复 |
 
 **扩展端行为：**
+
 - 200 → 写入 Dexie `entitlements_cache` + Jotai atom
 - 401 → 触发重新登录 UI；降级 Free
 - 5xx / 网络错误 → 读 Dexie 缓存；若无则 Free
@@ -110,15 +112,16 @@ const EntitlementsSchema = z.object({
 
 扣减指定桶的配额，原子操作。扩展在使用 Pro 功能**之前**调用，后端扣减后返回剩余额度。
 
-| 项 | 值 |
-|----|----|
-| Auth | Required |
-| Input | `{ bucket: string, amount: number, request_id: string }` |
-| Output | `{ bucket: string, remaining: number \| null, reset_at: string \| null }` |
-| Idempotent | **必须**（按 `request_id`） |
-| Rate limit | 300 req / min / user |
+| 项         | 值                                                                        |
+| ---------- | ------------------------------------------------------------------------- |
+| Auth       | Required                                                                  |
+| Input      | `{ bucket: string, amount: number, request_id: string }`                  |
+| Output     | `{ bucket: string, remaining: number \| null, reset_at: string \| null }` |
+| Idempotent | **必须**（按 `request_id`）                                               |
+| Rate limit | 300 req / min / user                                                      |
 
 **输入校验：**
+
 - `bucket` 必须在 §3.2 枚举内
 - `amount >= 1`
 - `request_id` 形如 UUID v4
@@ -132,10 +135,12 @@ const EntitlementsSchema = z.object({
 | `FORBIDDEN` | 403 | Free 用户访问仅 Pro 桶 |
 
 **幂等契约：**
+
 - 同 `(userId, request_id)` 第 2 次及以后调用，**不再扣减**，返回与第 1 次完全一致的响应（包括错误）。
 - TTL 24h。
 
 **扩展端行为：**
+
 - 成功 → 更新本地 atom 中的 `quota.<bucket>`
 - `QUOTA_EXCEEDED` → 弹 `<UpgradeDialog>`
 - 网络错误 → **不** retry（已 consumed 风险），直接报错给用户
@@ -146,21 +151,22 @@ const EntitlementsSchema = z.object({
 
 生成 Stripe Checkout 会话。扩展打开返回的 `url` 在新标签完成支付。
 
-| 项 | 值 |
-|----|----|
-| Auth | Required |
-| Input | `{ plan: 'pro_monthly' \| 'pro_yearly', successUrl: string, cancelUrl: string }` |
-| Output | `{ url: string }` |
-| Idempotent | 幂等可选（建议按 `userId + plan + 15min 窗口` 去重） |
-| Rate limit | 10 req / min / user |
+| 项         | 值                                                                               |
+| ---------- | -------------------------------------------------------------------------------- |
+| Auth       | Required                                                                         |
+| Input      | `{ plan: 'pro_monthly' \| 'pro_yearly', successUrl: string, cancelUrl: string }` |
+| Output     | `{ url: string }`                                                                |
+| Idempotent | 幂等可选（建议按 `userId + plan + 15min 窗口` 去重）                             |
+| Rate limit | 10 req / min / user                                                              |
 
 **输入约束：**
+
 - `successUrl` / `cancelUrl` 必须是 `https://readfrog.app/*` 或 `chrome-extension://*`，避免 open-redirect。后端白名单校验。
 
 **错误：**
 | oRPC code | HTTP | 语义 |
 |-----------|------|------|
-| `UNAUTHORIZED` | 401 |  |
+| `UNAUTHORIZED` | 401 | |
 | `BAD_REQUEST` | 400 | plan/URL 不合法 |
 | `PRECONDITION_FAILED` | 412 | 用户已持有活跃 Pro 订阅（改走 `createPortalSession`） |
 
@@ -170,14 +176,15 @@ const EntitlementsSchema = z.object({
 
 生成 Stripe Customer Portal 链接，已订阅用户去管理/取消。
 
-| 项 | 值 |
-|----|----|
-| Auth | Required |
-| Input | `{}` |
-| Output | `{ url: string }` |
+| 项         | 值                  |
+| ---------- | ------------------- |
+| Auth       | Required            |
+| Input      | `{}`                |
+| Output     | `{ url: string }`   |
 | Rate limit | 10 req / min / user |
 
 **错误：**
+
 - `UNAUTHORIZED` / `PRECONDITION_FAILED`（未订阅用户调用）
 
 ---
@@ -186,17 +193,18 @@ const EntitlementsSchema = z.object({
 
 后端需在 `/api/stripe/webhook` 处理以下事件，并在处理成功后写 `user_entitlements` 表。每条事件**必须按 `event.id` 幂等**（TTL 30 天）。
 
-| Stripe 事件 | 行为 |
-|-------------|------|
-| `checkout.session.completed` | 创建/激活订阅 → 写入 `tier=pro`, `features`, `expiresAt` |
-| `customer.subscription.updated` | 续费、plan 变更 → 更新 `expiresAt` / `features` |
-| `customer.subscription.deleted` | 立即到期 → `tier=free`, 清空 Pro `features` |
-| `invoice.payment_failed` | **7 天宽限期**：保留 `tier=pro` 但加 flag `in_grace_period`（扩展端可用 `quota` 或单独字段展示 banner） |
-| `invoice.payment_succeeded` | 清除宽限期 flag |
+| Stripe 事件                     | 行为                                                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `checkout.session.completed`    | 创建/激活订阅 → 写入 `tier=pro`, `features`, `expiresAt`                                                |
+| `customer.subscription.updated` | 续费、plan 变更 → 更新 `expiresAt` / `features`                                                         |
+| `customer.subscription.deleted` | 立即到期 → `tier=free`, 清空 Pro `features`                                                             |
+| `invoice.payment_failed`        | **7 天宽限期**：保留 `tier=pro` 但加 flag `in_grace_period`（扩展端可用 `quota` 或单独字段展示 banner） |
+| `invoice.payment_succeeded`     | 清除宽限期 flag                                                                                         |
 
 **签名校验**：所有 webhook 必须用 `STRIPE_WEBHOOK_SECRET` 验证 `Stripe-Signature` header。校验失败直接 400，不重试、不落库。
 
 **关键变量**
+
 - `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`：仅后端持有，严禁出现在扩展 build。本扩展的 `check-api-key-env` Vite 插件会拦截 `WXT_*_API_KEY` 泄漏，但最终 review 必须人肉确认。
 
 ---
@@ -259,6 +267,6 @@ const EntitlementsSchema = z.object({
 
 ## 9. 变更记录
 
-| 日期 | 版本 | 说明 | 作者 |
-|------|------|------|------|
+| 日期       | 版本     | 说明 | 作者                    |
+| ---------- | -------- | ---- | ----------------------- |
 | 2026-04-20 | v1 draft | 初稿 | @iannoying (via Claude) |
