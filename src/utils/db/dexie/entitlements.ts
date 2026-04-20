@@ -28,3 +28,11 @@ export async function readCachedEntitlements(
   const row = await db.entitlementsCache.get(userId)
   return row ?? null
 }
+
+/**
+ * Purge the cached entitlements row for a specific user. Use on sign-out
+ * so the previous account's billing state does not persist in IndexedDB.
+ */
+export async function deleteCachedEntitlements(userId: string): Promise<void> {
+  await db.entitlementsCache.delete(userId)
+}

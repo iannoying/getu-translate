@@ -6,6 +6,7 @@ import { GeneralPage } from "./pages/general"
 
 type RoutePath = (typeof ROUTE_DEFS)[number]["path"]
 
+const AccountPage = lazy(() => import("./pages/account").then(module => ({ default: module.AccountPage })))
 const ApiProvidersPage = lazy(() => import("./pages/api-providers").then(module => ({ default: module.ApiProvidersPage })))
 const CustomActionsPage = lazy(() => import("./pages/custom-actions").then(module => ({ default: module.CustomActionsPage })))
 const TranslationPage = lazy(() => import("./pages/translation").then(module => ({ default: module.TranslationPage })))
@@ -19,6 +20,7 @@ const StatisticsPage = lazy(() => import("./pages/statistics").then(module => ({
 const ConfigPage = lazy(() => import("./pages/config").then(module => ({ default: module.ConfigPage })))
 
 const ROUTE_COMPONENTS: Record<RoutePath, ComponentType> = {
+  "/account": AccountPage,
   "/": GeneralPage,
   "/api-providers": ApiProvidersPage,
   "/custom-actions": CustomActionsPage,

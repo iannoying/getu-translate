@@ -31,6 +31,13 @@ export function SettingsNav() {
       <SidebarGroupContent>
         <SidebarMenu>
           <SidebarMenuItem>
+            <SidebarMenuButton render={<Link to="/account" />} isActive={pathname === "/account"}>
+              <Icon icon="tabler:user-circle" />
+              <span>{i18n.t("billing.account.section")}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
+          <SidebarMenuItem>
             <SidebarMenuButton render={<Link to="/" />} isActive={pathname === "/"}>
               <Icon icon="tabler:adjustments-horizontal" />
               <span>{i18n.t("options.general.title")}</span>

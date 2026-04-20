@@ -1,4 +1,5 @@
 export const ROUTE_DEFS = [
+  { path: "/account" },
   { path: "/" },
   { path: "/api-providers" },
   { path: "/custom-actions" },
