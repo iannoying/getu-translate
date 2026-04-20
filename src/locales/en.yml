@@ -104,6 +104,7 @@ options:
         description: Description
         apiKey: API Key
         baseURL: Base URL
+        endpoint: Endpoint URL
         optional: Optional
       delete: Delete
       deleteDialog:
@@ -159,6 +160,7 @@ options:
         openaiCompatible: Third-party and OpenAI API compatible
         deeplx: Unofficial DeepL API
         deepl: Official DeepL API
+        libreTranslate: Self-hosted open-source translation API
         bedrock: AWS managed service for enterprise-grade foundation models
         groq: Specialized hardware for ultra-fast LLM inference speeds
         deepinfra: Cost-effective cloud inference for popular open-source models

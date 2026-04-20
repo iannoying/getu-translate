@@ -160,6 +160,21 @@ export const PROVIDER_ITEMS: Record<AllProviderTypes, { logo: (theme: Theme) => 
       name: NON_API_TRANSLATE_PROVIDERS_MAP["google-translate"],
       website: "https://translate.google.com",
     },
+    "bing-translate": {
+      logo: getLobeIconsCDNUrlFn("bing-color"),
+      name: NON_API_TRANSLATE_PROVIDERS_MAP["bing-translate"],
+      website: "https://www.bing.com/translator",
+    },
+    "yandex-translate": {
+      logo: getLobeIconsCDNUrlFn("yandex-color"),
+      name: NON_API_TRANSLATE_PROVIDERS_MAP["yandex-translate"],
+      website: "https://translate.yandex.com",
+    },
+    "libre-translate": {
+      logo: () => customProviderLogo,
+      name: "LibreTranslate",
+      website: "https://libretranslate.com",
+    },
     "deeplx": {
       logo: (theme: Theme) => theme === "light" ? deeplxLogoLight : deeplxLogoDark,
       name: "DeepLX",
@@ -319,6 +334,26 @@ export const DEFAULT_PROVIDER_CONFIG = {
     name: PROVIDER_ITEMS["microsoft-translate"].name,
     enabled: true,
     provider: "microsoft-translate",
+  },
+  "bing-translate": {
+    id: "bing-translate-default",
+    name: PROVIDER_ITEMS["bing-translate"].name,
+    enabled: true,
+    provider: "bing-translate",
+  },
+  "yandex-translate": {
+    id: "yandex-translate-default",
+    name: PROVIDER_ITEMS["yandex-translate"].name,
+    enabled: true,
+    provider: "yandex-translate",
+  },
+  "libre-translate": {
+    id: "libre-translate-default",
+    name: PROVIDER_ITEMS["libre-translate"].name,
+    description: i18n.t("options.apiProviders.providers.description.libreTranslate"),
+    enabled: true,
+    provider: "libre-translate",
+    endpoint: "",
   },
   "siliconflow": {
     id: "siliconflow-default",
@@ -581,6 +616,9 @@ export const PROVIDER_CONNECTION_OPTIONS_FIELDS: Partial<
 export const DEFAULT_PROVIDER_CONFIG_LIST: ProvidersConfig = [
   DEFAULT_PROVIDER_CONFIG["microsoft-translate"],
   DEFAULT_PROVIDER_CONFIG["google-translate"],
+  DEFAULT_PROVIDER_CONFIG["bing-translate"],
+  DEFAULT_PROVIDER_CONFIG["yandex-translate"],
+  DEFAULT_PROVIDER_CONFIG["libre-translate"],
   DEFAULT_PROVIDER_CONFIG.openai,
   DEFAULT_PROVIDER_CONFIG.tensdaq,
   DEFAULT_PROVIDER_CONFIG.ai302,

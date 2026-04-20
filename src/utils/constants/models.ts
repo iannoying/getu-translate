@@ -48,13 +48,15 @@ export const LLM_PROVIDER_MODELS = {
   "huggingface": ["meta-llama/Llama-3.1-8B-Instruct", "meta-llama/Llama-3.1-70B-Instruct", "meta-llama/Llama-3.3-70B-Instruct", "meta-llama/Llama-4-Maverick-17B-128E-Instruct", "deepseek-ai/DeepSeek-V3.1", "deepseek-ai/DeepSeek-V3-0324", "deepseek-ai/DeepSeek-R1", "deepseek-ai/DeepSeek-R1-Distill-Llama-70B", "Qwen/Qwen3-32B", "Qwen/Qwen3-Coder-480B-A35B-Instruct", "Qwen/Qwen2.5-VL-7B-Instruct", "google/gemma-3-27b-it", "moonshotai/Kimi-K2-Instruct"],
 } as const
 
-export const NON_API_TRANSLATE_PROVIDERS = ["google-translate", "microsoft-translate"] as const
+export const NON_API_TRANSLATE_PROVIDERS = ["google-translate", "microsoft-translate", "bing-translate", "yandex-translate"] as const
 export const NON_API_TRANSLATE_PROVIDERS_MAP: Record<typeof NON_API_TRANSLATE_PROVIDERS[number], string> = {
   "google-translate": "Google Translate",
   "microsoft-translate": "Microsoft Translator",
+  "bing-translate": "Bing Translate",
+  "yandex-translate": "Yandex Translate",
 }
 
-export const PURE_TRANSLATE_PROVIDERS = ["google-translate", "microsoft-translate", "deeplx", "deepl"] as const
+export const PURE_TRANSLATE_PROVIDERS = ["google-translate", "microsoft-translate", "bing-translate", "yandex-translate", "deeplx", "deepl", "libre-translate"] as const
 
 const OPENAI_GPT5_REASONING_EFFORT_POLICIES: OpenAIGPT5ReasoningEffortPolicy[] = [
   {
