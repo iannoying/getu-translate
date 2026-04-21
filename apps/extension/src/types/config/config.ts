@@ -73,7 +73,7 @@ const inputTranslationLangSchema = z.union([
   langCodeISO6393Schema,
 ])
 
-// input translation schema (triple-space trigger)
+// input translation schema (triple-space trigger or immersive-style token)
 const inputTranslationSchema = z.object({
   enabled: z.boolean(),
   providerId: z.string().nonempty(),
@@ -81,6 +81,14 @@ const inputTranslationSchema = z.object({
   toLang: inputTranslationLangSchema,
   enableCycle: z.boolean(),
   timeThreshold: z.number().min(100).max(1000),
+  /**
+   * Which trigger fires the in-place translation:
+   * - "triple-space" — press spacebar three times rapidly (existing behavior)
+   * - "token" — type `<tokenPrefix><shortLang>` + space/newline, e.g. `hello //en `
+   */
+  triggerMode: z.enum(["triple-space", "token"]),
+  /** Prefix for token mode. Only consulted when triggerMode === "token". */
+  tokenPrefix: z.string().min(1).max(4),
 })
 
 // Export types for use in components
