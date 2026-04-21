@@ -2,6 +2,12 @@ shellEmulator: true
 
 trustPolicy: no-downgrade
 
+onlyBuiltDependencies:
+  - esbuild
+  - msw
+  - sharp
+  - workerd
+
 packages:
   - "apps/*"
   - "packages/*"
