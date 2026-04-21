@@ -4,10 +4,15 @@ import { createDb, schema } from "@getu/db"
 import type { WorkerEnv } from "./env"
 import { parseSecrets } from "./env"
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const authCache = new WeakMap<WorkerEnv, any>()
+
 export function createAuth(env: WorkerEnv) {
+  const cached = authCache.get(env)
+  if (cached) return cached
   const secrets = parseSecrets(env)
   const db = createDb(env.DB)
-  return betterAuth({
+  const auth = betterAuth({
     database: drizzleAdapter(db, { provider: "sqlite", schema }),
     secret: secrets.AUTH_SECRET,
     baseURL: secrets.AUTH_BASE_URL,
@@ -19,9 +24,17 @@ export function createAuth(env: WorkerEnv) {
     },
     advanced: {
       cookies: {
-        sessionToken: { attributes: { domain: ".getutranslate.com", sameSite: "lax", secure: true } },
+        sessionToken: {
+          attributes: {
+            domain: ".getutranslate.com",
+            sameSite: "lax",
+            secure: secrets.AUTH_BASE_URL.startsWith("https"),
+          },
+        },
       },
     },
-    trustedOrigins: secrets.ALLOWED_EXTENSION_ORIGINS.split(",").map(s => s.trim()),
+    trustedOrigins: secrets.ALLOWED_EXTENSION_ORIGINS.split(",").map(s => s.trim()).filter(Boolean),
   })
+  authCache.set(env, auth)
+  return auth
 }
