@@ -6,6 +6,7 @@ import AiSegmentationCache from "./tables/ai-segmentation-cache"
 import ArticleSummaryCache from "./tables/article-summary-cache"
 import BatchRequestRecord from "./tables/batch-request-record"
 import EntitlementsCache from "./tables/entitlements-cache"
+import InputTranslationUsage from "./tables/input-translation-usage"
 import TranslationCache from "./tables/translation-cache"
 
 export default class AppDB extends Dexie {
@@ -32,6 +33,11 @@ export default class AppDB extends Dexie {
   entitlementsCache!: EntityTable<
     EntitlementsCache,
     "userId"
+  >
+
+  inputTranslationUsage!: EntityTable<
+    InputTranslationUsage,
+    "dateKey"
   >
 
   constructor() {
@@ -108,10 +114,35 @@ export default class AppDB extends Dexie {
         userId,
         updatedAt`,
     })
+    this.version(6).stores({
+      translationCache: `
+        key,
+        translation,
+        createdAt`,
+      batchRequestRecord: `
+        key,
+        createdAt,
+        originalRequestCount,
+        provider,
+        model`,
+      articleSummaryCache: `
+        key,
+        createdAt`,
+      aiSegmentationCache: `
+        key,
+        createdAt`,
+      entitlementsCache: `
+        userId,
+        updatedAt`,
+      inputTranslationUsage: `
+        dateKey,
+        updatedAt`,
+    })
     this.translationCache.mapToClass(TranslationCache)
     this.batchRequestRecord.mapToClass(BatchRequestRecord)
     this.articleSummaryCache.mapToClass(ArticleSummaryCache)
     this.aiSegmentationCache.mapToClass(AiSegmentationCache)
     this.entitlementsCache.mapToClass(EntitlementsCache)
+    this.inputTranslationUsage.mapToClass(InputTranslationUsage)
   }
 }

@@ -1,6 +1,7 @@
 import { useAtomValue } from "jotai"
 import { useEffect } from "react"
 import { Toaster } from "sonner"
+import { UpgradeDialog } from "@/components/billing/upgrade-dialog"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { useInputTranslation } from "./input-translation"
 import {
@@ -16,7 +17,7 @@ export default function App({
 }: {
   uiContainer: HTMLElement
 }) {
-  useInputTranslation()
+  const { upgradeDialogProps } = useInputTranslation()
   const opacity = useAtomValue(configFieldsAtomMap.selectionToolbar).opacity / 100
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function App({
           <SelectionToolbar />
         </SelectionCustomActionProvider>
       </SelectionTranslationProvider>
+      <UpgradeDialog {...upgradeDialogProps} />
       <Toaster
         richColors
         className={`${SELECTION_CONTENT_OVERLAY_LAYERS.selectionOverlay} notranslate`}
