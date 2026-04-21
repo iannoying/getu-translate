@@ -16,6 +16,7 @@ popup:
   targetLang: 目标语言
   translate: 翻译
   showOriginal: 显示原文
+  translateCurrentPdf: Translate current PDF # TODO(i18n): translate in Task 7
   enabledFloatingButton: 启用悬浮按钮
   enabledSelectionToolbar: 启用选择工具栏
   alwaysTranslate: 总是翻译这个网站
@@ -277,6 +278,26 @@ options:
       label: 阈值 (毫秒)
       hint: 连续空格按键之间的时间间隔 (100-1000毫秒)
       error: 数值必须在 $1 到 $2 之间
+  # TODO(i18n): translate in Task 7
+  pdfTranslation:
+    title: PDF Translation
+    enabled:
+      label: Enable PDF translation
+      description: Allow GetU to intercept .pdf URLs and open them in the bilingual viewer
+    activationMode:
+      label: Activation behavior
+      always: Always translate
+      ask: Ask first time on each site
+      manual: Manual only (from popup)
+    blocklist:
+      label: Blocked domains
+      empty: No blocked domains yet
+      remove: Remove
+    fileProtocol:
+      label: Local file access
+      allowed: Enabled — local PDF files can be translated
+      disabled: Disabled — open chrome://extensions and enable "Allow access to file URLs"
+      copyUrl: Copy extensions URL
   floatingButtonAndToolbar:
     title: 悬浮按钮和工具栏
     floatingButtonDemoImageAlt: 悬浮按钮演示
@@ -934,6 +955,14 @@ options:
     title: 改进字幕 🎁
   rateUs:
     title: 好评支持
+# TODO(i18n): translate in a follow-up locale PR
+pdfViewer:
+  firstUseToast:
+    title: Translate this PDF with GetU?
+    description: We can render a bilingual version of this PDF so you can read source and translation side-by-side.
+    accept: Translate this PDF
+    skipOnce: Not this time
+    neverOnThisDomain: Never on this site
 side:
   sourceLang: 来源语言
   targetLang: 目标语言

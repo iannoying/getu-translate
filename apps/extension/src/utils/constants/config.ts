@@ -18,7 +18,7 @@ export const GOOGLE_DRIVE_TOKEN_STORAGE_KEY = "__googleDriveToken"
 export const THEME_STORAGE_KEY = "theme"
 export const DETECTED_CODE_STORAGE_KEY = "detectedCode"
 export const DEFAULT_DETECTED_CODE = "eng" as const
-export const CONFIG_SCHEMA_VERSION = 69
+export const CONFIG_SCHEMA_VERSION = 70
 
 export const DEFAULT_FLOATING_BUTTON_POSITION = 0.66
 
@@ -169,6 +169,12 @@ export const DEFAULT_CONFIG: Config = {
     mode: "blacklist",
     blacklistPatterns: [],
     whitelistPatterns: [],
+  },
+  pdfTranslation: {
+    enabled: true,
+    activationMode: "ask",
+    blocklistDomains: [],
+    allowFileProtocol: false,
   },
 }
 

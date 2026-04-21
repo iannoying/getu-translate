@@ -16,6 +16,7 @@ popup:
   targetLang: 翻訳言語
   translate: 翻訳
   showOriginal: 原文を表示
+  translateCurrentPdf: Translate current PDF # TODO(i18n): translate in Task 7
   enabledFloatingButton: フローティングボタンを有効化
   enabledSelectionToolbar: 選択ツールバーを有効化
   alwaysTranslate: このサイトを常に翻訳する
@@ -276,6 +277,26 @@ options:
       label: しきい値 (ミリ秒)
       hint: 連続したスペースキー押下間の時間間隔 (100-1000ミリ秒)
       error: 値は $1 から $2 の間である必要があります
+  # TODO(i18n): translate in Task 7
+  pdfTranslation:
+    title: PDF Translation
+    enabled:
+      label: Enable PDF translation
+      description: Allow GetU to intercept .pdf URLs and open them in the bilingual viewer
+    activationMode:
+      label: Activation behavior
+      always: Always translate
+      ask: Ask first time on each site
+      manual: Manual only (from popup)
+    blocklist:
+      label: Blocked domains
+      empty: No blocked domains yet
+      remove: Remove
+    fileProtocol:
+      label: Local file access
+      allowed: Enabled — local PDF files can be translated
+      disabled: Disabled — open chrome://extensions and enable "Allow access to file URLs"
+      copyUrl: Copy extensions URL
   floatingButtonAndToolbar:
     title: フローティングボタンとツールバー
     floatingButtonDemoImageAlt: フローティングボタンデモ
@@ -819,6 +840,14 @@ options:
     title: 字幕を改善 🎁
   rateUs:
     title: レビューを書く
+# TODO(i18n): translate in a follow-up locale PR
+pdfViewer:
+  firstUseToast:
+    title: Translate this PDF with GetU?
+    description: We can render a bilingual version of this PDF so you can read source and translation side-by-side.
+    accept: Translate this PDF
+    skipOnce: Not this time
+    neverOnThisDomain: Never on this site
 side:
   sourceLang: ソース言語
   targetLang: 翻訳言語

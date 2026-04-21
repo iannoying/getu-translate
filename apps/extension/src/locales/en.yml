@@ -16,6 +16,7 @@ popup:
   targetLang: Target
   translate: Translate
   showOriginal: Show Original
+  translateCurrentPdf: Translate current PDF
   enabledFloatingButton: Enable floating button
   enabledSelectionToolbar: Enable selection toolbar
   alwaysTranslate: Always translate this site
@@ -279,6 +280,25 @@ options:
       label: Threshold (ms)
       hint: Time in milliseconds between consecutive space presses (100-1000ms)
       error: Value must be between $1 and $2
+  pdfTranslation:
+    title: PDF Translation
+    enabled:
+      label: Enable PDF translation
+      description: Allow GetU to intercept .pdf URLs and open them in the bilingual viewer
+    activationMode:
+      label: Activation behavior
+      always: Always translate
+      ask: Ask first time on each site
+      manual: Manual only (from popup)
+    blocklist:
+      label: Blocked domains
+      empty: No blocked domains yet
+      remove: Remove
+    fileProtocol:
+      label: Local file access
+      allowed: Enabled — local PDF files can be translated
+      disabled: Disabled — open chrome://extensions and enable "Allow access to file URLs"
+      copyUrl: Copy extensions URL
   floatingButtonAndToolbar:
     title: Floating Button & Toolbar
     floatingButtonDemoImageAlt: Floating Button Demo
@@ -936,6 +956,13 @@ options:
     title: Improve Subtitle 🎁
   rateUs:
     title: Rate Us
+pdfViewer:
+  firstUseToast:
+    title: Translate this PDF with GetU?
+    description: We can render a bilingual version of this PDF so you can read source and translation side-by-side.
+    accept: Translate this PDF
+    skipOnce: Not this time
+    neverOnThisDomain: Never on this site
 side:
   sourceLang: Source Language
   targetLang: Target Language

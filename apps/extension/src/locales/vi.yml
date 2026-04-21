@@ -16,6 +16,7 @@ popup:
   targetLang: Đích
   translate: Dịch
   showOriginal: Hiển thị bản gốc
+  translateCurrentPdf: Translate current PDF # TODO(i18n): translate in Task 7
   enabledFloatingButton: Bật nút nổi
   enabledSelectionToolbar: Bật thanh công cụ chọn văn bản
   alwaysTranslate: Luôn dịch trang web này
@@ -276,6 +277,26 @@ options:
       label: Ngưỡng (ms)
       hint: Thời gian tính bằng mili giây giữa các lần nhấn phím cách liên tiếp (100-1000ms)
       error: Giá trị phải từ $1 đến $2
+  # TODO(i18n): translate in Task 7
+  pdfTranslation:
+    title: PDF Translation
+    enabled:
+      label: Enable PDF translation
+      description: Allow GetU to intercept .pdf URLs and open them in the bilingual viewer
+    activationMode:
+      label: Activation behavior
+      always: Always translate
+      ask: Ask first time on each site
+      manual: Manual only (from popup)
+    blocklist:
+      label: Blocked domains
+      empty: No blocked domains yet
+      remove: Remove
+    fileProtocol:
+      label: Local file access
+      allowed: Enabled — local PDF files can be translated
+      disabled: Disabled — open chrome://extensions and enable "Allow access to file URLs"
+      copyUrl: Copy extensions URL
   floatingButtonAndToolbar:
     title: Nút nổi & Thanh công cụ
     floatingButtonDemoImageAlt: Demo nút nổi
@@ -819,6 +840,14 @@ options:
     title: Cải thiện phụ đề 🎁
   rateUs:
     title: Đánh giá chúng tôi
+# TODO(i18n): translate in a follow-up locale PR
+pdfViewer:
+  firstUseToast:
+    title: Translate this PDF with GetU?
+    description: We can render a bilingual version of this PDF so you can read source and translation side-by-side.
+    accept: Translate this PDF
+    skipOnce: Not this time
+    neverOnThisDomain: Never on this site
 side:
   sourceLang: Ngôn ngữ nguồn
   targetLang: Ngôn ngữ đích

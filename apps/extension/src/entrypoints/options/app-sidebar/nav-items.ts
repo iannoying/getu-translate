@@ -9,6 +9,7 @@ export const ROUTE_DEFS = [
   { path: "/selection-toolbar" },
   { path: "/context-menu" },
   { path: "/input-translation" },
+  { path: "/pdf-translation" },
   ...(import.meta.env.BROWSER === "firefox" ? [] : [{ path: "/tts" }]),
   { path: "/statistics" },
   { path: "/config" },
