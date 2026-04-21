@@ -1,0 +1,15 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #525659;
+  color: #fff;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+#viewer-container {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+}
