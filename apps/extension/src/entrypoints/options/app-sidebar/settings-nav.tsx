@@ -79,6 +79,13 @@ export function SettingsNav() {
             </SidebarMenuButton>
           </SidebarMenuItem>
 
+          <SidebarMenuItem>
+            <SidebarMenuButton render={<Link to="/pdf-translation" />} isActive={pathname === "/pdf-translation"}>
+              <Icon icon="tabler:file-type-pdf" />
+              <span>{i18n.t("options.pdfTranslation.title")}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
           <Collapsible defaultOpen={isOverlayToolsActive} className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger render={<SidebarMenuButton isActive={isOverlayToolsActive} />}>

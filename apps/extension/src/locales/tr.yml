@@ -277,6 +277,26 @@ options:
       label: Eşik (ms)
       hint: Ardışık boşluk tuşuna basışlar arasındaki milisaniye cinsinden süre (100-1000ms)
       error: Değer $1 ile $2 arasında olmalıdır
+  # TODO(i18n): translate in Task 7
+  pdfTranslation:
+    title: PDF Translation
+    enabled:
+      label: Enable PDF translation
+      description: Allow GetU to intercept .pdf URLs and open them in the bilingual viewer
+    activationMode:
+      label: Activation behavior
+      always: Always translate
+      ask: Ask first time on each site
+      manual: Manual only (from popup)
+    blocklist:
+      label: Blocked domains
+      empty: No blocked domains yet
+      remove: Remove
+    fileProtocol:
+      label: Local file access
+      allowed: Enabled — local PDF files can be translated
+      disabled: Disabled — open chrome://extensions and enable "Allow access to file URLs"
+      copyUrl: Copy extensions URL
   floatingButtonAndToolbar:
     title: Yüzen Buton ve Araç Çubuğu
     floatingButtonDemoImageAlt: Yüzen Buton Demosu
