@@ -1,6 +1,6 @@
-name: Read Frog
-extName: Read Frog - Open Source Immersive Translate
-extDescription: Read Frog is an open source browser extension designed to help you learn languages deeply from any website.
+name: GetU Translate
+extName: GetU Translate
+extDescription: GetU Translate is an open source browser extension designed to help you understand any webpage in your native language.
 uninstallSurveyUrl: https://tally.so/r/nPK6Ob
 dataTypes:
   string: Text
@@ -29,7 +29,7 @@ popup:
   discord:
     tooltip: Join Discord to connect with developers and get early access to new features
   blog:
-    notification: What's new in Read Frog
+    notification: What's new in GetU Translate
   aiSmartContext: AI Smart Context
   aiSmartContextDescription: Uses webpage context to improve translation quality. Requires LLM translation provider.
   more:
@@ -275,7 +275,7 @@ options:
     floatingButton:
       globalToggle:
         title: Enable Floating Button
-        description: Display the floating button on web pages for quick access to Read Frog features
+        description: Display the floating button on web pages for quick access to GetU Translate features
       closeMenu:
         disableForSite: Disable for this site
         disableGlobally: Disable globally
@@ -374,14 +374,14 @@ options:
             title: Notebase Connection
             description: Save this action's structured results to a remote notebase.
             loginRequiredTitle: Log in to configure Notebase
-            loginRequiredDescription: Sign in on readfrog.app before choosing a notebase or editing mappings.
+            loginRequiredDescription: Sign in on getutranslate.com before choosing a notebase or editing mappings.
             loginAction: Log in
             tableLabel: Notebase
             tablePlaceholder: Select a notebase
             tableClearOption: Disconnect notebase
             refreshAction: Refresh
             emptyTitle: No notebases yet
-            emptyDescription: Create a notebase on readfrog.app, then come back here to map fields.
+            emptyDescription: Create a notebase on getutranslate.com, then come back here to map fields.
             openNotebaseAction: Open Notebase
             betaLockedTitle: This account is not in the Notebase beta
             betaLockedDescription: You can keep this action configured, but choosing notebases and syncing results is limited to selected beta accounts for now.
@@ -713,7 +713,7 @@ options:
       fallback: Fallback
       selectPlaceholder: Select a voice
       preview: Preview
-      previewSample: Hello from Read Frog! This is how I will sound when reading aloud.
+      previewSample: Hello from GetU Translate! This is how I will sound when reading aloud.
     languageVoice:
       label: Language Voice
       reset: Reset to Default
@@ -739,11 +739,11 @@ options:
     title: Config
     about:
       title: About
-      description: Read Frog was born in April 2025
-      mission: Read Frog aims to expand equal access to high-quality education in the AI era by making learning experiences that feel closer to a real teacher affordable across language learning, medicine, and other knowledge-heavy fields.
+      description: GetU Translate was born in April 2025
+      mission: GetU Translate aims to expand equal access to high-quality education in the AI era by making learning experiences that feel closer to a real teacher affordable across language learning, medicine, and other knowledge-heavy fields.
       analytics:
         title: Help improve user experience
-        tooltip: When enabled, Read Frog sends anonymous product usage signals so we can verify feature reliability, improve performance and UX polish, and prioritize future work.
+        tooltip: When enabled, GetU Translate sends anonymous product usage signals so we can verify feature reliability, improve performance and UX polish, and prioritize future work.
     sync:
       title: Manual Config Sync
       description: Manually import and export your configuration settings
@@ -752,7 +752,7 @@ options:
       importSuccess: Config imported successfully
       exportSuccess: Config exported successfully
       importError: Import failed
-      versionTooNew: The imported config version is newer, please upgrade Read Frog to the latest version
+      versionTooNew: The imported config version is newer, please upgrade GetU Translate to the latest version
       migrationError: Migration failed
       validationError: Config validation failed
       exportOptions:
@@ -974,7 +974,7 @@ action:
   saveToNotebaseSaving: Saving...
   saveToNotebaseSuccess: Saved to Notebase
   saveToNotebaseFailed: Failed to save to Notebase
-  saveToNotebaseLoginRequired: Log in on readfrog.app to save to Notebase
+  saveToNotebaseLoginRequired: Log in on getutranslate.com to save to Notebase
   saveToNotebaseBetaRequired: This account is not enrolled in the Notebase beta yet
   saveToNotebaseTableUnavailable: The selected Notebase is no longer available
   saveToNotebaseConnectionInvalid: This Notebase connection is out of date. Refresh it in Custom AI Actions and fix the mappings.
@@ -995,7 +995,7 @@ subtitles:
   actions:
     downloadSource: Download source subtitles
   state:
-    loading: Read Frog loading captions
+    loading: GetU Translate loading captions
     error: Error occurred
   errors:
     http429: 429 Too many requests to youtube subtitle API, please try again later

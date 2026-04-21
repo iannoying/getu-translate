@@ -1,6 +1,6 @@
-name: 陪讀蛙
-extName: 陪讀蛙 - 開源沉浸式翻譯
-extDescription: 陪讀蛙是一款開放源代碼的瀏覽器插件，旨在幫助您從任何網站深入學習語言。
+name: 懂你翻譯
+extName: 懂你翻譯
+extDescription: 懂你翻譯是一款開放源代碼的瀏覽器插件，幫助您用母語理解任何網頁。
 uninstallSurveyUrl: https://tally.so/r/3E9XDL
 dataTypes:
   string: 文字
@@ -29,7 +29,7 @@ popup:
   discord:
     tooltip: 加入 Discord 與開發者交流，搶先體驗新功能
   blog:
-    notification: 陪讀蛙更新動態
+    notification: 懂你翻譯更新動態
   aiSmartContext: AI 智慧上下文
   aiSmartContextDescription: 結合網頁上下文提升翻譯效果。需要配置 LLM 翻譯服務商。
   more:
@@ -272,7 +272,7 @@ options:
     floatingButton:
       globalToggle:
         title: 啟用懸浮按鈕
-        description: 在網頁上顯示懸浮按鈕，快速存取陪讀蛙功能
+        description: 在網頁上顯示懸浮按鈕，快速存取懂你翻譯功能
       closeMenu:
         disableForSite: 停用此網站
         disableGlobally: 全域停用
@@ -371,14 +371,14 @@ options:
             title: 筆記庫連線
             description: 將這個指令的結構化結果儲存到遠端筆記庫。
             loginRequiredTitle: 登入後才能設定筆記庫
-            loginRequiredDescription: 先到 readfrog.app 登入，再選擇筆記庫與編輯映射。
+            loginRequiredDescription: 先到 getutranslate.com 登入，再選擇筆記庫與編輯映射。
             loginAction: 前往登入
             tableLabel: 筆記庫
             tablePlaceholder: 選擇一個筆記庫
             tableClearOption: 不連接筆記庫
             refreshAction: 重新整理
             emptyTitle: 還沒有筆記庫
-            emptyDescription: 先到 readfrog.app 建立一個筆記庫，再回來映射欄位。
+            emptyDescription: 先到 getutranslate.com 建立一個筆記庫，再回來映射欄位。
             openNotebaseAction: 開啟筆記庫
             betaLockedTitle: 目前帳號尚未加入 Notebase Beta
             betaLockedDescription: 你可以保留目前的 action 設定，但選擇筆記庫與同步結果目前僅對部分 Beta 帳號開放。
@@ -596,7 +596,7 @@ options:
       fallback: 後備
       selectPlaceholder: 請選擇一個語音
       preview: 試聽
-      previewSample: Read Frog 的問候！這是我朗讀時的語音。
+      previewSample: 懂你翻譯的問候！這是我朗讀時的語音。
     languageVoice:
       label: 語言語音
       reset: 重設為預設
@@ -622,11 +622,11 @@ options:
     title: 設定
     about:
       title: 關於
-      description: Read Frog 誕生於 2025 年 4 月
-      mission: Read Frog 致力於在 AI 時代擴大高品質教育機會的平等可及性，透過更低成本地提供盡可能接近真人教師的學習體驗，涵蓋語言學習、醫學以及其他知識密集型領域。
+      description: 懂你翻譯誕生於 2025 年 4 月
+      mission: 懂你翻譯致力於在 AI 時代擴大高品質教育機會的平等可及性，透過更低成本地提供盡可能接近真人教師的學習體驗，涵蓋語言學習、醫學以及其他知識密集型領域。
       analytics:
         title: 幫助改進使用者體驗
-        tooltip: 開啟後，Read Frog 會傳送匿名的產品使用訊號，用於驗證功能是否穩定、優化效能與互動細節，並幫助我們決定接下來優先投入的方向。
+        tooltip: 開啟後，懂你翻譯會傳送匿名的產品使用訊號，用於驗證功能是否穩定、優化效能與互動細節，並幫助我們決定接下來優先投入的方向。
     sync:
       title: 手動設定同步
       description: 手動匯入和匯出您的設定
@@ -635,7 +635,7 @@ options:
       importSuccess: 設定匯入成功
       exportSuccess: 設定匯出成功
       importError: 匯入失敗
-      versionTooNew: 匯入的設定版本較新，請升級 Read Frog 到最新版本
+      versionTooNew: 匯入的設定版本較新，請升級懂你翻譯到最新版本
       migrationError: 遷移失敗
       validationError: 設定驗證失敗
       exportOptions:
@@ -857,7 +857,7 @@ action:
   saveToNotebaseSaving: 儲存中...
   saveToNotebaseSuccess: 已儲存到筆記庫
   saveToNotebaseFailed: 儲存到筆記庫失敗
-  saveToNotebaseLoginRequired: 請先到 readfrog.app 登入後再儲存到筆記庫
+  saveToNotebaseLoginRequired: 請先到 getutranslate.com 登入後再儲存到筆記庫
   saveToNotebaseBetaRequired: 目前帳號尚未加入 Notebase Beta
   saveToNotebaseTableUnavailable: 選取的筆記庫已不可用
   saveToNotebaseConnectionInvalid: 目前的筆記庫連線已過期，請到 Custom AI Actions 重新整理並修復映射
@@ -878,7 +878,7 @@ subtitles:
   actions:
     downloadSource: 下載原始字幕
   state:
-    loading: Read Frog 字幕載入中
+    loading: 懂你翻譯字幕載入中
     error: 發生錯誤
   errors:
     http429: 429 youtube 字幕介面請求次數過多，請稍後再試
