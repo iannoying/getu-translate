@@ -169,6 +169,26 @@ describe("useInputTranslationQuota", () => {
     expect(ok).toBe(true)
   })
 
+  it("pro user bypasses 50/day quota — 60 consecutive checkAndIncrement calls all return true", async () => {
+    useEntitlementsMock.mockReturnValue({ data: PRO_UNLIMITED, isLoading: false, isFromCache: false })
+    getUsageMock.mockResolvedValue(0)
+    // Each call increments by 1; mock returns incrementing values well beyond the free cap.
+    let counter = 0
+    incrementUsageMock.mockImplementation(() => Promise.resolve(++counter))
+
+    const { result } = renderWithProviders(() => useInputTranslationQuota())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    for (let i = 0; i < 60; i++) {
+      let ok = false
+      await act(async () => {
+        ok = await result.current.checkAndIncrement()
+      })
+      expect(ok).toBe(true)
+    }
+    expect(incrementUsageMock).toHaveBeenCalledTimes(60)
+  })
+
   it("checkAndIncrement returns false while still loading and does not hit Dexie", async () => {
     useEntitlementsMock.mockReturnValue({ data: FREE_ENTITLEMENTS, isLoading: true, isFromCache: false })
     getUsageMock.mockResolvedValue(0)
