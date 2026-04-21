@@ -32,7 +32,7 @@ jobs:
 
       - name: Check for eruda imports
         run: |
-          if grep -r "import.*eruda" src/ --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" | grep -v ":.*[[:space:]]*//.*import.*eruda"; then
+          if grep -r "import.*eruda" apps/extension/src/ --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" | grep -v ":.*[[:space:]]*//.*import.*eruda"; then
             echo "❌ Found uncommented eruda imports in the codebase!"
             echo "Please comment out or remove eruda imports before merging."
             exit 1
@@ -42,13 +42,13 @@ jobs:
         shell: bash
 
       - name: ESLint
-        run: pnpm lint
+        run: pnpm --filter @getu/extension lint
 
       - name: Type check
-        run: pnpm type-check
+        run: pnpm --filter @getu/extension type-check
 
       - name: Build
-        run: pnpm build
+        run: pnpm --filter @getu/extension build
 
       - name: Run tests
-        run: pnpm test --exclude="**/free-api.test.ts"
+        run: pnpm --filter @getu/extension test --exclude="**/free-api.test.ts"
