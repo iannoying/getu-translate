@@ -16,6 +16,7 @@ popup:
   targetLang: Target
   translate: Translate
   showOriginal: Show Original
+  translateCurrentPdf: Translate current PDF
   enabledFloatingButton: Enable floating button
   enabledSelectionToolbar: Enable selection toolbar
   alwaysTranslate: Always translate this site

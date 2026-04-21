@@ -16,6 +16,7 @@ popup:
   targetLang: Hedef
   translate: Çevir
   showOriginal: Orijinali Göster
+  translateCurrentPdf: Translate current PDF # TODO(i18n): translate in Task 7
   enabledFloatingButton: Yüzen butonu etkinleştir
   enabledSelectionToolbar: Seçim araç çubuğunu etkinleştir
   alwaysTranslate: Bu siteyi her zaman çevir

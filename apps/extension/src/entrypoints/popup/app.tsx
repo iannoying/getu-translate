@@ -11,6 +11,7 @@ import { MoreMenu } from "./components/more-menu"
 import Hotkey from "./components/node-translation-hotkey-selector"
 import { SiteControlToggle } from "./components/site-control-toggle"
 import TranslateButton from "./components/translate-button"
+import TranslateCurrentPdfButton from "./components/translate-current-pdf-button"
 import TranslatePromptSelector from "./components/translate-prompt-selector"
 import TranslateProviderField from "./components/translate-provider-field"
 import { TranslationHubButton } from "./components/translation-hub-button"
@@ -35,6 +36,7 @@ function App() {
         <div className="w-full">
           <TranslateButton className="w-full" />
         </div>
+        <TranslateCurrentPdfButton className="w-full" />
         <SiteControlToggle />
         <AlwaysTranslate />
         <Hotkey />

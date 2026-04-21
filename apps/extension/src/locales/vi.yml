@@ -16,6 +16,7 @@ popup:
   targetLang: Đích
   translate: Dịch
   showOriginal: Hiển thị bản gốc
+  translateCurrentPdf: Translate current PDF # TODO(i18n): translate in Task 7
   enabledFloatingButton: Bật nút nổi
   enabledSelectionToolbar: Bật thanh công cụ chọn văn bản
   alwaysTranslate: Luôn dịch trang web này

@@ -16,6 +16,7 @@ popup:
   targetLang: 目標語言
   translate: 翻譯
   showOriginal: 顯示原文
+  translateCurrentPdf: Translate current PDF # TODO(i18n): translate in Task 7
   enabledFloatingButton: 啟用懸浮按鈕
   enabledSelectionToolbar: 啟用選擇工具列
   alwaysTranslate: 總是翻譯這個網站

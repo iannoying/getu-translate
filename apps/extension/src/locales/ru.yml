@@ -16,6 +16,7 @@ popup:
   targetLang: Целевой
   translate: Перевести
   showOriginal: Показать оригинал
+  translateCurrentPdf: Translate current PDF # TODO(i18n): translate in Task 7
   enabledFloatingButton: Включить плавающую кнопку
   enabledSelectionToolbar: Включить панель выделения
   alwaysTranslate: Всегда переводить этот сайт
