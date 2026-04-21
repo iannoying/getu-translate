@@ -1,9 +1,9 @@
-import type { ColumnConfig } from "@getu/definitions"
 import type {
   CustomTableGetSchemaOutput,
   RowAddInput,
   TableColumn,
-} from "@read-frog/api-contract"
+} from "@getu/contract"
+import type { ColumnConfig } from "@getu/definitions"
 import type {
   SelectionToolbarCustomAction,
   SelectionToolbarCustomActionNotebaseConnection,

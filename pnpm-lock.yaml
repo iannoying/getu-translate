@@ -119,6 +119,9 @@ importers:
       '@dnd-kit/utilities':
         specifier: ^3.2.2
         version: 3.2.2(react@19.2.5)
+      '@getu/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
       '@getu/definitions':
         specifier: workspace:*
         version: link:../../packages/definitions
@@ -149,9 +152,6 @@ importers:
       '@radix-ui/react-slot':
         specifier: ^1.2.4
         version: 1.2.4(@types/react@19.2.14)(react@19.2.5)
-      '@read-frog/api-contract':
-        specifier: 0.2.2
-        version: 0.2.2(@opentelemetry/api@1.9.1)
       '@remixicon/react':
         specifier: ^4.9.0
         version: 4.9.0(react@19.2.5)
@@ -384,6 +384,15 @@ importers:
       wxt:
         specifier: 0.20.22
         version: 0.20.22(@types/node@25.6.0)(eslint@10.2.0(jiti@2.6.1))(jiti@2.6.1)(rollup@4.53.2)(yaml@2.8.3)
+
+  packages/contract:
+    dependencies:
+      '@orpc/contract':
+        specifier: ^1.13.5
+        version: 1.13.10(@opentelemetry/api@1.9.1)
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
 
   packages/definitions:
     dependencies:
@@ -2273,12 +2282,6 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
-
-  '@read-frog/api-contract@0.2.2':
-    resolution: {integrity: sha512-SJ243F6bXC4nXyHDmSlR3P/PKML349iFnWg8Bxz9skXAO35tmtHU/vAFwRkHt7BPY1w0zZHdFudHZWsbNcFT6A==}
-
-  '@read-frog/definitions@0.1.2':
-    resolution: {integrity: sha512-5+9/q2PLmr7xK1pQ2ynLK4vwu0ivL9h9TylQCT3gJhIcHztxEDwOtrDo4czOKxUHmwe7BPmnKpdo27395T5geA==}
 
   '@reduxjs/toolkit@2.11.2':
     resolution: {integrity: sha512-Kd6kAHTA6/nUpp8mySPqj3en3dm0tdMIgbttnQ1xFMVpufoj+ADi8pXLBsd4xzTRHQa7t/Jv8W5UnCuW4kuWMQ==}
@@ -9506,18 +9509,6 @@ snapshots:
       react: 19.2.5
     optionalDependencies:
       '@types/react': 19.2.14
-
-  '@read-frog/api-contract@0.2.2(@opentelemetry/api@1.9.1)':
-    dependencies:
-      '@orpc/contract': 1.13.10(@opentelemetry/api@1.9.1)
-      '@read-frog/definitions': 0.1.2
-      zod: 4.3.6
-    transitivePeerDependencies:
-      - '@opentelemetry/api'
-
-  '@read-frog/definitions@0.1.2':
-    dependencies:
-      zod: 4.3.6
 
   '@reduxjs/toolkit@2.11.2(react-redux@9.2.0(@types/react@19.2.14)(react@19.2.5)(redux@5.0.1))(react@19.2.5)':
     dependencies:

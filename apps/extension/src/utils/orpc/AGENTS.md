@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Single-file oRPC client that talks to the Read Frog backend's RPC router (`@read-frog/api-contract`) using the typed router type `ORPCRouterClient`. Like `auth/auth-client.ts`, all transport goes through the background `backgroundFetch` so content-script callers don't trip CORS. Also bundles a Tanstack-Query utility wrapper (`createTanstackQueryUtils`) so React components get type-safe `queryOptions` / `mutationOptions` without restating procedure paths.
+Single-file oRPC client that talks to the Read Frog backend's RPC router (`@getu/contract`) using the typed router type `ORPCRouterClient`. Like `auth/auth-client.ts`, all transport goes through the background `backgroundFetch` so content-script callers don't trip CORS. Also bundles a Tanstack-Query utility wrapper (`createTanstackQueryUtils`) so React components get type-safe `queryOptions` / `mutationOptions` without restating procedure paths.
 
 ## Key Files
 
@@ -40,7 +40,7 @@ None.
 
 ### Internal
 
-- `@read-frog/api-contract` — `ORPCRouterClient` type.
+- `@getu/contract` — `ORPCRouterClient` type.
 - `@/utils/constants/url` — `WEBSITE_URL`.
 - `@/utils/http` — `normalizeHeaders`.
 - `@/utils/message` — `sendMessage("backgroundFetch", …)`.

@@ -1,7 +1,7 @@
 import type {
   CustomTableGetSchemaOutput,
   CustomTableListOutput,
-} from "@read-frog/api-contract"
+} from "@getu/contract"
 import type {
   SelectionToolbarCustomAction,
   SelectionToolbarCustomActionNotebaseConnection,
