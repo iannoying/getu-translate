@@ -6,11 +6,25 @@ compatibility_flags = ["nodejs_compat"]
 [dev]
 port = 8788
 
+# Default (local dev via `wrangler dev`) — localhost values so `secure: false` cookies are issued
 [[d1_databases]]
 binding = "DB"
 database_name = "getu-translate"
-database_id = "<fill from `wrangler d1 create getu-translate` output>"
+database_id = "903fa2ef-2aaa-4f20-b3a7-a2ef59a8cb70"
 
 [vars]
 AUTH_BASE_URL = "http://localhost:8788"
 ALLOWED_EXTENSION_ORIGINS = "chrome-extension://*,http://localhost:3000,https://getutranslate.com,https://www.getutranslate.com"
+
+# Production deploy — invoked via `wrangler deploy --env production`
+[env.production]
+name = "getu-api"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "getu-translate"
+database_id = "903fa2ef-2aaa-4f20-b3a7-a2ef59a8cb70"
+
+[env.production.vars]
+AUTH_BASE_URL = "https://api.getutranslate.com"
+ALLOWED_EXTENSION_ORIGINS = "chrome-extension://*,https://getutranslate.com,https://www.getutranslate.com"
