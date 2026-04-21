@@ -64,3 +64,15 @@ export type {
   TableRow,
   TableView,
 } from "./base.js"
+
+export {
+  billingContract,
+  EntitlementsSchema,
+  FeatureKey,
+  FREE_ENTITLEMENTS,
+  hasFeature,
+  isPro,
+  QuotaBucketSchema,
+} from "./billing.js"
+
+export type { Entitlements } from "./billing.js"

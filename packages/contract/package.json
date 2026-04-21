@@ -8,9 +8,16 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "test": "vitest run",
+    "type-check": "tsc --noEmit"
+  },
   "dependencies": {
     "@getu/definitions": "workspace:*",
     "@orpc/contract": "^1.13.14",
     "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.4"
   }
 }
