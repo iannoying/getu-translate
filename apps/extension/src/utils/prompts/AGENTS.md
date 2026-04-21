@@ -54,7 +54,7 @@ None.
 
 ### External
 
-- `@read-frog/definitions` — `LangCodeISO6393`, `LangLevel`, `LANG_CODE_TO_EN_NAME`, `LANG_DICTIONARY_LABELS`, `langCodeISO6393Schema`.
+- `@getu/definitions` — `LangCodeISO6393`, `LangLevel`, `LANG_CODE_TO_EN_NAME`, `LANG_DICTIONARY_LABELS`, `langCodeISO6393Schema`.
 - `zod` — used to validate detected-language output.
 
 <!-- MANUAL: -->

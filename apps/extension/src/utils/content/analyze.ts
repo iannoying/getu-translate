@@ -1,4 +1,4 @@
-import type { LangCodeISO6393 } from "@read-frog/definitions"
+import type { LangCodeISO6393 } from "@getu/definitions"
 import type { DetectionSource } from "@/utils/content/language"
 import { Readability } from "@mozilla/readability"
 import { flattenToParagraphs } from "@/entrypoints/side.content/utils/article"

@@ -63,7 +63,7 @@ No tests live at this level. The `config/` subdirectory has its own `__tests__/`
 
 - `zod` — runtime schema validation
 - `ai` — `JSONValue`, `StreamTextOnErrorCallback` for stream payloads
-- `@read-frog/definitions` — language code schemas (`langCodeISO6393Schema`)
+- `@getu/definitions` — language code schemas (`langCodeISO6393Schema`)
 - `@total-typescript/ts-reset` — `Array.includes` widening
 - `#imports` (WXT) — `Browser.runtime.Port` typing
 

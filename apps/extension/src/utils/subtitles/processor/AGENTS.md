@@ -58,6 +58,6 @@ None.
 
 - `#imports` from WXT — `i18n`
 - `ai` — `APICallError` (status-code dispatch)
-- `@read-frog/definitions` — `LANG_CODE_TO_EN_NAME` for prompt language naming
+- `@getu/definitions` — `LANG_CODE_TO_EN_NAME` for prompt language naming
 
 <!-- MANUAL: -->

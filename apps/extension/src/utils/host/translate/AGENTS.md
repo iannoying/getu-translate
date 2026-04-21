@@ -76,7 +76,7 @@ End-to-end translation orchestration for the immersive page-translation feature.
 ### External
 
 - `ai` — `generateText`, `APICallError`, `JSONValue`
-- `@read-frog/definitions` — `ISO6393_TO_6391`, `LANG_CODE_TO_EN_NAME`, `LANG_CODE_TO_LOCALE_NAME`
+- `@getu/definitions` — `ISO6393_TO_6391`, `LANG_CODE_TO_EN_NAME`, `LANG_CODE_TO_LOCALE_NAME`
 - `@mozilla/readability` — main-content extraction
 - `case-anything` — `camelCase` for data-attribute keys
 - `sonner` — toasts

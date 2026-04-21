@@ -23,7 +23,7 @@ None.
 
 - **Use `orpc.foo.bar.queryOptions(...)` in React** rather than calling `orpcClient.foo.bar(...)` directly — it gives you correct cache keys + the `meta.suppressToast`/`meta.errorDescription` integration in `tanstack-query.ts`.
 - **The fetch impl always sets `credentials: "include"`** — necessary because the backend reads `better-auth` session cookies. Don't change this without coordinating with `auth/auth-client.ts`.
-- **The TODO calls out `ORPC_PREFIX`** — when `@read-frog/definitions` exports it, switch `${WEBSITE_URL}/api/rpc` to use that constant.
+- **The TODO calls out `ORPC_PREFIX`** — when `@getu/definitions` exports it, switch `${WEBSITE_URL}/api/rpc` to use that constant.
 - **`x-orpc-source: extension`** is read by the backend for analytics + rate-limiting tier. Do not strip it.
 - This file uses `req.text()` to materialize the request body before sending — works for JSON / string bodies (oRPC's defaults). If you ever stream binary uploads through oRPC, switch to base64-via-`ProxyRequest` like `background-asset-url.ts`.
 - `WEBSITE_URL` flips between dev/prod via env (`WXT_USE_LOCAL_PACKAGES=true`). The client is built at module load — restart `pnpm dev` after toggling.

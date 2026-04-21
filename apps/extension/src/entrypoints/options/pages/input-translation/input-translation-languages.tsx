@@ -1,12 +1,12 @@
-import type { LangCodeISO6393 } from "@read-frog/definitions"
+import type { LangCodeISO6393 } from "@getu/definitions"
 import type { InputTranslationLang } from "@/types/config/config"
 import { i18n } from "#imports"
-import { Icon } from "@iconify/react"
 import {
   LANG_CODE_TO_EN_NAME,
   LANG_CODE_TO_LOCALE_NAME,
   langCodeISO6393Schema,
-} from "@read-frog/definitions"
+} from "@getu/definitions"
+import { Icon } from "@iconify/react"
 import { useAtom } from "jotai"
 import { Activity } from "react"
 import { Checkbox } from "@/components/ui/base-ui/checkbox"

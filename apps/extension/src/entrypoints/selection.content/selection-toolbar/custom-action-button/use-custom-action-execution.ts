@@ -6,7 +6,7 @@ import type { BackgroundStructuredObjectStreamSnapshot, ThinkingSnapshot } from 
 import type { LLMProviderConfig } from "@/types/config/provider"
 import type { SelectionToolbarCustomAction } from "@/types/config/selection-toolbar"
 import type { CachedWebPageContext } from "@/utils/host/translate/webpage-context"
-import { LANG_CODE_TO_EN_NAME } from "@read-frog/definitions"
+import { LANG_CODE_TO_EN_NAME } from "@getu/definitions"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { ANALYTICS_FEATURE } from "@/types/analytics"
 import { isLLMProviderConfig } from "@/types/config/provider"

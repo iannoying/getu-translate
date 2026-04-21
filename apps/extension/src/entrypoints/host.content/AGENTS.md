@@ -61,6 +61,6 @@ Vitest with co-located `__tests__/` folders. There are no top-level tests in thi
 
 - `wxt` (`#imports`) — `defineContentScript`, `storage`, `i18n`.
 - `react` / `react-dom` — toast renderer.
-- `@read-frog/definitions` — `LangCodeISO6393` typing for detected-language storage.
+- `@getu/definitions` — `LangCodeISO6393` typing for detected-language storage.
 
 <!-- MANUAL: -->

@@ -1,4 +1,4 @@
-import { langCodeISO6393Schema, langLevel } from "@read-frog/definitions"
+import { langCodeISO6393Schema, langLevel } from "@getu/definitions"
 
 import { z } from "zod"
 import { FEATURE_PROVIDER_DEFS } from "@/utils/constants/feature-providers"

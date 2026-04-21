@@ -55,6 +55,6 @@ The toolbar popup window (320px wide, mounted on `<body id="root">`). It surface
 
 ### External
 
-- `react` 19 (`Activity`, `useEffectEvent`), `jotai` + `jotai/utils` (`useHydrateAtoms`), `@tanstack/react-query`, `@iconify/react`, `@tabler/icons-react`, `deepmerge-ts`, `@read-frog/definitions` (lang code maps).
+- `react` 19 (`Activity`, `useEffectEvent`), `jotai` + `jotai/utils` (`useHydrateAtoms`), `@tanstack/react-query`, `@iconify/react`, `@tabler/icons-react`, `deepmerge-ts`, `@getu/definitions` (lang code maps).
 
 <!-- MANUAL: -->

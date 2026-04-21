@@ -1,5 +1,5 @@
-import type { LangCodeISO6393 } from "@read-frog/definitions"
-import { langCodeISO6393Schema } from "@read-frog/definitions"
+import type { LangCodeISO6393 } from "@getu/definitions"
+import { langCodeISO6393Schema } from "@getu/definitions"
 import { atom } from "jotai"
 import { DEFAULT_DETECTED_CODE, DETECTED_CODE_STORAGE_KEY } from "../constants/config"
 import { logger } from "../logger"

@@ -1,7 +1,7 @@
-import { LOCALHOST_DOMAIN, READFROG_DOMAIN, WEBSITE_CADDY_DEV_URL, WEBSITE_PROD_URL } from "@read-frog/definitions"
+import { GETU_DOMAIN, LOCALHOST_DOMAIN, WEBSITE_CADDY_DEV_URL, WEBSITE_PROD_URL } from "@getu/definitions"
 
 export const OFFICIAL_SITE_URL_PATTERNS = [
-  `https://*.${READFROG_DOMAIN}/*`,
+  `https://*.${GETU_DOMAIN}/*`,
   `http://${LOCALHOST_DOMAIN}/*`,
   `https://${LOCALHOST_DOMAIN}/*`,
 ]

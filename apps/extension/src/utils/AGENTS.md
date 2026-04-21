@@ -124,7 +124,7 @@ The non-component logic surface for Read Frog: state atoms, AI/translation pipel
 
 - `@/types/*` — Zod schemas (config, providers, translation state, proxy-fetch).
 - `@read-frog/api-contract` — oRPC router types consumed by `orpc/client.ts` and `notebase.ts`.
-- `@read-frog/definitions` — shared constants (`AUTH_BASE_PATH`, `WEBSITE_PROD_URL`, `LANG_CODE_TO_EN_NAME`, `RTL_LANG_CODES`, …).
+- `@getu/definitions` — shared constants (`AUTH_BASE_PATH`, `WEBSITE_PROD_URL`, `LANG_CODE_TO_EN_NAME`, `RTL_LANG_CODES`, …).
 
 ### External
 

@@ -1,11 +1,11 @@
-import type { LangCodeISO6393 } from "@read-frog/definitions"
+import type { LangCodeISO6393 } from "@getu/definitions"
 import { i18n } from "#imports"
 import { Combobox as ComboboxPrimitive } from "@base-ui/react"
-import { Icon } from "@iconify/react"
 import {
   LANG_CODE_TO_LOCALE_NAME,
   langCodeISO6393Schema,
-} from "@read-frog/definitions"
+} from "@getu/definitions"
+import { Icon } from "@iconify/react"
 import { camelCase } from "case-anything"
 import { useMemo } from "react"
 import { Button } from "@/components/ui/base-ui/button"

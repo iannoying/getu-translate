@@ -71,7 +71,7 @@ The floating action bar shown after a text selection, plus the two popovers it c
 - `jotai` (+ `jotai/utils.selectAtom`, `jotai-family.atomFamily`), `dequal` for stable atom slices.
 - `@tanstack/react-query` (`useQuery`/`useMutation` for Notebase save).
 - `@base-ui/react` (Combobox primitive), `@tabler/icons-react`, `@remixicon/react`, `@iconify/react` icon packs.
-- `@read-frog/definitions` — `LANG_CODE_TO_EN_NAME` for prompt substitution.
+- `@getu/definitions` — `LANG_CODE_TO_EN_NAME` for prompt substitution.
 - `@json-render/{core,react}` + `zod` — structured-object renderer for custom-action outputs.
 - `sonner` — error toasts (precheck failures, save errors).
 

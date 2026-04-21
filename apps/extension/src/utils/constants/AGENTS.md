@@ -68,7 +68,7 @@ None.
 
 ### External
 
-- `@read-frog/definitions` — domain constants (`READFROG_DOMAIN`, `WEBSITE_PROD_URL`, `WEBSITE_CADDY_DEV_URL`, `LOCALHOST_DOMAIN`).
+- `@getu/definitions` — domain constants (`GETU_DOMAIN`, `WEBSITE_PROD_URL`, `WEBSITE_CADDY_DEV_URL`, `LOCALHOST_DOMAIN`).
 - `#imports` (WXT) — `browser` (only in `app.ts` for the runtime version).
 - `lodash`'s `pick`/`omit` (in `providers.ts`) for derived item maps.
 

@@ -1,5 +1,5 @@
 import type { ContentScriptContext } from "#imports"
-import type { LangCodeISO6393 } from "@read-frog/definitions"
+import type { LangCodeISO6393 } from "@getu/definitions"
 import type { Config } from "@/types/config/config"
 import { storage } from "#imports"
 import { DEFAULT_CONFIG, DETECTED_CODE_STORAGE_KEY } from "@/utils/constants/config"

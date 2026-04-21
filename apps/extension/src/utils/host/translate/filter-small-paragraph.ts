@@ -1,6 +1,6 @@
-import type { LangCodeISO6393 } from "@read-frog/definitions"
+import type { LangCodeISO6393 } from "@getu/definitions"
 import type { Config } from "@/types/config/config"
-import { ISO6393_TO_6391 } from "@read-frog/definitions"
+import { ISO6393_TO_6391 } from "@getu/definitions"
 import { getDetectedCodeFromStorage, getFinalSourceCode } from "@/utils/config/languages"
 
 function countWords(text: string, sourceCode: LangCodeISO6393): number {

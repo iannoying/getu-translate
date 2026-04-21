@@ -1,4 +1,4 @@
-import type { LangCodeISO6393 } from "@read-frog/definitions"
+import type { LangCodeISO6393 } from "@getu/definitions"
 import type { Config, InputTranslationLang } from "@/types/config/config"
 import { isLLMProviderConfig } from "@/types/config/provider"
 import { getDetectedCodeFromStorage, getFinalSourceCode } from "@/utils/config/languages"

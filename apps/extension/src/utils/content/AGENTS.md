@@ -58,6 +58,6 @@ None.
 - `franc` — fast probabilistic language ID.
 - `ai` — `generateText` for summary.
 - `sonner` — fallback warning toast.
-- `@read-frog/definitions` — `RTL_LANG_CODES`, `ISO6393_TO_6391`, `LangCodeISO6393`.
+- `@getu/definitions` — `RTL_LANG_CODES`, `ISO6393_TO_6391`, `LangCodeISO6393`.
 
 <!-- MANUAL: -->

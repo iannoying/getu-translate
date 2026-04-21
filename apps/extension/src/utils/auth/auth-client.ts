@@ -1,5 +1,5 @@
 import type { CacheConfig } from "@/types/proxy-fetch"
-import { AUTH_BASE_PATH } from "@read-frog/definitions"
+import { AUTH_BASE_PATH } from "@getu/definitions"
 import { createAuthClient } from "better-auth/react"
 import { sendMessage } from "@/utils/message"
 import { WEBSITE_URL } from "../constants/url"
