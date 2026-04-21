@@ -9,18 +9,18 @@ Standalone WXT HTML entrypoint that renders a PDF inside the extension itself. T
 
 ## Key Files
 
-| File                           | Description                                                                                                                                                                                                                                        |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.html`                   | WXT entrypoint HTML. Mounts `#viewer-container > #viewer.pdfViewer` and loads `./main.ts` as a module.                                                                                                                                             |
-| `main.ts`                      | Configures `pdfjsLib.GlobalWorkerOptions.workerSrc` via `new URL("pdfjs-dist/build/pdf.worker.mjs", import.meta.url)` and runs `boot()` (reads `?src` through `parseSrcParam`, builds an `EventBus`/`PDFLinkService`/`PDFViewer`, calls `pdfjsLib.getDocument({ url, withCredentials: true })`). Shows "Missing ?src= parameter" when the query param is absent. |
-| `parse-src-param.ts`           | Pure helper that extracts the `src` query parameter from a `location.search` string. Lives in its own module so unit tests can import it without pulling `pdfjs-dist/web/pdf_viewer.mjs` (which references `window` at module top level).          |
-| `style.css`                    | Page-level styling (viewer container sizing + background). Complements `pdfjs-dist/web/pdf_viewer.css` which `main.ts` imports directly.                                                                                                           |
-| `__tests__/main.test.ts`       | Vitest unit tests for `parseSrcParam` — verifies URL decoding, missing param, and empty-value behaviour.                                                                                                                                           |
+| File                     | Description                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.html`             | WXT entrypoint HTML. Mounts `#viewer-container > #viewer.pdfViewer` and loads `./main.ts` as a module.                                                                                                                                                                                                                                                           |
+| `main.ts`                | Configures `pdfjsLib.GlobalWorkerOptions.workerSrc` via `new URL("pdfjs-dist/build/pdf.worker.mjs", import.meta.url)` and runs `boot()` (reads `?src` through `parseSrcParam`, builds an `EventBus`/`PDFLinkService`/`PDFViewer`, calls `pdfjsLib.getDocument({ url, withCredentials: true })`). Shows "Missing ?src= parameter" when the query param is absent. |
+| `parse-src-param.ts`     | Pure helper that extracts the `src` query parameter from a `location.search` string. Lives in its own module so unit tests can import it without pulling `pdfjs-dist/web/pdf_viewer.mjs` (which references `window` at module top level).                                                                                                                        |
+| `style.css`              | Page-level styling (viewer container sizing + background). Complements `pdfjs-dist/web/pdf_viewer.css` which `main.ts` imports directly.                                                                                                                                                                                                                         |
+| `__tests__/main.test.ts` | Vitest unit tests for `parseSrcParam` — verifies URL decoding, missing param, and empty-value behaviour.                                                                                                                                                                                                                                                         |
 
 ## Subdirectories
 
-| Directory    | Purpose                                       |
-| ------------ | --------------------------------------------- |
+| Directory    | Purpose                                         |
+| ------------ | ----------------------------------------------- |
 | `__tests__/` | Vitest specs for the pure helpers in `main.ts`. |
 
 ## For AI Agents
