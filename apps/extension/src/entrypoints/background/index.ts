@@ -16,6 +16,7 @@ import { setupIframeInjection } from "./iframe-injection"
 import { setupLLMGenerateTextMessageHandlers } from "./llm-generate-text"
 import { initMockData } from "./mock-data"
 import { newUserGuide } from "./new-user-guide"
+import { setUpPdfRedirect } from "./pdf-redirect"
 import { proxyFetch } from "./proxy-fetch"
 import { setUpSubtitlesTranslationQueue, setUpWebPageTranslationQueue } from "./translation-queues"
 import { translationMessage } from "./translation-signal"
@@ -103,5 +104,8 @@ export default defineBackground({
 
     // Setup programmatic injection for iframes that Chrome's manifest-based all_frames misses
     setupIframeInjection()
+
+    // Intercept .pdf navigations and redirect to our self-hosted pdf.js viewer
+    setUpPdfRedirect()
   },
 })
