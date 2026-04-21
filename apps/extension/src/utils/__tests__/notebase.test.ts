@@ -1,4 +1,4 @@
-import type { RowAddInput } from "@read-frog/api-contract"
+import type { RowAddInput } from "@getu/contract"
 import type { SelectionToolbarCustomAction } from "@/types/config/selection-toolbar"
 import { describe, expect, it } from "vitest"
 import {

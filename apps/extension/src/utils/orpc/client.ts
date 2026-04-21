@@ -1,4 +1,4 @@
-import type { ORPCRouterClient } from "@read-frog/api-contract"
+import type { ORPCRouterClient } from "@getu/contract"
 import { createORPCClient } from "@orpc/client"
 import { RPCLink } from "@orpc/client/fetch"
 import { createTanstackQueryUtils } from "@orpc/tanstack-query"

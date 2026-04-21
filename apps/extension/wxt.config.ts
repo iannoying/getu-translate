@@ -1,4 +1,3 @@
-import path from "node:path"
 import process from "node:process"
 import { defineConfig } from "wxt"
 
@@ -13,12 +12,7 @@ export default defineConfig({
   imports: false,
   modules: ["@wxt-dev/module-react", "@wxt-dev/i18n/module"],
   manifestVersion: 3,
-  // WXT top level alias - will be automatically synced to tsconfig.json paths and Vite alias
-  alias: process.env.WXT_USE_LOCAL_PACKAGES === "true"
-    ? {
-        "@read-frog/api-contract": path.resolve(__dirname, "../../../read-frog-monorepo/packages/api-contract/src"),
-      }
-    : {},
+  // Upstream aliases removed - all @read-frog/* packages forked into ../../packages/*
   manifest: ({ mode, browser }) => ({
     name: "__MSG_extName__",
     description: "__MSG_extDescription__",
