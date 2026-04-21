@@ -11,7 +11,7 @@ Compact React widgets that compose the popup body and footer. Each is a single-r
 
 | File                                   | Description                                                                                                                                                                                               |
 | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `language-options-selector.tsx`        | Source/target `Select` rows reading `configFieldsAtomMap.language` and `detectedCodeAtom`; uses `LANG_CODE_TO_*` from `@read-frog/definitions`.                                                           |
+| `language-options-selector.tsx`        | Source/target `Select` rows reading `configFieldsAtomMap.language` and `detectedCodeAtom`; uses `LANG_CODE_TO_*` from `@getu/definitions`.                                                                |
 | `translation-mode-selector.tsx`        | `Select` over `TRANSLATION_MODES`; auto-switches provider away from `google-translate` when entering `translationOnly` mode.                                                                              |
 | `translate-provider-field.tsx`         | `ProviderSelector` filtered by `isTranslateProvider`; excludes `google-translate` when mode is `translationOnly`.                                                                                         |
 | `translate-prompt-selector.tsx`        | Custom-prompt `Select` gated on `isLLMProvider(provider)`; reads `translate.customPromptsConfig`.                                                                                                         |
@@ -65,7 +65,7 @@ None.
 
 ### External
 
-- `jotai`, `@tanstack/react-query`, `@iconify/react`, `deepmerge-ts`, `@read-frog/definitions`
+- `jotai`, `@tanstack/react-query`, `@iconify/react`, `deepmerge-ts`, `@getu/definitions`
 - `#imports` (WXT — `browser`, `i18n`)
 
 <!-- MANUAL: -->

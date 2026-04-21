@@ -1,5 +1,5 @@
 import { browser, storage } from "#imports"
-import { semanticVersionSchema } from "@read-frog/definitions"
+import { semanticVersionSchema, WEBSITE_PROD_URL } from "@getu/definitions"
 import { z } from "zod"
 import { logger } from "./logger"
 import { sendMessage } from "./message"
@@ -160,7 +160,7 @@ export function getBlogLocaleFromUILanguage(): BlogLocale {
  * ```
  */
 export async function getLatestBlogDate(
-  apiUrl: string = "https://readfrog.app/api/blog/latest",
+  apiUrl: string = `${WEBSITE_PROD_URL}/api/blog/latest`,
   locale: string = "en",
   extensionVersion?: string,
   useCache: boolean = true,

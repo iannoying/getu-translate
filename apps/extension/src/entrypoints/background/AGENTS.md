@@ -43,7 +43,7 @@ None.
 - Use `ensureInitializedConfig()` (promise-cached) instead of calling `initializeConfig()` directly to avoid duplicate writes when multiple modules boot in parallel.
 - Long-lived streams use `runtime.onConnect` ports, not `onMessage` — see `dispatchBackgroundStreamPort` and the `BACKGROUND_STREAM_PORTS` map. Add new stream kinds by extending `BACKGROUND_STREAM_PORT_HANDLERS`.
 - Messages delivered to the background must be declared in `@/utils/message` (typed via `@webext-core/messaging`); the handlers here are the source of truth for that contract.
-- `proxy-fetch.ts` invalidates session caches on auth cookie changes — when adding new authenticated providers, extend `AUTH_DOMAINS`/`AUTH_COOKIE_PATTERNS` in `@read-frog/definitions` rather than special-casing here.
+- `proxy-fetch.ts` invalidates session caches on auth cookie changes — when adding new authenticated providers, extend `AUTH_DOMAINS`/`AUTH_COOKIE_PATTERNS` in `@getu/definitions` rather than special-casing here.
 - Dexie tables touched: `translationCache`, `articleSummaryCache`, `aiSegmentationCache`, `batchRequestRecord` — keep cleanup logic in `db-cleanup.ts` (alarm-driven) when adding new caches.
 - The offscreen document is Chrome-only; guard any new offscreen feature behind a feature check or a `browser !== "firefox"` branch (the `offscreen` permission is also gated in `wxt.config.ts`).
 
@@ -74,7 +74,7 @@ Run `pnpm test` (Vitest). Specs live under `__tests__/` (e.g. `__tests__/transla
 - `ai` (Vercel AI SDK) — `streamText`, `generateText`, `Output.object` for structured streaming.
 - `zod` — runtime validation of port payloads.
 - `posthog-js/dist/module.no-external` — bundle-friendly PostHog build for service workers.
-- `@read-frog/definitions` — auth domain/cookie constants and shared types.
+- `@getu/definitions` — auth domain/cookie constants and shared types.
 - `#imports` (`browser`, `storage`, `i18n`, `defineBackground`) provided by WXT.
 
 <!-- MANUAL: -->

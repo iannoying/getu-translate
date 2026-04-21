@@ -46,6 +46,6 @@ None.
 ### External
 
 - `better-auth/react` — `createAuthClient` factory.
-- `@read-frog/definitions` — `AUTH_BASE_PATH`.
+- `@getu/definitions` — `AUTH_BASE_PATH`.
 
 <!-- MANUAL: -->

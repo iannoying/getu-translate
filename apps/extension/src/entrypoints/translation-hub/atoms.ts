@@ -1,4 +1,4 @@
-import type { LangCodeISO6393 } from "@read-frog/definitions"
+import type { LangCodeISO6393 } from "@getu/definitions"
 import type { TranslateProviderConfig } from "@/types/config/provider"
 import { atom } from "jotai"
 import { configFieldsAtomMap } from "@/utils/atoms/config"

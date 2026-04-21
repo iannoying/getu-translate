@@ -3,7 +3,7 @@ import type { SelectionSession, SelectionToolbarTranslateRequestSlice } from "..
 import type { SelectionToolbarInlineError } from "../inline-error"
 import type { BackgroundTextStreamSnapshot, ThinkingSnapshot } from "@/types/background-stream"
 import type { LLMProviderConfig, ProviderConfig } from "@/types/config/provider"
-import { LANG_CODE_TO_EN_NAME } from "@read-frog/definitions"
+import { LANG_CODE_TO_EN_NAME } from "@getu/definitions"
 import { useAtomValue, useSetAtom } from "jotai"
 import { createContext, use, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"

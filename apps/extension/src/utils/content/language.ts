@@ -1,4 +1,4 @@
-import type { LangCodeISO6393 } from "@read-frog/definitions"
+import type { LangCodeISO6393 } from "@getu/definitions"
 import type { BackgroundGenerateTextPayload } from "@/types/background-generate-text"
 import type { LLMProviderConfig } from "@/types/config/provider"
 import { i18n } from "#imports"

@@ -1,4 +1,4 @@
-import type { LangCodeISO6391 } from "@read-frog/definitions"
+import type { LangCodeISO6391 } from "@getu/definitions"
 import type { ProviderConfig } from "@/types/config/provider"
 import { DEFAULT_PROVIDER_CONFIG } from "@/utils/constants/providers"
 import { sendMessage } from "@/utils/message"

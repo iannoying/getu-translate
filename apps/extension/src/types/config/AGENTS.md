@@ -61,6 +61,6 @@ Vitest specs in `__tests__/` should cover schema parsing, type guards, and the `
 ### External
 
 - `zod` — schema definitions and refinements
-- `@read-frog/definitions` — `langCodeISO6393Schema`, `langLevel`, `LANG_CODE_ISO6393_OPTIONS`, `ISO6393_TO_6391`
+- `@getu/definitions` — `langCodeISO6393Schema`, `langLevel`, `LANG_CODE_ISO6393_OPTIONS`, `ISO6393_TO_6391`
 
 <!-- MANUAL: -->

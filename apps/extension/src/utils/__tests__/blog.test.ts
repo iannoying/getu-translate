@@ -1,4 +1,4 @@
-import { semanticVersionSchema } from "@read-frog/definitions"
+import { semanticVersionSchema } from "@getu/definitions"
 import { describe, expect, it } from "vitest"
 import { z } from "zod"
 import { buildBilibiliEmbedUrl, extractBilibiliVideoId, hasNewBlogPost, resolveBlogLocale } from "../blog"

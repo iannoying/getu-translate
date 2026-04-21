@@ -119,6 +119,9 @@ importers:
       '@dnd-kit/utilities':
         specifier: ^3.2.2
         version: 3.2.2(react@19.2.5)
+      '@getu/definitions':
+        specifier: workspace:*
+        version: link:../../packages/definitions
       '@headless-tree/core':
         specifier: ^1.6.3
         version: 1.6.3
@@ -149,9 +152,6 @@ importers:
       '@read-frog/api-contract':
         specifier: 0.2.2
         version: 0.2.2(@opentelemetry/api@1.9.1)
-      '@read-frog/definitions':
-        specifier: 0.1.2
-        version: 0.1.2
       '@remixicon/react':
         specifier: ^4.9.0
         version: 4.9.0(react@19.2.5)
@@ -384,6 +384,12 @@ importers:
       wxt:
         specifier: 0.20.22
         version: 0.20.22(@types/node@25.6.0)(eslint@10.2.0(jiti@2.6.1))(jiti@2.6.1)(rollup@4.53.2)(yaml@2.8.3)
+
+  packages/definitions:
+    dependencies:
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
 
 packages:
 

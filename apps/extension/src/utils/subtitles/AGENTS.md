@@ -59,7 +59,7 @@ End-to-end pipeline for the in-page subtitle overlay: per-platform fetcher abstr
 ### External
 
 - `file-saver` — SRT download
-- `@read-frog/definitions` — language-name maps for prompts
+- `@getu/definitions` — language-name maps for prompts
 - `ai` — `APICallError` for status-code-based error mapping (in `processor/translator.ts`)
 
 <!-- MANUAL: -->

@@ -1,5 +1,5 @@
 import { i18n } from "#imports"
-import { LANG_CODE_ISO6391_OPTIONS } from "@read-frog/definitions"
+import { LANG_CODE_ISO6391_OPTIONS } from "@getu/definitions"
 import { useAtomValue } from "jotai"
 import { useEffect, useRef, useState } from "react"
 import { Field, FieldLabel } from "@/components/ui/base-ui/field"

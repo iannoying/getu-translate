@@ -1,5 +1,5 @@
-import type { LangCodeISO6393 } from "@read-frog/definitions"
-import { LANG_CODE_TO_EN_NAME, langCodeISO6393Schema } from "@read-frog/definitions"
+import type { LangCodeISO6393 } from "@getu/definitions"
+import { LANG_CODE_TO_EN_NAME, langCodeISO6393Schema } from "@getu/definitions"
 import z from "zod"
 
 const PUNCTUATION_AND_WHITESPACE_PATTERN = /['"`,.\s]/g

@@ -1,4 +1,4 @@
-import type { LangCodeISO6393 } from "@read-frog/definitions"
+import type { LangCodeISO6393 } from "@getu/definitions"
 import type { FocusEvent } from "react"
 import type { TTSVoice } from "@/types/config/tts"
 import { i18n } from "#imports"

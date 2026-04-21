@@ -50,7 +50,7 @@ This directory has no top-level files — only subdirectories.
 
 ### External
 
-- `@read-frog/definitions` — language code maps
+- `@getu/definitions` — language code maps
 - `@mozilla/readability` — main-content extraction for AI context
 - `case-anything` — attribute name conversion
 - `sonner` — toast notifications

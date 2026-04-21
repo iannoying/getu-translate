@@ -1,9 +1,9 @@
-import type { LangCodeISO6391, LangCodeISO6393 } from "@read-frog/definitions"
+import type { LangCodeISO6391, LangCodeISO6393 } from "@getu/definitions"
 import {
   ISO6393_TO_6391,
   LANG_CODE_ISO6393_OPTIONS,
   langCodeISO6393Schema,
-} from "@read-frog/definitions"
+} from "@getu/definitions"
 import { z } from "zod"
 
 export type TTSVoice = string
