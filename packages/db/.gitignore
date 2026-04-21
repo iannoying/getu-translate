@@ -1,0 +1,2 @@
+.drizzle-local.sqlite
+*.sqlite-journal
