@@ -1,5 +1,11 @@
+// NOTE: This package has no build step. package.json "main"/"types" point at raw TypeScript.
+// Resolution relies on the bundler (wxt/vite + tsconfig paths) in the consuming workspace.
+// If you ever need to import this from a plain Node script or Jest without bundler-aware
+// paths, add a tsup/tsc build step and update exports first.
+
 // Re-export everything from the upstream source, overriding URL/domain constants for GetU Translate.
 export {
+  // APP_NAME is rebranded in Phase 1 Task 5 (separate PR); see docs/plans/2026-04-20-phase1-brand-and-monorepo.md § Task 5.
   APP_NAME,
   AUTH_BASE_PATH,
   AUTH_COOKIE_PATTERNS,
