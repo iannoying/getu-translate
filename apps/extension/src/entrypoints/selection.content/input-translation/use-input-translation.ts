@@ -1,3 +1,4 @@
+import type { InputTranslationLang } from "@/types/config/config"
 import { useAtom } from "jotai"
 import { useCallback, useEffect, useRef } from "react"
 import { useProGuard } from "@/hooks/use-pro-guard"
@@ -6,6 +7,7 @@ import { createFeatureUsageContext, trackFeatureAttempt } from "@/utils/analytic
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { translateTextForInput } from "@/utils/host/translate/translate-variants"
 import { useInputTranslationQuota } from "./quota/use-input-quota"
+import { DEFAULT_TOKEN_LANGS, matchTokenTrigger } from "./triggers/token"
 
 const SPACE_KEY = " "
 const TRIGGER_COUNT = 3
@@ -147,7 +149,19 @@ export function useInputTranslation(): UseInputTranslationResult {
   const guardRef = useRef(guard)
   guardRef.current = guard
 
-  const handleTranslation = useCallback(async (element: HTMLInputElement | HTMLTextAreaElement | HTMLElement) => {
+  /**
+   * Shared translation pipeline used by both triggers.
+   *
+   * When `tokenOverride` is undefined (triple-space path), we read the text
+   * from the field, trim it, and honor the cycle-swap config. When it's
+   * provided (token path), we use `tokenOverride.text` verbatim and the
+   * parsed `toLang`, because the user already encoded the intent in the
+   * trigger itself.
+   */
+  const handleTranslation = useCallback(async (
+    element: HTMLInputElement | HTMLTextAreaElement | HTMLElement,
+    tokenOverride?: { text: string, toLang: string },
+  ) => {
     if (isTranslatingRef.current)
       return
 
@@ -156,33 +170,37 @@ export function useInputTranslation(): UseInputTranslationResult {
       return
     }
 
-    // Get the text content based on element type
     let text: string
-    if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-      text = element.value
-    }
-    else if (element.isContentEditable) {
-      text = element.textContent || ""
+    if (tokenOverride) {
+      text = tokenOverride.text
     }
     else {
-      return
+      if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+        text = element.value
+      }
+      else if (element.isContentEditable) {
+        text = element.textContent || ""
+      }
+      else {
+        return
+      }
+      text = text.trim()
     }
-
-    // Remove trailing whitespace added by space key presses
-    text = text.trim()
-
-    // Set the trimmed text back immediately (with undo support)
-    setTextWithUndo(element, text)
 
     if (!text.trim()) {
       return
     }
 
-    // Set the single-flight guard BEFORE any await so rapid triggers can't
-    // race past it and run the quota check / provider call concurrently.
+    // Set the single-flight guard BEFORE any await OR any setTextWithUndo
+    // (which dispatches a synthetic input event — in token mode that event
+    // would otherwise recurse into handleInput and re-trigger us).
     isTranslatingRef.current = true
     let hideSpinner: (() => void) | null = null
     try {
+      // Replace the field content with the trigger-stripped text. Now that
+      // the guard is set, the nested input event this dispatches is a
+      // no-op in the handler because its first check short-circuits.
+      setTextWithUndo(element, text)
       // Billing gate: count the attempt against the free daily cap, or open
       // UpgradeDialog when exhausted. Incrementing before the provider call
       // is intentional — attempts (not only successes) count toward the cap
@@ -197,11 +215,16 @@ export function useInputTranslation(): UseInputTranslationResult {
         return
       }
 
-      // Determine fromLang and toLang, possibly swapped if cycle is enabled
-      let fromLang = inputTranslationConfig.fromLang
-      let toLang = inputTranslationConfig.toLang
+      let fromLang: InputTranslationLang = inputTranslationConfig.fromLang
+      let toLang: InputTranslationLang = inputTranslationConfig.toLang
 
-      if (inputTranslationConfig.enableCycle) {
+      if (tokenOverride) {
+        // DEFAULT_TOKEN_LANGS only maps to ISO 639-3 codes that live inside
+        // the InputTranslationLang union; the cast tells the type system
+        // what runtime has already guaranteed.
+        toLang = tokenOverride.toLang as InputTranslationLang
+      }
+      else if (inputTranslationConfig.enableCycle) {
         const wasSwapped = getLastCycleSwapped()
         if (wasSwapped) {
           // Already swapped last time, use original direction
@@ -260,6 +283,57 @@ export function useInputTranslation(): UseInputTranslationResult {
     if (!inputTranslationConfig.enabled)
       return
 
+    if (inputTranslationConfig.triggerMode === "token") {
+      // Token mode: listen to input events, match `//<lang>` at the end of
+      // the field, and translate. We skip while an IME composition is in
+      // progress so typing Chinese / Japanese / Korean through an IME
+      // doesn't fire spurious matches on intermediate composed state.
+      const handleInput = (event: Event) => {
+        const inputEvent = event as InputEvent
+        if (inputEvent.isComposing) {
+          return
+        }
+        const activeElement = document.activeElement
+        const isInputField = activeElement instanceof HTMLInputElement
+          || activeElement instanceof HTMLTextAreaElement
+          || (activeElement instanceof HTMLElement && activeElement.isContentEditable)
+
+        if (!isInputField || !activeElement) {
+          return
+        }
+
+        let value: string
+        if (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) {
+          value = activeElement.value
+        }
+        else if (activeElement.isContentEditable) {
+          value = activeElement.textContent || ""
+        }
+        else {
+          return
+        }
+
+        const match = matchTokenTrigger(value, {
+          prefix: inputTranslationConfig.tokenPrefix,
+          knownLangs: DEFAULT_TOKEN_LANGS,
+        })
+        if (match == null) {
+          return
+        }
+
+        void handleTranslation(
+          activeElement as HTMLInputElement | HTMLTextAreaElement | HTMLElement,
+          { text: match.text, toLang: match.toLang },
+        )
+      }
+
+      document.addEventListener("input", handleInput, true)
+      return () => {
+        document.removeEventListener("input", handleInput, true)
+      }
+    }
+
+    // Triple-space mode (existing behavior)
     const handleKeyDown = (event: KeyboardEvent) => {
       // Only process space key
       if (event.key !== SPACE_KEY) {
@@ -312,7 +386,13 @@ export function useInputTranslation(): UseInputTranslationResult {
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true)
     }
-  }, [inputTranslationConfig.enabled, inputTranslationConfig.timeThreshold, handleTranslation])
+  }, [
+    inputTranslationConfig.enabled,
+    inputTranslationConfig.timeThreshold,
+    inputTranslationConfig.triggerMode,
+    inputTranslationConfig.tokenPrefix,
+    handleTranslation,
+  ])
 
   return { upgradeDialogProps: dialogProps }
 }
