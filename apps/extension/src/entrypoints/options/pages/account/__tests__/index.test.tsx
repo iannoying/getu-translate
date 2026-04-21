@@ -52,6 +52,12 @@ vi.mock("@/utils/logger", () => ({
   },
 }))
 
+vi.mock("@iconify/react", () => ({
+  Icon: ({ icon, className }: { icon: string, className?: string }) => (
+    <span data-testid={`icon-${icon}`} className={className} />
+  ),
+}))
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
