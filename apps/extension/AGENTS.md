@@ -11,24 +11,24 @@ This package lives at `apps/extension/` inside the `getu-translate` monorepo.
 
 ## Key Files
 
-| File                  | Description                                                                                                                                                                                                               |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `package.json`        | Package manifest (`@getu/extension`). Pinned to `pnpm@10.32.1`. Contains all build/test/lint scripts and all extension dependencies.                                                                                      |
-| `wxt.config.ts`       | WXT framework config: src dir, manifest (permissions, MV3, browser-specific overrides), zip rules, dev server port (3333), and a Vite plugin that fails the build if unintended `WXT_*_API_KEY` env vars would be bundled. |
-| `tsconfig.json`       | Extends `.wxt/tsconfig.json`. JSX = `react-jsx`. Excludes `repos`.                                                                                                                                                        |
-| `vitest.config.ts`    | Vitest + WXT testing setup, jsdom-style with `node` env, excludes `**/.claude/**` and `**/repos/**`.                                                                                                                       |
-| `vitest.setup.ts`     | Shared test setup.                                                                                                                                                                                                        |
-| `eslint.config.mjs`   | Antfu ESLint v8 config.                                                                                                                                                                                                   |
-| `components.json`     | shadcn/ui generator config.                                                                                                                                                                                               |
-| `postcss.config.cjs`  | PostCSS plugins (Tailwind v4, autoprefixer, rem-to-px).                                                                                                                                                                   |
+| File                 | Description                                                                                                                                                                                                                |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `package.json`       | Package manifest (`@getu/extension`). Pinned to `pnpm@10.32.1`. Contains all build/test/lint scripts and all extension dependencies.                                                                                       |
+| `wxt.config.ts`      | WXT framework config: src dir, manifest (permissions, MV3, browser-specific overrides), zip rules, dev server port (3333), and a Vite plugin that fails the build if unintended `WXT_*_API_KEY` env vars would be bundled. |
+| `tsconfig.json`      | Extends `.wxt/tsconfig.json`. JSX = `react-jsx`. Excludes `repos`.                                                                                                                                                         |
+| `vitest.config.ts`   | Vitest + WXT testing setup, jsdom-style with `node` env, excludes `**/.claude/**` and `**/repos/**`.                                                                                                                       |
+| `vitest.setup.ts`    | Shared test setup.                                                                                                                                                                                                         |
+| `eslint.config.mjs`  | Antfu ESLint v8 config.                                                                                                                                                                                                    |
+| `components.json`    | shadcn/ui generator config.                                                                                                                                                                                                |
+| `postcss.config.cjs` | PostCSS plugins (Tailwind v4, autoprefixer, rem-to-px).                                                                                                                                                                    |
 
 ## Subdirectories
 
-| Directory  | Purpose                                                                                                                                       |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/`     | All extension source: entrypoints, components, utils, hooks, types, locales, in-source assets (see `src/AGENTS.md`).                          |
-| `scripts/` | Build/maintenance scripts (e.g. AI-SDK provider model scraper, debug helpers) (see `scripts/AGENTS.md`).                                      |
-| `public/`  | Static files copied verbatim into the extension build (see `public/AGENTS.md`).                                                               |
+| Directory  | Purpose                                                                                                                                        |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/`     | All extension source: entrypoints, components, utils, hooks, types, locales, in-source assets (see `src/AGENTS.md`).                           |
+| `scripts/` | Build/maintenance scripts (e.g. AI-SDK provider model scraper, debug helpers) (see `scripts/AGENTS.md`).                                       |
+| `public/`  | Static files copied verbatim into the extension build (see `public/AGENTS.md`).                                                                |
 | `assets/`  | Repo-level marketing/store/demo assets — NOT bundled into extension (excluded by `wxt.config.ts` zip excludeSources) (see `assets/AGENTS.md`). |
 
 ## For AI Agents
@@ -53,18 +53,18 @@ This package lives at `apps/extension/` inside the `getu-translate` monorepo.
 
 ### Build / Lint / Test Commands
 
-| Command                                                       | What it does                                                                                    |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `pnpm dev`                                                    | Chrome dev build with HMR                                                                       |
-| `pnpm dev:edge` / `pnpm dev:firefox`                          | Same for Edge / Firefox MV3                                                                     |
-| `pnpm dev:local`                                              | Dev build aliasing packages to local sibling `read-frog-monorepo/` checkout                    |
-| `pnpm build` (`build:edge`, `build:firefox`, `build:analyze`) | Production builds                                                                               |
-| `pnpm zip` (`zip:edge`, `zip:firefox`, `zip:all`)             | Build + zip for store submission (sets `WXT_ZIP_MODE=true`, requires Google/PostHog env vars)   |
-| `pnpm test`, `pnpm test:watch`, `pnpm test:cov`               | Vitest                                                                                          |
-| `pnpm lint`, `pnpm lint:fix`                                  | ESLint (Antfu config)                                                                           |
-| `pnpm type-check`                                             | `tsc --noEmit`                                                                                  |
-| `pnpm release`                                                | `changeset tag && git push origin --tags`                                                       |
-| `pnpm scrape:ai-sdk-models`                                   | Refresh `scripts/output/ai-sdk-provider-models.json`                                            |
+| Command                                                       | What it does                                                                                  |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `pnpm dev`                                                    | Chrome dev build with HMR                                                                     |
+| `pnpm dev:edge` / `pnpm dev:firefox`                          | Same for Edge / Firefox MV3                                                                   |
+| `pnpm dev:local`                                              | Dev build aliasing packages to local sibling `read-frog-monorepo/` checkout                   |
+| `pnpm build` (`build:edge`, `build:firefox`, `build:analyze`) | Production builds                                                                             |
+| `pnpm zip` (`zip:edge`, `zip:firefox`, `zip:all`)             | Build + zip for store submission (sets `WXT_ZIP_MODE=true`, requires Google/PostHog env vars) |
+| `pnpm test`, `pnpm test:watch`, `pnpm test:cov`               | Vitest                                                                                        |
+| `pnpm lint`, `pnpm lint:fix`                                  | ESLint (Antfu config)                                                                         |
+| `pnpm type-check`                                             | `tsc --noEmit`                                                                                |
+| `pnpm release`                                                | `changeset tag && git push origin --tags`                                                     |
+| `pnpm scrape:ai-sdk-models`                                   | Refresh `scripts/output/ai-sdk-provider-models.json`                                          |
 
 ### Common Patterns
 
