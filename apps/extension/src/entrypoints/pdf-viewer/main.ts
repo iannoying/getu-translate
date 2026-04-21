@@ -49,6 +49,23 @@ async function renderPdf(src: string) {
   })
   linkService.setViewer(viewer)
 
+  // Defense in depth: pdf-redirect already gates schemes before redirecting, but the
+  // viewer is a web-accessible resource so any page could construct
+  // chrome-extension://<id>/pdf-viewer.html?src=javascript:... . Reject anything
+  // that isn't http(s) or file before pdf.js touches it.
+  let parsedSrc: URL
+  try {
+    parsedSrc = new URL(src)
+  }
+  catch {
+    document.body.textContent = "Invalid PDF URL"
+    return
+  }
+  if (!["http:", "https:", "file:"].includes(parsedSrc.protocol)) {
+    document.body.textContent = `Unsupported URL scheme: ${parsedSrc.protocol}`
+    return
+  }
+
   const loadingTask = pdfjsLib.getDocument({ url: src })
   const pdfDoc = await loadingTask.promise
   viewer.setDocument(pdfDoc)
@@ -82,10 +99,16 @@ async function maybeRenderFirstUseToast(src: string) {
   if (!domain)
     return
 
-  const normalizedBlocklist = blocklistDomains.map(d =>
-    d.trim().toLowerCase(),
+  // Match the background's decideRedirect semantics: exact hostname OR any-depth
+  // subdomain. Keeps the toast in sync with the redirect — a blocklist entry of
+  // "evil.com" suppresses the toast on docs.evil.com too.
+  const normalizedBlocklist = blocklistDomains
+    .map(d => d.trim().toLowerCase())
+    .filter(d => d.length > 0)
+  const isBlocked = normalizedBlocklist.some(
+    blocked => domain === blocked || domain.endsWith(`.${blocked}`),
   )
-  if (normalizedBlocklist.includes(domain))
+  if (isBlocked)
     return
 
   const mountNode = document.getElementById("first-use-toast-root")
