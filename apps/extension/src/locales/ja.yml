@@ -253,6 +253,17 @@ options:
     toggle:
       title: トリプルスペース翻訳を有効化
       description: 任意の入力欄でスペースキーを素早く3回押すと内容を翻訳します
+    triggerMode:
+      title: トリガー方式
+      description: フォーカス中の入力欄をその場で翻訳する方法を選択
+      tripleSpace:
+        label: トリプルスペース
+        hint: スペースキーを素早く3回押す
+      token:
+        label: トリガートークン
+        hint: プレフィックスと目標言語を入力（例 hello //en）
+      prefixLabel: プレフィックス
+      prefixError: プレフィックスは $1 〜 $2 文字で入力してください
     languages:
       title: 翻訳言語
       description: 入力翻訳のソース言語とターゲット言語を選択

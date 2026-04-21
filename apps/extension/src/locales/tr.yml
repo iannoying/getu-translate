@@ -253,6 +253,17 @@ options:
     toggle:
       title: Üçlü Boşluk Çevirisini Etkinleştir
       description: Herhangi bir giriş alanında boşluk tuşuna hızlıca 3 kez basarak içeriği çevirin
+    triggerMode:
+      title: Tetikleme Modu
+      description: Aktif giriş alanının çevirisini nasıl tetikleyeceğinizi seçin
+      tripleSpace:
+        label: Üçlü boşluk
+        hint: Boşluk tuşuna hızlıca üç kez basın
+      token:
+        label: Tetikleme tokeni
+        hint: Önek ve hedef dili yazın, örn. hello //en
+      prefixLabel: Önek
+      prefixError: Önek $1 ile $2 karakter arasında olmalı
     languages:
       title: Çeviri Dilleri
       description: Giriş çevirisi için kaynak ve hedef dilleri seçin

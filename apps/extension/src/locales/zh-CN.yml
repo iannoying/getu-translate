@@ -254,6 +254,17 @@ options:
     toggle:
       title: 启用三连空格翻译
       description: 在任意输入框中快速按3次空格键即可翻译其内容
+    triggerMode:
+      title: 触发方式
+      description: 选择如何触发当前输入框的原地翻译
+      tripleSpace:
+        label: 三连空格
+        hint: 快速按三次空格键
+      token:
+        label: 触发词
+        hint: 输入前缀 + 目标语言（如 hello //en）
+      prefixLabel: 触发前缀
+      prefixError: 前缀长度必须在 $1 到 $2 个字符之间
     languages:
       title: 翻译语言
       description: 选择输入翻译的源语言和目标语言

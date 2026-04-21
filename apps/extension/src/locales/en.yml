@@ -256,6 +256,17 @@ options:
     toggle:
       title: Enable Triple-Space Translation
       description: Press spacebar 3 times quickly in any input field to translate its content
+    triggerMode:
+      title: Trigger Mode
+      description: Choose how to trigger in-place translation of the focused input field
+      tripleSpace:
+        label: Triple space
+        hint: Press the spacebar three times rapidly
+      token:
+        label: Trigger token
+        hint: Type a prefix followed by the target language, e.g. hello //en
+      prefixLabel: Token prefix
+      prefixError: Prefix must be $1 to $2 characters
     languages:
       title: Translation Languages
       description: Choose source and target languages for input translation

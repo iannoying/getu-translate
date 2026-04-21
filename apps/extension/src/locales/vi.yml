@@ -253,6 +253,17 @@ options:
     toggle:
       title: Bật dịch ba lần nhấn phím cách
       description: Nhấn phím cách nhanh 3 lần trong bất kỳ trường nhập nào để dịch nội dung
+    triggerMode:
+      title: Chế độ kích hoạt
+      description: Chọn cách kích hoạt dịch trường nhập đang hoạt động
+      tripleSpace:
+        label: Ba lần phím cách
+        hint: Nhấn phím cách nhanh ba lần
+      token:
+        label: Từ khóa kích hoạt
+        hint: Nhập tiền tố và ngôn ngữ đích, ví dụ hello //en
+      prefixLabel: Tiền tố
+      prefixError: Tiền tố phải từ $1 đến $2 ký tự
     languages:
       title: Ngôn ngữ dịch
       description: Chọn ngôn ngữ nguồn và đích cho dịch đầu vào
