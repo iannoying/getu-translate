@@ -16,8 +16,8 @@ export default defineConfig({
   // WXT top level alias - will be automatically synced to tsconfig.json paths and Vite alias
   alias: process.env.WXT_USE_LOCAL_PACKAGES === "true"
     ? {
-        "@read-frog/definitions": path.resolve(__dirname, "../read-frog-monorepo/packages/definitions/src"),
-        "@read-frog/api-contract": path.resolve(__dirname, "../read-frog-monorepo/packages/api-contract/src"),
+        "@read-frog/definitions": path.resolve(__dirname, "../../../read-frog-monorepo/packages/definitions/src"),
+        "@read-frog/api-contract": path.resolve(__dirname, "../../../read-frog-monorepo/packages/api-contract/src"),
       }
     : {},
   manifest: ({ mode, browser }) => ({
