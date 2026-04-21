@@ -1,9 +1,11 @@
 import { useAtom } from "jotai"
 import { useCallback, useEffect, useRef } from "react"
+import { useProGuard } from "@/hooks/use-pro-guard"
 import { ANALYTICS_FEATURE, ANALYTICS_SURFACE } from "@/types/analytics"
 import { createFeatureUsageContext, trackFeatureAttempt } from "@/utils/analytics"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { translateTextForInput } from "@/utils/host/translate/translate-variants"
+import { useInputTranslationQuota } from "./quota/use-input-quota"
 
 const SPACE_KEY = " "
 const TRIGGER_COUNT = 3
@@ -130,10 +132,20 @@ function setTextWithUndo(element: HTMLInputElement | HTMLTextAreaElement | HTMLE
   element.dispatchEvent(new Event("input", { bubbles: true }))
 }
 
-export function useInputTranslation() {
+export interface UseInputTranslationResult {
+  upgradeDialogProps: ReturnType<typeof useProGuard>["dialogProps"]
+}
+
+export function useInputTranslation(): UseInputTranslationResult {
   const [inputTranslationConfig] = useAtom(configFieldsAtomMap.inputTranslation)
   const spaceTimestampsRef = useRef<number[]>([])
   const isTranslatingRef = useRef(false)
+  const quota = useInputTranslationQuota()
+  const { guard, dialogProps } = useProGuard()
+  const quotaRef = useRef(quota)
+  quotaRef.current = quota
+  const guardRef = useRef(guard)
+  guardRef.current = guard
 
   const handleTranslation = useCallback(async (element: HTMLInputElement | HTMLTextAreaElement | HTMLElement) => {
     if (isTranslatingRef.current)
@@ -163,6 +175,19 @@ export function useInputTranslation() {
     setTextWithUndo(element, text)
 
     if (!text.trim()) {
+      return
+    }
+
+    // Billing gate: check the daily quota before calling the translation API.
+    // When the free user exceeds 50/day, we open UpgradeDialog via the same
+    // useProGuard hook that powers the rest of the paywall.
+    const liveQuota = quotaRef.current
+    if (liveQuota.isLoading) {
+      return
+    }
+    const allowed = await liveQuota.checkAndIncrement()
+    if (!allowed) {
+      guardRef.current("input_translate_unlimited", { source: "input-translation-daily-limit" })
       return
     }
 
@@ -283,4 +308,6 @@ export function useInputTranslation() {
       document.removeEventListener("keydown", handleKeyDown, true)
     }
   }, [inputTranslationConfig.enabled, inputTranslationConfig.timeThreshold, handleTranslation])
+
+  return { upgradeDialogProps: dialogProps }
 }
