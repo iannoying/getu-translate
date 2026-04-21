@@ -197,14 +197,14 @@ export function useInputTranslation(): UseInputTranslationResult {
     isTranslatingRef.current = true
     let hideSpinner: (() => void) | null = null
     try {
-      // Replace the field content with the trigger-stripped text. Now that
-      // the guard is set, the nested input event this dispatches is a
-      // no-op in the handler because its first check short-circuits.
-      setTextWithUndo(element, text)
       // Billing gate: count the attempt against the free daily cap, or open
       // UpgradeDialog when exhausted. Incrementing before the provider call
       // is intentional — attempts (not only successes) count toward the cap
       // so a user cannot spin a failing provider to DoS the counter.
+      //
+      // The gate runs BEFORE setTextWithUndo so a quota-blocked free user
+      // keeps their `//en ` trigger (or trailing spaces) intact — we don't
+      // want to eat the trigger without translating.
       const liveQuota = quotaRef.current
       if (liveQuota.isLoading) {
         return
@@ -214,6 +214,11 @@ export function useInputTranslation(): UseInputTranslationResult {
         guardRef.current("input_translate_unlimited", { source: "input-translation-daily-limit" })
         return
       }
+
+      // Quota passed — now strip the trigger / trailing whitespace. The
+      // synthetic input event this dispatches is a no-op because
+      // isTranslatingRef is already set above.
+      setTextWithUndo(element, text)
 
       let fromLang: InputTranslationLang = inputTranslationConfig.fromLang
       let toLang: InputTranslationLang = inputTranslationConfig.toLang
