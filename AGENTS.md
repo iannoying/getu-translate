@@ -1,45 +1,44 @@
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-21 -->
 
-# read-frog (@read-frog/extension)
+# getu-translate
 
 ## Purpose
 
-Read Frog is an open-source AI-powered browser extension for language learning. It provides immersive bilingual page translation, selection translation, subtitle translation (YouTube/Netflix/etc.), text-to-speech, article reading assistance, and a configurable prompt/AI provider system. The extension is built with [WXT](https://wxt.dev) (a Vite-based browser-extension framework) and ships to Chrome, Edge, and Firefox (MV3).
+GetU Translate is an open-source AI-powered browser extension for language learning, distributed as a **pnpm monorepo**. It provides immersive bilingual page translation, selection translation, subtitle translation (YouTube/Netflix/etc.), text-to-speech, article reading assistance, and a configurable prompt/AI provider system.
 
-This repository is a **single-package** (not a monorepo) WXT extension. Distributed under GNU GPLv3 with an additional commercial license grant to FEELIO TECHNOLOGIES LTD.
+The monorepo contains:
+- **`apps/extension`** — The WXT browser extension (`@getu/extension`), shipping to Chrome, Edge, and Firefox (MV3).
+- **`packages/contract`** — oRPC API contract (`@getu/contract`) shared with the backend.
+- **`packages/definitions`** — Shared type/data definitions (`@getu/definitions`) with GetU-specific URL/domain overrides.
+
+Distributed under GNU GPLv3 with an additional commercial license grant to FEELIO TECHNOLOGIES LTD.
 
 ## Key Files
 
-| File                               | Description                                                                                                                                                                                                                |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `package.json`                     | Package manifest. Pinned to `pnpm@10.32.1`. Contains all build/test/lint scripts.                                                                                                                                          |
-| `wxt.config.ts`                    | WXT framework config: src dir, manifest (permissions, MV3, browser-specific overrides), zip rules, dev server port (3333), and a Vite plugin that fails the build if unintended `WXT_*_API_KEY` env vars would be bundled. |
-| `tsconfig.json`                    | Extends `.wxt/tsconfig.json`. JSX = `react-jsx`. Excludes `repos`.                                                                                                                                                         |
-| `vitest.config.ts`                 | Vitest + WXT testing setup, jsdom-style with `node` env, excludes `**/.claude/**` and `**/repos/**`.                                                                                                                       |
-| `vitest.setup.ts`                  | Shared test setup.                                                                                                                                                                                                         |
-| `eslint.config.mjs`                | Antfu ESLint v8 config.                                                                                                                                                                                                    |
-| `commitlint.config.cjs`            | Conventional commits enforcement (via Husky `commit-msg`).                                                                                                                                                                 |
-| `components.json`                  | shadcn/ui generator config.                                                                                                                                                                                                |
-| `postcss.config.cjs`               | PostCSS plugins (Tailwind v4, autoprefixer, rem-to-px).                                                                                                                                                                    |
-| `nx.json`                          | Nx task targets (build/test/lint/type-check) for caching/parallelism.                                                                                                                                                      |
-| `skills-lock.json`                 | Pinned versions of installed Claude Code skills.                                                                                                                                                                           |
-| `CHANGELOG.md`                     | Auto-generated by Changesets.                                                                                                                                                                                              |
-| `README.md` / `README.zh-CN.md`    | User-facing docs (English / 简体中文).                                                                                                                                                                                     |
-| `CONTRIBUTING.md`                  | Contribution + dual-license terms.                                                                                                                                                                                         |
-| `SOURCE_CODE_REVIEW.md`            | Recent source review notes.                                                                                                                                                                                                |
-| `.gitignore`, `.lintstagedrc.json` | Standard ignore + lint-staged trigger.                                                                                                                                                                                     |
+| File                               | Description                                                                                                               |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `package.json`                     | Monorepo root manifest. Private workspace root with shared devDependencies (husky, commitlint, lint-staged, nx). Scripts delegate to workspaces via `pnpm -r`. |
+| `pnpm-workspace.yaml`              | Declares `apps/*` and `packages/*` as workspace members.                                                                  |
+| `nx.json`                          | Nx task targets for caching/parallelism across workspaces.                                                                |
+| `commitlint.config.cjs`            | Conventional commits enforcement (via Husky `commit-msg`).                                                                |
+| `.lintstagedrc.json`               | Lint-staged triggers on pre-commit.                                                                                       |
+| `skills-lock.json`                 | Pinned versions of installed Claude Code skills.                                                                          |
+| `CHANGELOG.md`                     | Auto-generated by Changesets.                                                                                             |
+| `README.md` / `README.zh-CN.md`    | User-facing docs (English / 简体中文).                                                                                    |
+| `CONTRIBUTING.md`                  | Contribution + dual-license terms.                                                                                        |
+| `SOURCE_CODE_REVIEW.md`            | Recent source review notes.                                                                                               |
+| `.gitignore`, `.lintstagedrc.json` | Standard ignore + lint-staged trigger.                                                                                    |
 
 ## Subdirectories
 
 | Directory                                  | Purpose                                                                                                                                        |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/`                                     | All extension source: entrypoints, components, utils, hooks, types, locales, in-source assets (see `src/AGENTS.md`).                           |
-| `scripts/`                                 | Build/maintenance scripts (e.g. AI-SDK provider model scraper, debug helpers) (see `scripts/AGENTS.md`).                                       |
-| `public/`                                  | Static files copied verbatim into the extension build (see `public/AGENTS.md`).                                                                |
-| `assets/`                                  | Repo-level marketing/store/demo assets — NOT bundled into extension (excluded by `wxt.config.ts` zip excludeSources) (see `assets/AGENTS.md`). |
+| `apps/`                                    | Deployable applications. Currently contains only the browser extension (see `apps/AGENTS.md`).                                                |
+| `packages/`                                | Shared internal packages consumed by apps (see `packages/AGENTS.md`).                                                                         |
 | `.github/`                                 | GitHub config: workflows, issue/PR templates, dependabot, FUNDING (see `.github/AGENTS.md`).                                                   |
 | `.changeset/`                              | Pending changesets + Changesets config. Drives versioning and `CHANGELOG.md` generation (see `.changeset/AGENTS.md`).                          |
 | `.husky/`                                  | Git hooks (`commit-msg`, `pre-commit`, `pre-push`) (see `.husky/AGENTS.md`).                                                                   |
+| `docs/`                                    | Implementation plans and developer documentation.                                                                                              |
 | `.vscode/`, `.zed/`                        | Editor settings — agents should not modify unless asked.                                                                                       |
 | `.claude/`, `.codex/`, `.omc/`, `.agents/` | AI agent tooling (skills, commands, plans, notepad, worktrees). Out of scope for AGENTS.md generation.                                         |
 
@@ -48,68 +47,50 @@ This repository is a **single-package** (not a monorepo) WXT extension. Distribu
 ### Working In This Directory
 
 - **Package manager is pnpm.** Always run `pnpm install`, `pnpm build`, `pnpm test`, etc. Never `npm` or `yarn`.
-- **Node ≥ 22** is required (`devEngines.runtime`).
-- **Do not introduce new dependencies casually** — this extension already pulls 20+ AI SDK providers and is size-sensitive. Justify any new dep.
-- **Manifest changes** go in `wxt.config.ts` (not in a hand-written manifest.json). Permissions need careful review.
-- **Do NOT bundle secrets.** The `check-api-key-env` Vite plugin will fail production builds if any `WXT_*_API_KEY` env var (other than the allowlisted `WXT_POSTHOG_API_KEY`) is set at build time.
-- **Browser-specific code paths** for Firefox MV3 live in `wxt.config.ts` (`browser_specific_settings`, CSP override). Firefox does not support `offscreen` permission; respect that branch.
-- **Source root is `src/`** (set via `srcDir: "src"` in WXT config). All app code goes there.
-- **Auto-imports are disabled** (`imports: false` in WXT config) — every import must be explicit. Do not rely on globals.
+- **Node ≥ 22** is required (`devEngines.runtime` in `apps/extension/package.json`).
+- **Monorepo root has no app code.** All application code lives under `apps/` or `packages/`. Do not add source files to the root.
+- **Workspace scripts**: `pnpm -r <script>` runs a script recursively across all workspaces. `pnpm --filter @getu/extension <script>` targets a specific package.
+- **Changesets**: Use `changeset` for versioning. Do not manually edit `CHANGELOG.md`.
+- **Do not introduce new workspace packages** without updating `pnpm-workspace.yaml` and creating the package's own `AGENTS.md`.
 
 ### Testing Requirements
 
-- Run tests with `pnpm test` (single run) / `pnpm test:watch` (watch) / `pnpm test:cov` (with istanbul coverage).
-- **Set `SKIP_FREE_API=true` locally** when running tests (see Manual Notes below).
-- Vitest excludes `**/.claude/**` and `**/repos/**`; do not place test fixtures there.
-- E2E / real-browser testing for the extension uses the `extension-real-browser-testing` skill in `.agents/skills/`.
-
-### Common Patterns
-
-- **State**: Jotai atoms (see `src/utils/atoms/`).
-- **Persistence**: Dexie/IndexedDB (`src/utils/db/dexie/`) + WXT storage.
-- **Cross-context messaging**: `@webext-core/messaging` wrapped in `src/utils/message.ts`.
-- **AI calls**: Vercel AI SDK (`ai` + per-provider `@ai-sdk/*` packages). See `src/utils/providers/` and the `ai-sdk` skill in `.agents/`.
-- **Server endpoints**: oRPC client in `src/utils/orpc/`, hitting a separate backend (`@read-frog/api-contract`).
-- **i18n**: `@wxt-dev/i18n` modules + `src/locales/` JSON message catalogs.
-- **Styling**: Tailwind v4 + shadcn/ui generated into `src/components/ui/`. Many content scripts use **Shadow DOM** isolation (`src/utils/react-shadow-host/`).
-- **Validation**: Zod everywhere user/external data crosses a boundary (configs, provider responses, migrations).
+- Run tests with `pnpm test` at monorepo root (delegates to each workspace).
+- **Set `SKIP_FREE_API=true` locally** when running extension tests (see Manual Notes below).
+- Extension-specific test commands are in `apps/extension/package.json`.
 
 ### Build / Lint / Test Commands
 
-| Command                                                       | What it does                                                                                                                |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm dev`                                                    | Chrome dev build with HMR                                                                                                   |
-| `pnpm dev:edge` / `pnpm dev:firefox`                          | Same for Edge / Firefox MV3                                                                                                 |
-| `pnpm dev:local`                                              | Dev build aliasing `@read-frog/definitions` and `@read-frog/api-contract` to a local sibling `read-frog-monorepo/` checkout |
-| `pnpm build` (`build:edge`, `build:firefox`, `build:analyze`) | Production builds                                                                                                           |
-| `pnpm zip` (`zip:edge`, `zip:firefox`, `zip:all`)             | Build + zip for store submission (sets `WXT_ZIP_MODE=true`, requires Google/PostHog env vars)                               |
-| `pnpm test`, `pnpm test:watch`, `pnpm test:cov`               | Vitest                                                                                                                      |
-| `pnpm lint`, `pnpm lint:fix`                                  | ESLint (Antfu config)                                                                                                       |
-| `pnpm type-check`                                             | `tsc --noEmit`                                                                                                              |
-| `pnpm release`                                                | `changeset tag && git push origin --tags`                                                                                   |
-| `pnpm scrape:ai-sdk-models`                                   | Refresh `scripts/output/ai-sdk-provider-models.json`                                                                        |
+| Command              | What it does                                                           |
+| -------------------- | ---------------------------------------------------------------------- |
+| `pnpm build`         | Build all workspaces in parallel (`pnpm -r --parallel build`)          |
+| `pnpm dev`           | Start extension dev build (`pnpm --filter @getu/extension dev`)        |
+| `pnpm test`          | Run tests in all workspaces                                            |
+| `pnpm lint`          | Lint all workspaces                                                    |
+| `pnpm lint:fix`      | Lint + auto-fix all workspaces                                         |
+| `pnpm type-check`    | TypeScript type-check all workspaces                                   |
+
+### Common Patterns
+
+- **Internal package resolution**: Packages use `"main": "./src/index.ts"` with no build step — bundler-aware resolution via tsconfig paths.
+- **Workspace protocol**: Internal deps use `"workspace:*"` in `package.json`.
+- **Brand rebranding**: `@getu/definitions` overrides URL/domain constants from the upstream `@read-frog/definitions` fork. Use `@getu/definitions` imports, never the old `@read-frog/*` packages.
 
 ## Dependencies
 
 ### Internal
 
-- `@read-frog/api-contract` — oRPC contract shared with backend.
-- `@read-frog/definitions` — shared type/data definitions.
-- Both can be aliased to a local sibling repo via `WXT_USE_LOCAL_PACKAGES=true`.
+- `@getu/contract` (`packages/contract/`) — oRPC contract shared with backend.
+- `@getu/definitions` (`packages/definitions/`) — Shared type/data definitions with GetU-branded URL constants.
 
-### External (highlights)
+### External (highlights, root devDeps only)
 
-- **Framework**: WXT 0.20.x, React 19, Vite 8.
-- **AI**: Vercel `ai` v6, 20+ `@ai-sdk/*` providers, OpenRouter, Ollama, Anthropic Claude, OpenAI, Gemini, etc.
-- **State / Data**: Jotai, TanStack Query, Dexie 4, oRPC client.
-- **UI**: Tailwind v4, shadcn/ui, base-ui (`@base-ui/react`), CodeMirror 6, dnd-kit, react-rnd, recharts, sonner, react-markdown.
-- **Auth**: better-auth.
-- **Tooling**: Antfu ESLint, Vitest, Husky, Changesets, Nx, lint-staged.
+- **Tooling**: Husky 9.x, commitlint, lint-staged, Nx 22.x.
 
 <!-- MANUAL: Notes below this line are preserved on regeneration -->
 
 ## Testing Notes
 
-- `src/utils/host/translate/api/__tests__/free-api.test.ts` depends on live external translation services.
+- `apps/extension/src/utils/host/translate/api/__tests__/free-api.test.ts` depends on live external translation services.
 - When running tests locally as an AI agent, set `SKIP_FREE_API=true`.
 - If `SKIP_FREE_API=true` is set, treat `free-api.test.ts` as intentionally skipped during local validation.

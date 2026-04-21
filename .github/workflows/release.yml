@@ -120,7 +120,7 @@ jobs:
 
       - name: Build and Zip Extension
         if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
-        run: pnpm zip:all
+        run: pnpm --filter @getu/extension zip:all
         env:
           WXT_GOOGLE_CLIENT_ID: ${{ secrets.WXT_GOOGLE_CLIENT_ID || vars.WXT_GOOGLE_CLIENT_ID }}
           WXT_POSTHOG_API_KEY: ${{ secrets.WXT_POSTHOG_API_KEY || vars.WXT_POSTHOG_API_KEY }}
@@ -136,7 +136,7 @@ jobs:
             TAG="v$VERSION"
           fi
 
-          gh release upload "$TAG" .output/*-chrome.zip .output/*-edge.zip .output/*-firefox.zip .output/*-sources.zip --clobber
+          gh release upload "$TAG" apps/extension/.output/*-chrome.zip apps/extension/.output/*-edge.zip apps/extension/.output/*-firefox.zip apps/extension/.output/*-sources.zip --clobber
         env:
           GH_TOKEN: ${{ github.token }}
 

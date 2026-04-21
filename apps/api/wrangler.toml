@@ -1,0 +1,16 @@
+name = "getu-api"
+main = "src/index.ts"
+compatibility_date = "2026-04-20"
+compatibility_flags = ["nodejs_compat"]
+
+[dev]
+port = 8788
+
+[[d1_databases]]
+binding = "DB"
+database_name = "getu-translate"
+database_id = "<fill from `wrangler d1 create getu-translate` output>"
+
+[vars]
+AUTH_BASE_URL = "http://localhost:8788"
+ALLOWED_EXTENSION_ORIGINS = "chrome-extension://*,http://localhost:3000,https://getutranslate.com,https://www.getutranslate.com"

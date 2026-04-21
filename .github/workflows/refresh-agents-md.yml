@@ -116,7 +116,7 @@ jobs:
 
       - name: Create / update Pull Request
         if: steps.detect.outputs.stale_count != '0' && inputs.dry_run != true
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: chore/refresh-agents-md
           delete-branch: true
