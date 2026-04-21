@@ -3,7 +3,6 @@
   "type": "module",
   "version": "1.32.2",
   "private": true,
-  "packageManager": "pnpm@10.32.1",
   "description": "Read Frog browser extension for language learning",
   "scripts": {
     "build": "wxt build",
@@ -141,8 +140,6 @@
     "eslint-plugin-format": "^2.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "jsdom": "^29.0.2",
-    "lint-staged": "^16.4.0",
-    "nx": "^22.6.5",
     "postcss": "^8.5.9",
     "postcss-rem-to-responsive-pixel": "^7.0.1",
     "postcss-value-parser": "^4.2.0",
