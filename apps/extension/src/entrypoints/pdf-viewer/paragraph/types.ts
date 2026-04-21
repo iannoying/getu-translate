@@ -69,8 +69,13 @@ export interface Paragraph {
   /** Dominant font size in PDF units (max of `transform[3]` over all items, rounded to 2dp). */
   fontSize: number
   /**
-   * Stable key suitable for atom indexing and DOM `data-*` attributes.
-   * Format: `p-${pageIndex}-${paragraphIndex}`.
+   * Stable key within a page (format: `p-${pageIndex}-${paragraphIndex}`).
+   *
+   * Suitable for DOM `data-*` attributes and per-page atom indexing. Callers
+   * that need cross-file identification (e.g. PR #B2 Jotai atom keys spanning
+   * multiple PDFs) should prepend a file hash prefix:
+   * `${fileHash}:${paragraph.key}`. See `docs/plans/2026-04-21-m3-pdf-translate-pr-b-design.md`
+   * for the cross-file identity scheme.
    */
   key: string
 }

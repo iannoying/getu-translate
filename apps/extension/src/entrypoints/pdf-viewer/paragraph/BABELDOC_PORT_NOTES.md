@@ -8,12 +8,12 @@
 
 Clone: `git clone https://github.com/funstory-ai/BabelDOC --depth 1`.
 
-| File | Role |
-| --- | --- |
+| File                                                         | Role                                                                                                                                                                                                                    |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `babeldoc/format/pdf/document_il/midend/paragraph_finder.py` | Entry point. `ParagraphFinder.process_page` drives the whole pipeline: group chars → paragraphs, split paragraphs → lines, process spacing, split independent paragraphs, merge alternating line-numbers, fix overlaps. |
-| `babeldoc/format/pdf/document_il/utils/paragraph_helper.py` | Post-hoc paragraph classifiers: `is_cid_paragraph`, `is_pure_numeric_paragraph`, `is_placeholder_only_paragraph`. |
-| `babeldoc/format/pdf/document_il/utils/layout_helper.py` | `is_bullet_point`, `is_text_layout`, `get_character_layout`, regex constants. |
-| `babeldoc/docvision/doclayout.py` | YOLO layout model loader. **Not portable** to the browser. |
+| `babeldoc/format/pdf/document_il/utils/paragraph_helper.py`  | Post-hoc paragraph classifiers: `is_cid_paragraph`, `is_pure_numeric_paragraph`, `is_placeholder_only_paragraph`.                                                                                                       |
+| `babeldoc/format/pdf/document_il/utils/layout_helper.py`     | `is_bullet_point`, `is_text_layout`, `get_character_layout`, regex constants.                                                                                                                                           |
+| `babeldoc/docvision/doclayout.py`                            | YOLO layout model loader. **Not portable** to the browser.                                                                                                                                                              |
 
 ## Input data shape
 
@@ -47,26 +47,27 @@ while pdf.js already gives us line-ish units.
 
 ## Rules ported (adapted)
 
-| BabelDOC rule | This port |
-| --- | --- |
-| Line clustering by y-proximity (mid-line distance < char height) | Adopted — `LINE_Y_TOLERANCE_RATIO` of `max(lineHeight, itemHeight)`. |
-| Paragraph break on vertical gap > line height | Adopted — `PARAGRAPH_GAP_RATIO = 1.5 × lineHeight`. |
-| Paragraph break on bullet start (`is_bullet_point`) | Adopted — `BULLET_PATTERN` regex covers `\u2022`, `\u25E6`, `-`, `*`, `•`, numbered `1.`, `a)`. |
-| `process_independent_paragraphs` — split on TOC dot leaders (20+ consecutive dots) | Adopted — `TOC_DOT_LEADER = /\.{20,}/`. |
-| Font size change → heading boundary | Adopted — `FONT_SIZE_CHANGE_RATIO = 0.15`. |
-| Hyphen continuation (`"under-\nstanding"` → `"understanding"`) | Adopted — `HYPHEN_CONTINUATION_RE`. |
-| Layout-id change → paragraph break | Replaced with **x-indent jump** proxy (`COLUMN_X_JUMP_RATIO × lineHeight`). |
+| BabelDOC rule                                                                      | This port                                                                                       |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Line clustering by y-proximity (mid-line distance < char height)                   | Adopted — `LINE_Y_TOLERANCE_RATIO` of `max(lineHeight, itemHeight)`.                            |
+| Paragraph break on vertical gap > line height                                      | Adopted — `PARAGRAPH_GAP_RATIO = 1.5 × lineHeight`.                                             |
+| Paragraph break on bullet start (`is_bullet_point`)                                | Adopted — `BULLET_PATTERN` regex covers `\u2022`, `\u25E6`, `-`, `*`, `•`, numbered `1.`, `a)`. |
+| `process_independent_paragraphs` — split on TOC dot leaders (20+ consecutive dots) | Adopted — `TOC_DOT_LEADER = /\.{20,}/`.                                                         |
+| Font size change → heading boundary                                                | Adopted — `FONT_SIZE_CHANGE_RATIO = 0.15`.                                                      |
+| Hyphen continuation (`"under-\nstanding"` → `"understanding"`)                     | Adopted — `HYPHEN_CONTINUATION_RE`.                                                             |
+| Layout-id change → paragraph break                                                 | Replaced with **x-indent jump** proxy (`COLUMN_X_JUMP_RATIO × lineHeight`).                     |
 
 ## Rules dropped (deferred)
 
-| BabelDOC rule | Why dropped for PR #B1 |
-| --- | --- |
-| YOLO layout preprocessing (`_preprocess_formula_layouts`) | No layout oracle in browser. |
-| `merge_alternating_line_number_paragraphs` (A-L-A merge) | Requires layout-aware line-number detection; deferred. |
-| `fix_overlapping_paragraphs` (midpoint box adjustment) | pdf.js textLayer does not produce overlapping spans in typical PDFs. |
-| `is_cid_paragraph` / `check_cid_paragraph` (CID error gate) | Diagnostic-only for translation stage; not needed at overlay time. |
-| `calculate_iou_for_boxes` + `is_bbox_contain_in_vertical` | Used by the overlap fixer above; also deferred. |
-| Character-level collision histogram line splitter | pdf.js already emits at line granularity. |
+| BabelDOC rule                                               | Why dropped for PR #B1                                               |
+| ----------------------------------------------------------- | -------------------------------------------------------------------- |
+| YOLO layout preprocessing (`_preprocess_formula_layouts`)   | No layout oracle in browser.                                         |
+| `merge_alternating_line_number_paragraphs` (A-L-A merge)    | Requires layout-aware line-number detection; deferred.               |
+| `fix_overlapping_paragraphs` (midpoint box adjustment)      | pdf.js textLayer does not produce overlapping spans in typical PDFs. |
+| `is_cid_paragraph` / `check_cid_paragraph` (CID error gate) | Diagnostic-only for translation stage; not needed at overlay time.   |
+| `calculate_iou_for_boxes` + `is_bbox_contain_in_vertical`   | Used by the overlap fixer above; also deferred.                      |
+| Character-level collision histogram line splitter           | pdf.js already emits at line granularity.                            |
+| `SHORT_LINE_SPLIT_FACTOR` (split when prev line width < 0.5× median) | Dropped for PR #B1 — deferred; needs median-width computation; mostly affects last-line detection which is orthogonal to the B1 scaffolding goal. |
 
 ## Known limitations flagged in `aggregate.ts`
 
