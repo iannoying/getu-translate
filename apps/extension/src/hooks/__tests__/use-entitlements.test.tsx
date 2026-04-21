@@ -16,11 +16,6 @@ import { useEntitlements } from "../use-entitlements"
 const fetchMock = vi.fn()
 
 vi.mock("@/utils/billing/fetch-entitlements", () => ({
-  BillingNotImplementedError: class BillingNotImplementedError extends Error {
-    constructor() {
-      super("billing.getEntitlements not implemented yet on backend")
-    }
-  },
   fetchEntitlementsFromBackend: () => fetchMock(),
 }))
 
