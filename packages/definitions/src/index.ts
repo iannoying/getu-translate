@@ -5,8 +5,6 @@
 
 // Re-export everything from the upstream source, overriding URL/domain constants for GetU Translate.
 export {
-  // APP_NAME is rebranded in Phase 1 Task 5 (separate PR); see docs/plans/2026-04-20-phase1-brand-and-monorepo.md § Task 5.
-  APP_NAME,
   AUTH_BASE_PATH,
   AUTH_COOKIE_PATTERNS,
   CADDY_DEV_PORT,
@@ -61,3 +59,6 @@ export const GETU_DOMAIN = "getutranslate.com"
 export const WEBSITE_PROD_URL = "https://getutranslate.com"
 export const WEBSITE_CADDY_DEV_URL = "http://localhost:8788"
 export const AUTH_DOMAINS = ["getutranslate.com", "localhost"] as const
+
+// Override: GetU Translate rebranded APP_NAME (Phase 1 Task 5)
+export const APP_NAME = "GetU Translate"

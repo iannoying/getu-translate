@@ -1,4 +1,5 @@
 import { browser, i18n } from "#imports"
+import { APP_NAME as BRAND_APP_NAME } from "@getu/definitions"
 import { IconSettings, IconX } from "@tabler/icons-react"
 import { useAtom, useAtomValue } from "jotai"
 import { useEffect, useRef, useState } from "react"
@@ -12,7 +13,6 @@ import {
 import { ANALYTICS_FEATURE, ANALYTICS_SURFACE } from "@/types/analytics"
 import { createFeatureUsageContext } from "@/utils/analytics"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
-import { APP_NAME } from "@/utils/constants/app"
 import { sendMessage } from "@/utils/message"
 import { cn } from "@/utils/styles/utils"
 import { matchDomainPattern } from "@/utils/url"
@@ -193,7 +193,7 @@ export default function FloatingButton() {
         </DropdownMenu>
         <img
           src={readFrogLogoUrl}
-          alt={APP_NAME}
+          alt={BRAND_APP_NAME}
           className="ml-1 h-8 w-8 rounded-full"
         />
       </div>

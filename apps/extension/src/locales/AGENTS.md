@@ -44,7 +44,7 @@ None.
 - Preserve the `%s` placeholder in `contextMenu.translateSelection` (Chrome substitutes the selected text) and any other ICU-style placeholders verbatim.
 - File format is YAML, not JSON — keep two-space indentation and avoid tabs. Quoted strings are needed only when the value starts with a YAML special char (`{`, `[`, `:`, `#`, `?`, `&`, `*`, `!`, `|`, `>`, `'`, `"`, `%`, `@`).
 - The locale code in the filename (`zh-CN`, `zh-TW`, `pt-BR`, etc.) is what Chrome's `chrome.i18n.getUILanguage()` returns; do not rename existing files without updating the WXT i18n manifest.
-- Do NOT translate the `name` value — it must stay `Read Frog` so users can find the extension by its English brand name.
+- Do NOT translate the `name` value — it must stay `GetU Translate` so users can find the extension by its English brand name.
 
 ### Testing Requirements
 
