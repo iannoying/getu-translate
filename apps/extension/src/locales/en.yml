@@ -956,6 +956,13 @@ options:
     title: Improve Subtitle 🎁
   rateUs:
     title: Rate Us
+pdfViewer:
+  firstUseToast:
+    title: Translate this PDF with GetU?
+    description: We can render a bilingual version of this PDF so you can read source and translation side-by-side.
+    accept: Translate this PDF
+    skipOnce: Not this time
+    neverOnThisDomain: Never on this site
 side:
   sourceLang: Source Language
   targetLang: Target Language

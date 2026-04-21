@@ -840,6 +840,14 @@ options:
     title: 字幕を改善 🎁
   rateUs:
     title: レビューを書く
+# TODO(i18n): translate in a follow-up locale PR
+pdfViewer:
+  firstUseToast:
+    title: Translate this PDF with GetU?
+    description: We can render a bilingual version of this PDF so you can read source and translation side-by-side.
+    accept: Translate this PDF
+    skipOnce: Not this time
+    neverOnThisDomain: Never on this site
 side:
   sourceLang: ソース言語
   targetLang: 翻訳言語

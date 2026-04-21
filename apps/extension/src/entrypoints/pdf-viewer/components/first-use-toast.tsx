@@ -1,3 +1,4 @@
+import { i18n } from "#imports"
 import * as React from "react"
 import { useEffect, useRef } from "react"
 import { Button } from "@/components/ui/base-ui/button"
@@ -28,7 +29,8 @@ export interface FirstUseToastProps {
  *   - Not this time          — close toast, no persistence (session-only).
  *   - Never on this site     — persist domain to blocklist, then reload.
  *
- * Strings are English-only for PR #A; i18n keys land in Task 7.
+ * Copy is routed through `i18n.t("pdfViewer.firstUseToast.*")`; English is the
+ * source of truth, other locales fall back to English until translated.
  */
 export function FirstUseToast({
   onAccept,
@@ -46,13 +48,11 @@ export function FirstUseToast({
     onSkipOnceRef.current = onSkipOnce
   }, [onSkipOnce])
 
-  // TODO(i18n): replace hard-coded strings with i18n.t(...) keys (Task 7)
-  const title = "Translate this PDF with GetU?"
-  const description
-    = "We can render a bilingual version of this PDF so you can read source and translation side-by-side."
-  const translateLabel = "Translate this PDF"
-  const skipLabel = "Not this time"
-  const neverLabel = "Never on this site"
+  const title = i18n.t("pdfViewer.firstUseToast.title")
+  const description = i18n.t("pdfViewer.firstUseToast.description")
+  const translateLabel = i18n.t("pdfViewer.firstUseToast.accept")
+  const skipLabel = i18n.t("pdfViewer.firstUseToast.skipOnce")
+  const neverLabel = i18n.t("pdfViewer.firstUseToast.neverOnThisDomain")
 
   const handleTranslate = () => {
     // TODO(M3-PR-B): trigger the actual translation pipeline here.

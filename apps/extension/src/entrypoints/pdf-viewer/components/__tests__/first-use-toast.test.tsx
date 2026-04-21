@@ -3,6 +3,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import { FirstUseToast } from "../first-use-toast"
 
+vi.mock("#imports", () => ({
+  i18n: {
+    t: (key: string) => key,
+  },
+}))
+
 describe("firstUseToast", () => {
   it("renders all three action buttons with the expected copy", () => {
     render(
@@ -14,13 +20,13 @@ describe("firstUseToast", () => {
     )
 
     expect(
-      screen.getByRole("button", { name: "Translate this PDF" }),
+      screen.getByRole("button", { name: "pdfViewer.firstUseToast.accept" }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole("button", { name: "Not this time" }),
+      screen.getByRole("button", { name: "pdfViewer.firstUseToast.skipOnce" }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole("button", { name: "Never on this site" }),
+      screen.getByRole("button", { name: "pdfViewer.firstUseToast.neverOnThisDomain" }),
     ).toBeInTheDocument()
   })
 
@@ -37,7 +43,7 @@ describe("firstUseToast", () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole("button", { name: "Translate this PDF" }))
+    fireEvent.click(screen.getByRole("button", { name: "pdfViewer.firstUseToast.accept" }))
 
     expect(onAccept).toHaveBeenCalledTimes(1)
     expect(onSkipOnce).not.toHaveBeenCalled()
@@ -58,7 +64,7 @@ describe("firstUseToast", () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole("button", { name: "Not this time" }))
+    fireEvent.click(screen.getByRole("button", { name: "pdfViewer.firstUseToast.skipOnce" }))
 
     expect(onSkipOnce).toHaveBeenCalledTimes(1)
     expect(onAccept).not.toHaveBeenCalled()
@@ -77,7 +83,7 @@ describe("firstUseToast", () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole("button", { name: "Never on this site" }))
+    fireEvent.click(screen.getByRole("button", { name: "pdfViewer.firstUseToast.neverOnThisDomain" }))
 
     expect(onNever).toHaveBeenCalledTimes(1)
     await waitFor(() => {
