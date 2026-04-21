@@ -1,20 +1,20 @@
 import type { Entitlements } from "@/types/entitlements"
-
-export class BillingNotImplementedError extends Error {
-  constructor() {
-    super("billing.getEntitlements not implemented yet on backend")
-  }
-}
+import { orpcClient } from "@/utils/orpc/client"
 
 /**
- * Fetch the current user's entitlements from the backend.
+ * Fetch the current user's entitlements from the backend via oRPC.
  *
- * TODO(backend): once `billing.getEntitlements` is live, replace the body with:
- *   return EntitlementsSchema.parse(await orpcClient.billing.getEntitlements())
+ * Throws on network or auth errors — callers must handle errors by falling
+ * back to the Dexie cache or `FREE_ENTITLEMENTS`.
  *
- * Callers must handle `BillingNotImplementedError` (and any other error) by
- * falling back to the Dexie cache or `FREE_ENTITLEMENTS`.
+ * Note: `orpcClient` is typed against the legacy base contract which predates
+ * the billing router.  The cast is safe — at runtime oRPC routes by path and
+ * the billing procedure exists on the server.  The contract package's
+ * `ORPCRouterClient` type will be updated when `base.d.ts` is regenerated.
  */
 export async function fetchEntitlementsFromBackend(): Promise<Entitlements> {
-  throw new BillingNotImplementedError()
+  const client = orpcClient as unknown as {
+    billing: { getEntitlements: (input: Record<string, never>) => Promise<Entitlements> }
+  }
+  return client.billing.getEntitlements({})
 }
