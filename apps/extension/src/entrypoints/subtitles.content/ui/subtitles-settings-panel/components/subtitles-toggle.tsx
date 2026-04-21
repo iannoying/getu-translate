@@ -1,14 +1,14 @@
 import { i18n } from "#imports"
+import { APP_NAME as BRAND_APP_NAME } from "@getu/definitions"
 import { IconSubtitles } from "@tabler/icons-react"
 import { useAtomValue } from "jotai"
 import { Switch } from "@/components/ui/base-ui/switch"
-import { APP_NAME } from "@/utils/constants/app"
 import { subtitlesVisibleAtom } from "../../../atoms"
 import { useSubtitlesUI } from "../../subtitles-ui-context"
 import { SubtitlesSettingsItem } from "./subtitles-settings-item"
 
 export function SubtitlesToggle() {
-  const title = `${APP_NAME} ${i18n.t("options.videoSubtitles.title")}`
+  const title = `${BRAND_APP_NAME} ${i18n.t("options.videoSubtitles.title")}`
   const switchId = "read-frog-subtitles-toggle"
 
   const isVisible = useAtomValue(subtitlesVisibleAtom)
