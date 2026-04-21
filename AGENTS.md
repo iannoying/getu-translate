@@ -94,3 +94,24 @@ Distributed under GNU GPLv3 with an additional commercial license grant to FEELI
 - `apps/extension/src/utils/host/translate/api/__tests__/free-api.test.ts` depends on live external translation services.
 - When running tests locally as an AI agent, set `SKIP_FREE_API=true`.
 - If `SKIP_FREE_API=true` is set, treat `free-api.test.ts` as intentionally skipped during local validation.
+
+## Milestone Execution Workflow
+
+Roadmap milestones M0–M6 live in `docs/plans/2026-04-20-roadmap-vs-immersive-translate.md`. M0 and M1 shipped directly from that file; **M2 and later use a per-milestone plan file** (see `docs/plans/2026-04-21-m2-input-translate.md` as the reference shape).
+
+When the user asks to start a new milestone (e.g. "开始 M3", "做 PDF 翻译"), follow this loop — or invoke `/milestone-run` which encodes it verbatim:
+
+1. `superpowers:brainstorming` — explore scope against the roadmap row for that milestone.
+2. `superpowers:writing-plans` — produce `docs/plans/YYYY-MM-DD-<slug>.md`; commit it.
+3. `git worktree add .claude/worktrees/<slug> -b feat/<slug>` off latest `main`; `pnpm install` inside.
+4. `gh issue create` for the Epic + one sub-issue per planned PR, label `milestone:m<N>`.
+5. Per PR, drive with `superpowers:executing-plans` (strict TDD: failing test first, minimal impl, commit). Open the PR, then in parallel:
+   - Spawn `codex:codex-rescue` via `Agent` to run `/codex:adversarial-review`
+   - `gh pr checks <num> --watch` in background
+   Apply fixes, post a review summary comment, `gh pr merge <num> --squash --auto`.
+6. Between PRs, branch fresh off updated `origin/main`.
+7. When all PRs merge, close the epic and `git worktree remove`.
+
+**One milestone per session.** Context budget and focus both suffer when multiple milestones stack up. Check in with the user before starting the next one.
+
+**Schema + i18n gotchas.** Config schema bumps need: `CONFIG_SCHEMA_VERSION` bump, a `migration-scripts/vNNN-to-vMMM.ts`, a matching `__tests__/example/vMMM.ts`, and a migration test. After adding i18n keys in any `src/locales/*.yml`, run `pnpm wxt prepare` so `.wxt/types/i18n.d.ts` regenerates before `pnpm type-check`.
