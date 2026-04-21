@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { useEntitlements } from "@/hooks/use-entitlements"
-import { hasFeature } from "@/types/entitlements"
+import { hasFeature, isPro } from "@/types/entitlements"
 import { authClient } from "@/utils/auth/auth-client"
 import {
   getInputTranslationUsage,
@@ -49,7 +49,10 @@ export function useInputTranslationQuota(): InputQuotaState {
   const [used, setUsed] = useState(0)
   const [usageLoading, setUsageLoading] = useState(true)
 
-  const unlimited = hasFeature(entitlements, "input_translate_unlimited")
+  // Gate the unlimited feature on BOTH tier-is-paid-and-active AND the
+  // feature flag. `hasFeature` alone would keep an expired Pro uncapped if
+  // the cached entitlements still list the feature (see code review on #35).
+  const unlimited = isPro(entitlements) && hasFeature(entitlements, "input_translate_unlimited")
   const limit: number | "unlimited" = unlimited ? "unlimited" : FREE_INPUT_TRANSLATION_DAILY_LIMIT
 
   useEffect(() => {

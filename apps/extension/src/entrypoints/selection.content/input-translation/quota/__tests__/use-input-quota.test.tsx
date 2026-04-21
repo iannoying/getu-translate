@@ -38,6 +38,15 @@ const PRO_UNLIMITED: Entitlements = {
   expiresAt: "2099-01-01T00:00:00.000Z",
 }
 
+const EXPIRED_PRO_WITH_FEATURE: Entitlements = {
+  tier: "pro",
+  features: ["input_translate_unlimited"],
+  quota: {},
+  // expiresAt is in the past so isPro() returns false; defends against a
+  // stale backend payload that leaves the feature flag on after expiry.
+  expiresAt: "2020-01-01T00:00:00.000Z",
+}
+
 function renderWithProviders<T>(hook: () => T) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
@@ -132,6 +141,17 @@ describe("useInputTranslationQuota", () => {
     })
     expect(ok).toBe(false)
     expect(result.current.used).toBe(FREE_INPUT_TRANSLATION_DAILY_LIMIT + 1)
+  })
+
+  it("downgrades expired Pro with stale feature flag back to the Free cap", async () => {
+    useEntitlementsMock.mockReturnValue({ data: EXPIRED_PRO_WITH_FEATURE, isLoading: false, isFromCache: false })
+    getUsageMock.mockResolvedValue(FREE_INPUT_TRANSLATION_DAILY_LIMIT)
+
+    const { result } = renderWithProviders(() => useInputTranslationQuota())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    expect(result.current.limit).toBe(FREE_INPUT_TRANSLATION_DAILY_LIMIT)
+    expect(result.current.canTranslate).toBe(false)
   })
 
   it("checkAndIncrement always returns true for unlimited users", async () => {

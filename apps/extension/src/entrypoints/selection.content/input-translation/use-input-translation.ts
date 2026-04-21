@@ -178,75 +178,80 @@ export function useInputTranslation(): UseInputTranslationResult {
       return
     }
 
-    // Billing gate: check the daily quota before calling the translation API.
-    // When the free user exceeds 50/day, we open UpgradeDialog via the same
-    // useProGuard hook that powers the rest of the paywall.
-    const liveQuota = quotaRef.current
-    if (liveQuota.isLoading) {
-      return
-    }
-    const allowed = await liveQuota.checkAndIncrement()
-    if (!allowed) {
-      guardRef.current("input_translate_unlimited", { source: "input-translation-daily-limit" })
-      return
-    }
-
-    // Determine fromLang and toLang, possibly swapped if cycle is enabled
-    let fromLang = inputTranslationConfig.fromLang
-    let toLang = inputTranslationConfig.toLang
-
-    if (inputTranslationConfig.enableCycle) {
-      const wasSwapped = getLastCycleSwapped()
-      if (wasSwapped) {
-        // Already swapped last time, use original direction
-        setLastCycleSwapped(false)
-      }
-      else {
-        // Swap direction
-        ;[fromLang, toLang] = [toLang, fromLang]
-        setLastCycleSwapped(true)
-      }
-    }
-
+    // Set the single-flight guard BEFORE any await so rapid triggers can't
+    // race past it and run the quota check / provider call concurrently.
     isTranslatingRef.current = true
-
-    // Show spinner near the input element
-    const hideSpinner = showSpinner(element)
-
-    // Store original text to detect if user edited during translation
-    const originalText = text
-
+    let hideSpinner: (() => void) | null = null
     try {
-      const translatedText = await trackFeatureAttempt(
-        createFeatureUsageContext(
-          ANALYTICS_FEATURE.INPUT_TRANSLATION,
-          ANALYTICS_SURFACE.INPUT_TRANSLATION,
-        ),
-        () => translateTextForInput(text, fromLang, toLang),
-      )
-
-      // Check if element content changed during translation (user input)
-      let currentText: string
-      if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-        currentText = element.value
+      // Billing gate: count the attempt against the free daily cap, or open
+      // UpgradeDialog when exhausted. Incrementing before the provider call
+      // is intentional — attempts (not only successes) count toward the cap
+      // so a user cannot spin a failing provider to DoS the counter.
+      const liveQuota = quotaRef.current
+      if (liveQuota.isLoading) {
+        return
       }
-      else if (element.isContentEditable) {
-        currentText = element.textContent || ""
-      }
-      else {
-        currentText = originalText
+      const allowed = await liveQuota.checkAndIncrement()
+      if (!allowed) {
+        guardRef.current("input_translate_unlimited", { source: "input-translation-daily-limit" })
+        return
       }
 
-      // Only apply translation if content hasn't changed during async operation
-      if (currentText === originalText && translatedText) {
-        setTextWithUndo(element, translatedText)
+      // Determine fromLang and toLang, possibly swapped if cycle is enabled
+      let fromLang = inputTranslationConfig.fromLang
+      let toLang = inputTranslationConfig.toLang
+
+      if (inputTranslationConfig.enableCycle) {
+        const wasSwapped = getLastCycleSwapped()
+        if (wasSwapped) {
+          // Already swapped last time, use original direction
+          setLastCycleSwapped(false)
+        }
+        else {
+          // Swap direction
+          ;[fromLang, toLang] = [toLang, fromLang]
+          setLastCycleSwapped(true)
+        }
       }
-    }
-    catch (error) {
-      console.error("Input translation error:", error)
+
+      // Show spinner near the input element
+      hideSpinner = showSpinner(element)
+
+      // Store original text to detect if user edited during translation
+      const originalText = text
+
+      try {
+        const translatedText = await trackFeatureAttempt(
+          createFeatureUsageContext(
+            ANALYTICS_FEATURE.INPUT_TRANSLATION,
+            ANALYTICS_SURFACE.INPUT_TRANSLATION,
+          ),
+          () => translateTextForInput(text, fromLang, toLang),
+        )
+
+        // Check if element content changed during translation (user input)
+        let currentText: string
+        if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+          currentText = element.value
+        }
+        else if (element.isContentEditable) {
+          currentText = element.textContent || ""
+        }
+        else {
+          currentText = originalText
+        }
+
+        // Only apply translation if content hasn't changed during async operation
+        if (currentText === originalText && translatedText) {
+          setTextWithUndo(element, translatedText)
+        }
+      }
+      catch (error) {
+        console.error("Input translation error:", error)
+      }
     }
     finally {
-      hideSpinner()
+      hideSpinner?.()
       isTranslatingRef.current = false
     }
   }, [inputTranslationConfig.fromLang, inputTranslationConfig.toLang, inputTranslationConfig.enableCycle])

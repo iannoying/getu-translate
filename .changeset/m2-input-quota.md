@@ -1,5 +1,5 @@
 ---
-"@read-frog/extension": minor
+"@getu/extension": minor
 ---
 
 feat(input): enforce daily 50-translation quota for free users (M2 PR A)
