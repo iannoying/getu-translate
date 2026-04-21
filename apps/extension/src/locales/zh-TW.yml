@@ -253,6 +253,17 @@ options:
     toggle:
       title: 啟用三連空格翻譯
       description: 在任意輸入框中快速按3次空格鍵即可翻譯其內容
+    triggerMode:
+      title: 觸發方式
+      description: 選擇如何觸發當前輸入框的原地翻譯
+      tripleSpace:
+        label: 三連空格
+        hint: 快速按三次空格鍵
+      token:
+        label: 觸發詞
+        hint: 輸入前綴加目標語言（如 hello //en）
+      prefixLabel: 觸發前綴
+      prefixError: 前綴長度必須在 $1 到 $2 個字元之間
     languages:
       title: 翻譯語言
       description: 選擇輸入翻譯的源語言和目標語言
