@@ -1,5 +1,5 @@
 import { oc } from "@orpc/contract";
-import { COLUMN_MAX_WIDTH, COLUMN_MIN_WIDTH, columnConfigSchema } from "@read-frog/definitions";
+import { COLUMN_MAX_WIDTH, COLUMN_MIN_WIDTH, columnConfigSchema } from "@getu/definitions";
 import { z } from "zod";
 
 //#region src/schemas/column.ts
