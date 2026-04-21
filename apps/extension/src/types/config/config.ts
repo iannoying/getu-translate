@@ -94,6 +94,24 @@ const inputTranslationSchema = z.object({
 // Export types for use in components
 export type InputTranslationLang = z.infer<typeof inputTranslationLangSchema>
 
+// PDF bilingual viewer schema
+const pdfTranslationSchema = z.object({
+  /** Master switch for the whole PDF viewer feature. */
+  enabled: z.boolean(),
+  /**
+   * How the viewer is activated when the user opens a PDF:
+   * - "ask"    — show a one-time prompt on that PDF
+   * - "always" — auto-open the bilingual viewer
+   * - "manual" — never auto-open; user must invoke explicitly
+   */
+  activationMode: z.enum(["ask", "always", "manual"]),
+  /** Domains the user has opted out of via "Never on this site". */
+  blocklistDomains: z.array(z.string().min(1)),
+  /** Whether the user has granted the extension access to file:// URLs. */
+  allowFileProtocol: z.boolean(),
+})
+export type PdfTranslationConfig = z.infer<typeof pdfTranslationSchema>
+
 // site control schema
 const siteControlSchema = z.object({
   mode: z.enum(["blacklist", "whitelist"]),
@@ -116,6 +134,7 @@ export const configSchema = z.object({
   inputTranslation: inputTranslationSchema,
   videoSubtitles: videoSubtitlesSchema,
   siteControl: siteControlSchema,
+  pdfTranslation: pdfTranslationSchema,
 }).superRefine((data, ctx) => {
   const providerIdsSet = new Set(data.providersConfig.map(p => p.id))
 
