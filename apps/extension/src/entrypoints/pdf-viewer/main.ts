@@ -1,8 +1,13 @@
+import type { SegmentKey } from "./translation/atoms"
 import { createStore } from "jotai"
 import { addDomainToBlocklistAtom } from "@/utils/atoms/pdf-translation"
 import { getLocalConfig } from "@/utils/config/storage"
 import { DEFAULT_CONFIG } from "@/utils/constants/config"
+import { fingerprintForSrc } from "@/utils/pdf/fingerprint"
 import { parseSrcParam } from "./parse-src-param"
+import { segmentStatusAtomFamily } from "./translation/atoms"
+import { TranslationScheduler } from "./translation/scheduler"
+import { translateSegment } from "./translation/translate-segment"
 import "pdfjs-dist/web/pdf_viewer.css"
 import "./style.css"
 
@@ -17,12 +22,35 @@ import "./style.css"
  */
 export const pdfViewerStore = createStore()
 
+/**
+ * Mutable reference to the current file's scheduler. `boot()` sets it after
+ * instantiation so later hooks (PR #B2 Task 5 toast-accept wiring) can reach
+ * the scheduler without threading it through a closure. Exported for tests.
+ */
+export const schedulerRef: { current: TranslationScheduler | null } = {
+  current: null,
+}
+
 async function boot() {
   const src = parseSrcParam(location.search)
   if (!src) {
     document.body.textContent = "Missing ?src= parameter"
     return
   }
+
+  // Compute the per-file fingerprint once. PR #B3 will swap in a real
+  // content-based hash; for B2 `sha256(src)` is deterministic and sufficient
+  // to keep segment atoms from different PDFs out of each other's way.
+  const fileHash = fingerprintForSrc(src)
+
+  // One scheduler per file. Re-opening the same PDF (new tab / reload) gets a
+  // fresh scheduler, which is what we want — no stale in-flight promises.
+  const scheduler = new TranslationScheduler({
+    translate: translateSegment,
+    setStatus: (key: SegmentKey, status) =>
+      pdfViewerStore.set(segmentStatusAtomFamily(key), status),
+  })
+  schedulerRef.current = scheduler
 
   // Kick off PDF load and the activation-toast decision in parallel.
   // We don't block PDF rendering on the (async) config read for the toast.
@@ -31,11 +59,21 @@ async function boot() {
     console.error("[pdf-viewer] first-use toast setup failed:", err)
   })
 
-  await renderPdf(src)
+  await renderPdf(src, { fileHash, scheduler })
   await toastPromise
 }
 
-async function renderPdf(src: string) {
+async function renderPdf(
+  src: string,
+  opts: { fileHash: string, scheduler: TranslationScheduler },
+) {
+  const { fileHash, scheduler } = opts
+  // Read activation mode once at render time. We snapshot it here (rather
+  // than in `mountOverlayForPage`) so every page of a single open session
+  // uses a consistent policy even if the user toggles the setting mid-view;
+  // the scheduler is per-file, so the next PDF open picks up the change.
+  const activationMode = (await getLocalConfig())?.pdfTranslation.activationMode
+    ?? DEFAULT_CONFIG.pdfTranslation.activationMode
   // Lazy-load pdfjs so the initial bundle stays small and so tests can
   // import `parseSrcParam` (and friends) without pulling in the worker.
   const [pdfjsLib, pdfViewerMod] = await Promise.all([
@@ -152,6 +190,7 @@ async function renderPdf(src: string) {
         { aggregate },
         { OverlayLayer },
         { computePageExtension, DEFAULT_MIN_SLOT_HEIGHT_PX },
+        { SegmentContent },
       ] = await Promise.all([
         import("react-dom/client"),
         import("react"),
@@ -159,6 +198,7 @@ async function renderPdf(src: string) {
         import("./paragraph/aggregate"),
         import("./overlay/layer"),
         import("./overlay/push-down-layout"),
+        import("./overlay/segment-content"),
       ])
 
       const page = await pdfDoc.getPage(pageNumber)
@@ -232,9 +272,28 @@ async function renderPdf(src: string) {
             pageIndex,
             viewport,
             minSlotHeight: DEFAULT_MIN_SLOT_HEIGHT_PX,
+            renderSlotContent: (paragraph) => {
+              const key: SegmentKey = `${fileHash}:${paragraph.key}`
+              return React.createElement(SegmentContent, { segmentKey: key })
+            },
           }),
         ),
       )
+
+      // Kick the scheduler once per paragraph. Scheduler dedups re-enqueues
+      // while `pending` / `translating` / `done`, so hitting it again on every
+      // `textlayerrendered` (zoom, re-layout) is safe — each paragraph is
+      // translated exactly once per scheduler lifetime.
+      //
+      // `"always"`: translate on sight.
+      // `"ask"`:   wait for user to accept the first-use toast.
+      //            TODO(M3-PR#B2 Task 5) wire onAccept → enqueue here.
+      // `"manual"`: never auto-enqueue (popup button path — out of scope).
+      if (activationMode === "always") {
+        for (const paragraph of paragraphs) {
+          scheduler.enqueue(fileHash, paragraph)
+        }
+      }
 
       // Reserve vertical space below the pdf.js `.page` container so every
       // overlay slot has room without clipping into the next page. We write
