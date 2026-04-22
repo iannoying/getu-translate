@@ -16,7 +16,7 @@ popup:
   targetLang: Hedef
   translate: Çevir
   showOriginal: Orijinali Göster
-  translateCurrentPdf: Translate current PDF # TODO(i18n): translate in Task 7
+  translateCurrentPdf: Geçerli PDF'yi çevir
   enabledFloatingButton: Yüzen butonu etkinleştir
   enabledSelectionToolbar: Seçim araç çubuğunu etkinleştir
   alwaysTranslate: Bu siteyi her zaman çevir
@@ -277,38 +277,36 @@ options:
       label: Eşik (ms)
       hint: Ardışık boşluk tuşuna basışlar arasındaki milisaniye cinsinden süre (100-1000ms)
       error: Değer $1 ile $2 arasında olmalıdır
-  # TODO(i18n): translate in Task 7
   pdfTranslation:
-    title: PDF Translation
+    title: PDF Çevirisi
     enabled:
-      label: Enable PDF translation
-      description: Allow GetU to intercept .pdf URLs and open them in the bilingual viewer
+      label: PDF çevirisini etkinleştir
+      description: GetU'nun .pdf URL'lerini yakalayıp iki dilli görüntüleyicide açmasına izin verin
     activationMode:
-      label: Activation behavior
-      always: Always translate
-      ask: Ask first time on each site
-      manual: Manual only (from popup)
+      label: Etkinleştirme davranışı
+      always: Her zaman çevir
+      ask: Her sitede ilk seferde sor
+      manual: Yalnızca manuel (açılır pencereden)
     blocklist:
-      label: Blocked domains
-      empty: No blocked domains yet
-      remove: Remove
+      label: Engellenen alan adları
+      empty: Henüz engellenmiş alan adı yok
+      remove: Kaldır
     fileProtocol:
-      label: Local file access
-      allowed: Enabled — local PDF files can be translated
-      disabled: Disabled — open chrome://extensions and enable "Allow access to file URLs"
-      copyUrl: Copy extensions URL
-    # TODO(i18n): translate in a follow-up locale PR
+      label: Yerel dosya erişimi
+      allowed: Etkin — yerel PDF dosyaları çevrilebilir
+      disabled: Devre dışı — chrome://extensions adresini açın ve "Dosya URL'lerine erişime izin ver" seçeneğini etkinleştirin
+      copyUrl: Uzantı URL'sini kopyala
     usage:
-      title: Today's usage
-      description: Pages translated today; resets at midnight local time
-      unlimited: unlimited
+      title: Bugünkü kullanım
+      description: Bugün çevrilen sayfa sayısı; yerel saatle gece yarısı sıfırlanır
+      unlimited: sınırsız
     cache:
-      title: Translation cache
-      description: Cached pages are reused when re-opening the same PDF; 30-day expiry
-      countOne: $1 page cached
-      countMany: $1 pages cached
-      clear: Clear cache
-      clearConfirm: Clear all cached PDF translations?
+      title: Çeviri önbelleği
+      description: Aynı PDF yeniden açıldığında önbellekteki sayfalar tekrar kullanılır; 30 gün sonra süresi dolar
+      countOne: $1 sayfa önbellekte
+      countMany: $1 sayfa önbellekte
+      clear: Önbelleği temizle
+      clearConfirm: Önbellekteki tüm PDF çevirileri temizlensin mi?
   floatingButtonAndToolbar:
     title: Yüzen Buton ve Araç Çubuğu
     floatingButtonDemoImageAlt: Yüzen Buton Demosu
@@ -852,32 +850,30 @@ options:
     title: Altyazıyı Geliştir 🎁
   rateUs:
     title: Bizi Değerlendirin
-# TODO(i18n): translate in a follow-up locale PR
 pdfViewer:
   firstUseToast:
-    title: Translate this PDF with GetU?
-    description: We can render a bilingual version of this PDF so you can read source and translation side-by-side.
-    accept: Translate this PDF
-    skipOnce: Not this time
-    neverOnThisDomain: Never on this site
-  # TODO(i18n): translate in a follow-up locale PR
+    title: Bu PDF GetU ile çevrilsin mi?
+    description: Bu PDF'nin iki dilli bir sürümünü oluşturabiliriz; böylece orijinali ve çeviriyi yan yana okuyabilirsiniz.
+    accept: Bu PDF'yi çevir
+    skipOnce: Şimdi değil
+    neverOnThisDomain: Bu sitede bir daha sorma
   error:
-    missingSrc: Missing ?src= parameter
-    invalidUrl: Invalid PDF URL
-    unsupportedScheme: "Unsupported URL scheme: $1"
-    loadFailed: "Failed to load PDF: $1"
+    missingSrc: ?src= parametresi eksik
+    invalidUrl: Geçersiz PDF URL'si
+    unsupportedScheme: "Desteklenmeyen URL şeması: $1"
+    loadFailed: "PDF yüklenemedi: $1"
   segmentContent:
-    errorTooltip: Translation failed
-    errorAriaLabel: "translation error: $1"
+    errorTooltip: Çeviri başarısız
+    errorAriaLabel: "çeviri hatası: $1"
   watermark:
-    label: Translated by GetU — Upgrade to remove
-    ariaLabel: Translated by GetU. Upgrade to remove watermark.
+    label: GetU tarafından çevrildi — Kaldırmak için yükselt
+    ariaLabel: GetU tarafından çevrildi. Filigranı kaldırmak için yükselt.
   export:
-    buttonLabelWithIcon: ⬇ Download bilingual PDF
-    buttonLabelBusy: Exporting…
-    ariaLabel: Download bilingual PDF
-    tooltipEnabled: Download bilingual PDF
-    tooltipDisabled: Pro feature — upgrade to download
+    buttonLabelWithIcon: ⬇ İki dilli PDF'yi indir
+    buttonLabelBusy: Dışa aktarılıyor…
+    ariaLabel: İki dilli PDF'yi indir
+    tooltipEnabled: İki dilli PDF'yi indir
+    tooltipDisabled: Pro özellik — indirmek için yükselt
 side:
   sourceLang: Kaynak Dil
   targetLang: Hedef Dil

@@ -16,7 +16,7 @@ popup:
   targetLang: Целевой
   translate: Перевести
   showOriginal: Показать оригинал
-  translateCurrentPdf: Translate current PDF # TODO(i18n): translate in Task 7
+  translateCurrentPdf: Перевести текущий PDF
   enabledFloatingButton: Включить плавающую кнопку
   enabledSelectionToolbar: Включить панель выделения
   alwaysTranslate: Всегда переводить этот сайт
@@ -277,38 +277,36 @@ options:
       label: Порог (мс)
       hint: Время в миллисекундах между последовательными нажатиями пробела (100-1000мс)
       error: Значение должно быть от $1 до $2
-  # TODO(i18n): translate in Task 7
   pdfTranslation:
-    title: PDF Translation
+    title: Перевод PDF
     enabled:
-      label: Enable PDF translation
-      description: Allow GetU to intercept .pdf URLs and open them in the bilingual viewer
+      label: Включить перевод PDF
+      description: Разрешить GetU перехватывать .pdf-ссылки и открывать их в двуязычном просмотрщике
     activationMode:
-      label: Activation behavior
-      always: Always translate
-      ask: Ask first time on each site
-      manual: Manual only (from popup)
+      label: Поведение при активации
+      always: Всегда переводить
+      ask: Спрашивать при первом открытии на каждом сайте
+      manual: Только вручную (из всплывающего окна)
     blocklist:
-      label: Blocked domains
-      empty: No blocked domains yet
-      remove: Remove
+      label: Заблокированные домены
+      empty: Заблокированных доменов пока нет
+      remove: Удалить
     fileProtocol:
-      label: Local file access
-      allowed: Enabled — local PDF files can be translated
-      disabled: Disabled — open chrome://extensions and enable "Allow access to file URLs"
-      copyUrl: Copy extensions URL
-    # TODO(i18n): translate in a follow-up locale PR
+      label: Доступ к локальным файлам
+      allowed: Включено — локальные PDF-файлы можно переводить
+      disabled: Отключено — откройте chrome://extensions и включите «Разрешить доступ к URL файлов»
+      copyUrl: Копировать URL расширения
     usage:
-      title: Today's usage
-      description: Pages translated today; resets at midnight local time
-      unlimited: unlimited
+      title: Использование за сегодня
+      description: Страниц переведено сегодня; сбрасывается в полночь по местному времени
+      unlimited: без ограничений
     cache:
-      title: Translation cache
-      description: Cached pages are reused when re-opening the same PDF; 30-day expiry
-      countOne: $1 page cached
-      countMany: $1 pages cached
-      clear: Clear cache
-      clearConfirm: Clear all cached PDF translations?
+      title: Кэш переводов
+      description: Закэшированные страницы переиспользуются при повторном открытии того же PDF; срок хранения 30 дней
+      countOne: Закэширована $1 страница
+      countMany: "Закэшировано страниц: $1"
+      clear: Очистить кэш
+      clearConfirm: Очистить все закэшированные переводы PDF?
   floatingButtonAndToolbar:
     title: Плавающая кнопка и панель инструментов
     floatingButtonDemoImageAlt: Демо плавающей кнопки
@@ -852,32 +850,30 @@ options:
     title: Улучшить субтитры 🎁
   rateUs:
     title: Оцените нас
-# TODO(i18n): translate in a follow-up locale PR
 pdfViewer:
   firstUseToast:
-    title: Translate this PDF with GetU?
-    description: We can render a bilingual version of this PDF so you can read source and translation side-by-side.
-    accept: Translate this PDF
-    skipOnce: Not this time
-    neverOnThisDomain: Never on this site
-  # TODO(i18n): translate in a follow-up locale PR
+    title: Перевести этот PDF с помощью GetU?
+    description: Мы можем создать двуязычную версию этого PDF, чтобы вы могли читать оригинал и перевод рядом.
+    accept: Перевести этот PDF
+    skipOnce: Не сейчас
+    neverOnThisDomain: Больше не на этом сайте
   error:
-    missingSrc: Missing ?src= parameter
-    invalidUrl: Invalid PDF URL
-    unsupportedScheme: "Unsupported URL scheme: $1"
-    loadFailed: "Failed to load PDF: $1"
+    missingSrc: Отсутствует параметр ?src=
+    invalidUrl: Недопустимый URL PDF
+    unsupportedScheme: "Неподдерживаемая схема URL: $1"
+    loadFailed: "Не удалось загрузить PDF: $1"
   segmentContent:
-    errorTooltip: Translation failed
-    errorAriaLabel: "translation error: $1"
+    errorTooltip: Ошибка перевода
+    errorAriaLabel: "ошибка перевода: $1"
   watermark:
-    label: Translated by GetU — Upgrade to remove
-    ariaLabel: Translated by GetU. Upgrade to remove watermark.
+    label: Переведено GetU — Обновитесь, чтобы убрать
+    ariaLabel: Переведено GetU. Обновите тариф, чтобы убрать водяной знак.
   export:
-    buttonLabelWithIcon: ⬇ Download bilingual PDF
-    buttonLabelBusy: Exporting…
-    ariaLabel: Download bilingual PDF
-    tooltipEnabled: Download bilingual PDF
-    tooltipDisabled: Pro feature — upgrade to download
+    buttonLabelWithIcon: ⬇ Скачать двуязычный PDF
+    buttonLabelBusy: Экспорт…
+    ariaLabel: Скачать двуязычный PDF
+    tooltipEnabled: Скачать двуязычный PDF
+    tooltipDisabled: Функция Pro — обновите тариф для скачивания
 side:
   sourceLang: Исходный язык
   targetLang: Целевой язык
