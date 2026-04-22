@@ -5,7 +5,10 @@
  * Manually grants Pro tier to a user by email. Phase 4 replaces with Stripe webhook.
  * Runs via `wrangler d1 execute` — needs HTTP_PROXY="" per project_cf_deploy_lessons.md.
  */
-import { execSync } from "node:child_process"
+import { spawnSync } from "node:child_process"
+import { writeFileSync, unlinkSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { parseArgs } from "node:util"
 
 const { values } = parseArgs({
@@ -30,11 +33,26 @@ const expiresAt = Date.now() + Number(values.days) * 86400_000
 const features = JSON.stringify(values.features!.split(","))
 const envFlag = values.env === "local" ? "--local" : "--remote"
 
-function d1(cmd: string): string {
-  return execSync(
-    `wrangler d1 execute getu-translate ${envFlag} --json --command=${JSON.stringify(cmd)}`,
-    { encoding: "utf8", env: { ...process.env, HTTP_PROXY: "", HTTPS_PROXY: "" } },
-  )
+function d1(sql: string): string {
+  // Write SQL to a temp file to avoid shell escaping issues with --command
+  const tmpFile = join(tmpdir(), `grant-pro-${Date.now()}.sql`)
+  writeFileSync(tmpFile, sql, "utf8")
+  try {
+    const result = spawnSync(
+      "wrangler",
+      ["d1", "execute", "getu-translate", envFlag, "--json", "--file", tmpFile],
+      {
+        encoding: "utf8",
+        env: { ...process.env, HTTP_PROXY: "", HTTPS_PROXY: "" },
+      },
+    )
+    if (result.status !== 0) {
+      throw new Error(result.stdout || result.stderr)
+    }
+    return result.stdout
+  } finally {
+    unlinkSync(tmpFile)
+  }
 }
 
 // 1. Look up user id
