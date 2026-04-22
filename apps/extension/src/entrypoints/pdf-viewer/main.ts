@@ -279,9 +279,25 @@ async function boot() {
     console.error("[pdf-viewer] upgrade dialog mount failed:", err)
   })
 
+  // Mount the Pro "Download bilingual PDF" button (PR #C Task 3). Fire-and-
+  // forget — button mount failures must never break PDF render. The button
+  // itself checks entitlements and no-ops for Free users, so it's safe to
+  // mount unconditionally. `targetLang` + `providerId` are the same snapshot
+  // used for the cache key, so the export writer reads the same rows the
+  // viewer just wrote.
+  const exportButtonPromise = mountExportButton({
+    fileHash,
+    src,
+    targetLang,
+    providerId,
+  }).catch((err) => {
+    console.error("[pdf-viewer] export button mount failed:", err)
+  })
+
   await renderPdf(src, { fileHash, coordinator })
   await toastPromise
   await upgradeDialogPromise
+  await exportButtonPromise
 }
 
 async function renderPdf(
@@ -728,6 +744,41 @@ async function mountUpgradeDialog() {
       JotaiProvider,
       { store: pdfViewerStore },
       React.createElement(PdfUpgradeDialogMount),
+    ),
+  )
+}
+
+/**
+ * Mount the Pro "Download bilingual PDF" button (PR #C Task 3) into its
+ * dedicated root (`#export-button-root`). The button reads the shared
+ * entitlements atom directly and renders disabled for Free users — so it
+ * mounts unconditionally and its visibility/enabled state follows the
+ * atom. Pulled into its own function (mirroring `mountUpgradeDialog`) so
+ * test / boot-time failures are isolated from the PDF render path.
+ */
+async function mountExportButton(props: {
+  fileHash: string
+  src: string
+  targetLang: string
+  providerId: string
+}) {
+  const mountNode = document.getElementById("export-button-root")
+  if (!mountNode)
+    return
+
+  const [{ createRoot }, React, { Provider: JotaiProvider }, { ExportButton }] = await Promise.all([
+    import("react-dom/client"),
+    import("react"),
+    import("jotai"),
+    import("./components/export-button"),
+  ])
+
+  const root = createRoot(mountNode)
+  root.render(
+    React.createElement(
+      JotaiProvider,
+      { store: pdfViewerStore },
+      React.createElement(ExportButton, props),
     ),
   )
 }
