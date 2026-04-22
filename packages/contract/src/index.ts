@@ -53,7 +53,6 @@ export type {
   CustomTableUpdateOutput,
   NotebaseBetaStatusInput,
   NotebaseBetaStatusOutput,
-  ORPCRouterClient,
   RowAddInput,
   RowAddOutput,
   RowDeleteInput,
@@ -73,6 +72,23 @@ export {
   hasFeature,
   isPro,
   QuotaBucketSchema,
+  consumeQuotaInputSchema,
+  consumeQuotaOutputSchema,
+  QUOTA_BUCKETS,
 } from "./billing.js"
 
-export type { Entitlements } from "./billing.js"
+export type { Entitlements, ConsumeQuotaInput, ConsumeQuotaOutput, QuotaBucket } from "./billing.js"
+
+export { AI_MODEL_COEFFICIENTS, PRO_MODEL_WHITELIST, isProModel, normalizeTokens } from "./ai-models.js"
+export type { ProModel } from "./ai-models.js"
+
+import type { ContractRouterClient } from "@orpc/contract"
+import { contract as baseContract } from "./base.js"
+import { billingContract } from "./billing.js"
+
+export const mergedContract = {
+  ...baseContract,
+  billing: billingContract,
+} as const
+
+export type ORPCRouterClient = ContractRouterClient<typeof mergedContract>
