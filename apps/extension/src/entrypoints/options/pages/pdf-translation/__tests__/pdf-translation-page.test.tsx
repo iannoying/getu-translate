@@ -38,6 +38,36 @@ vi.mock("#imports", () => ({
   },
 }))
 
+// `liveQuery` from dexie is the reactive adapter used by the new usage +
+// cache cards. We stub it with an inert subscription so renders don't try
+// to open IndexedDB in jsdom — the smoke test only cares that the cards
+// mount without throwing.
+vi.mock("dexie", () => ({
+  liveQuery: () => ({
+    subscribe: () => ({
+      unsubscribe: () => {},
+    }),
+  }),
+}))
+
+// The new cache card reads `db.pdfTranslations.count()` directly; stub the
+// module-level `db` export so no Dexie connection is attempted.
+vi.mock("@/utils/db/dexie/db", () => ({
+  db: {
+    pdfTranslations: {
+      count: vi.fn().mockResolvedValue(0),
+    },
+  },
+}))
+
+vi.mock("@/utils/db/dexie/pdf-translation-usage", () => ({
+  getPdfPageUsage: vi.fn().mockResolvedValue(0),
+}))
+
+vi.mock("@/utils/db/dexie/pdf-translations", () => ({
+  clearPdfTranslations: vi.fn().mockResolvedValue(undefined),
+}))
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -80,6 +110,19 @@ describe("pdfTranslationPage", () => {
     // 4) file:// access
     expect(
       screen.getByText("options.pdfTranslation.fileProtocol.label"),
+    ).toBeInTheDocument()
+  })
+
+  it("renders the today's usage section", () => {
+    renderWithProviders(<PdfTranslationPage />)
+    expect(screen.getByText("Today's usage")).toBeInTheDocument()
+  })
+
+  it("renders the cache section with a clear button", () => {
+    renderWithProviders(<PdfTranslationPage />)
+    expect(screen.getByText("Translation cache")).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Clear cache" }),
     ).toBeInTheDocument()
   })
 })
