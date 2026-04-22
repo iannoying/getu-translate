@@ -1,0 +1,46 @@
+{
+  "code": 0,
+  "message": "0",
+  "ttl": 1,
+  "data": {
+    "aid": 170001,
+    "bvid": "BV1xx411c7mu",
+    "subtitle": {
+      "allow_submit": true,
+      "lan": "zh-CN",
+      "lan_doc": "中文（简体）",
+      "subtitles": [
+        {
+          "id": 1234567890000001,
+          "lan": "zh-CN",
+          "lan_doc": "中文（简体）",
+          "is_lock": false,
+          "subtitle_url": "//aisubtitle.hdslb.com/bfs/subtitle/prod/170001-zhCN.json",
+          "type": 0,
+          "ai_type": 0,
+          "ai_status": 0
+        },
+        {
+          "id": 1234567890000002,
+          "lan": "en-US",
+          "lan_doc": "English",
+          "is_lock": false,
+          "subtitle_url": "//aisubtitle.hdslb.com/bfs/subtitle/prod/170001-enUS.json",
+          "type": 0,
+          "ai_type": 0,
+          "ai_status": 0
+        },
+        {
+          "id": 1234567890000003,
+          "lan": "ai-ja",
+          "lan_doc": "日本語（自動生成）",
+          "is_lock": false,
+          "subtitle_url": "//aisubtitle.hdslb.com/bfs/ai_subtitle/prod/170001-aija.json",
+          "type": 1,
+          "ai_type": 1,
+          "ai_status": 2
+        }
+      ]
+    }
+  }
+}

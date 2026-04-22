@@ -1,5 +1,6 @@
 import type { PlatformHandler } from "../registry"
 import { describe, expect, it } from "vitest"
+import { bilibiliHandler } from "../bilibili/handler"
 import { createPlatformRegistry } from "../registry"
 import { youtubeHandler } from "../youtube/handler"
 
@@ -61,5 +62,17 @@ describe("platformRegistry", () => {
     expect(registry.dispatch("m.youtube.com")).toBe(youtubeHandler)
     expect(registry.dispatch("example.com")).toBeNull()
     expect(youtubeHandler.kind).toBe("youtube")
+  })
+
+  it("dispatches www.bilibili.com to the bilibili handler", () => {
+    const registry = createPlatformRegistry()
+    registry.register(bilibiliHandler)
+
+    expect(registry.dispatch("www.bilibili.com")).toBe(bilibiliHandler)
+    expect(registry.dispatch("bilibili.com")).toBe(bilibiliHandler)
+    expect(registry.dispatch("m.bilibili.com")).toBe(bilibiliHandler)
+    expect(registry.dispatch("t.bilibili.com")).toBe(bilibiliHandler)
+    expect(registry.dispatch("example.com")).toBeNull()
+    expect(bilibiliHandler.kind).toBe("bilibili")
   })
 })
