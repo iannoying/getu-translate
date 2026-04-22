@@ -1,4 +1,6 @@
+import type { Paragraph } from "./paragraph/types"
 import type { SegmentKey } from "./translation/atoms"
+import type { EnqueuePolicy } from "./translation/enqueue-policy"
 import { createStore } from "jotai"
 import { addDomainToBlocklistAtom } from "@/utils/atoms/pdf-translation"
 import { getLocalConfig } from "@/utils/config/storage"
@@ -6,6 +8,7 @@ import { DEFAULT_CONFIG } from "@/utils/constants/config"
 import { fingerprintForSrc } from "@/utils/pdf/fingerprint"
 import { parseSrcParam } from "./parse-src-param"
 import { segmentStatusAtomFamily } from "./translation/atoms"
+import { decideInitialPolicy } from "./translation/enqueue-policy"
 import { TranslationScheduler } from "./translation/scheduler"
 import { translateSegment } from "./translation/translate-segment"
 import "pdfjs-dist/web/pdf_viewer.css"
@@ -29,6 +32,47 @@ export const pdfViewerStore = createStore()
  */
 export const schedulerRef: { current: TranslationScheduler | null } = {
   current: null,
+}
+
+/**
+ * Mutable enqueue policy for the current file. Starts as decided by
+ * `decideInitialPolicy(activationMode)` and flips to `"enabled"` when the
+ * first-use toast's Accept button is clicked (PR #B2 Task 5). All
+ * `scheduler.enqueue` call-sites consult this ref; when `"blocked"` the
+ * paragraphs are still recorded in `knownParagraphsRef` so a later Accept
+ * can retroactively translate pages that already rendered.
+ */
+export const enqueuePolicyRef: { current: EnqueuePolicy } = {
+  current: "blocked",
+}
+
+/**
+ * Per-page cache of the paragraphs seen during overlay mount. Used by the
+ * Accept flow to retroactively enqueue paragraphs from pages that rendered
+ * under `activationMode === "ask"` before the user clicked Accept. Keyed by
+ * 1-based pdf.js page number to match `overlayRoots` / pdf.js conventions.
+ *
+ * Cleared at the top of each `renderPdf` call, so a fresh session starts
+ * empty.
+ *
+ * TODO(B3): like overlayRoots, entries accumulate per page within a single
+ * PDF session and are never pruned. Bounded by page count (~1KB per entry),
+ * tolerable for 500-page docs but worth revisiting during cache-layer work.
+ */
+export const knownParagraphsRef: { current: Map<number, Paragraph[]> } = {
+  current: new Map(),
+}
+
+/**
+ * Mutable handle to the function that retroactively enqueues all
+ * currently-known paragraphs. Wired up once `renderPdf` has both the
+ * scheduler and the fileHash in scope. The first-use toast's `onAccept`
+ * handler calls this after flipping `enqueuePolicyRef.current` to
+ * `"enabled"`. Kept separate from `schedulerRef` because retro-enqueue
+ * also needs `fileHash` (which is only known inside `renderPdf`).
+ */
+const retroEnqueueRef: { current: () => void } = {
+  current: () => {},
 }
 
 async function boot() {
@@ -74,6 +118,27 @@ async function renderPdf(
   // the scheduler is per-file, so the next PDF open picks up the change.
   const activationMode = (await getLocalConfig())?.pdfTranslation.activationMode
     ?? DEFAULT_CONFIG.pdfTranslation.activationMode
+
+  // Seed the module-level enqueue policy from the activation mode. The
+  // toast's Accept handler (below) flips `ask` from `blocked` → `enabled`
+  // at runtime; `always` starts `enabled`; `manual` stays `blocked` for the
+  // file's lifetime.
+  enqueuePolicyRef.current = decideInitialPolicy(activationMode)
+  // Fresh file — clear any paragraphs recorded by the previous document.
+  knownParagraphsRef.current = new Map()
+
+  // Expose the retroactive-enqueue closure to the toast handler. We define
+  // it here (rather than in `maybeRenderFirstUseToast`) because it needs
+  // `fileHash` + `scheduler`, both of which are in scope only inside
+  // `renderPdf`. The toast handler calls `retroEnqueueRef.current()` after
+  // flipping the policy ref.
+  retroEnqueueRef.current = () => {
+    for (const paragraphs of knownParagraphsRef.current.values()) {
+      for (const paragraph of paragraphs) {
+        scheduler.enqueue(fileHash, paragraph)
+      }
+    }
+  }
   // Lazy-load pdfjs so the initial bundle stays small and so tests can
   // import `parseSrcParam` (and friends) without pulling in the worker.
   const [pdfjsLib, pdfViewerMod] = await Promise.all([
@@ -280,16 +345,25 @@ async function renderPdf(
         ),
       )
 
-      // Kick the scheduler once per paragraph. Scheduler dedups re-enqueues
-      // while `pending` / `translating` / `done`, so hitting it again on every
+      // Remember every paragraph we've seen for this page, regardless of
+      // whether we're allowed to enqueue right now. The first-use toast's
+      // Accept handler iterates this map to retroactively translate pages
+      // that rendered while the policy was `"blocked"`.
+      knownParagraphsRef.current.set(pageNumber, paragraphs)
+
+      // Kick the scheduler once per paragraph iff the current enqueue policy
+      // permits it. Scheduler dedups re-enqueues while `pending` /
+      // `translating` / `done`, so hitting it again on every
       // `textlayerrendered` (zoom, re-layout) is safe — each paragraph is
       // translated exactly once per scheduler lifetime.
       //
-      // `"always"`: translate on sight.
-      // `"ask"`:   wait for user to accept the first-use toast.
-      //            TODO(M3-PR#B2 Task 5) wire onAccept → enqueue here.
-      // `"manual"`: never auto-enqueue (popup button path — out of scope).
-      if (activationMode === "always") {
+      // Policy source (see `decideInitialPolicy`):
+      //   `"always"` → policy starts `"enabled"`, translate on sight.
+      //   `"ask"`   → policy starts `"blocked"`; Accept flips to `"enabled"`
+      //               and retroactively enqueues via `retroEnqueueRef`.
+      //   `"manual"` → policy stays `"blocked"`; popup button path handles
+      //                activation (out of scope for B2).
+      if (enqueuePolicyRef.current === "enabled") {
         for (const paragraph of paragraphs) {
           scheduler.enqueue(fileHash, paragraph)
         }
@@ -388,12 +462,20 @@ async function maybeRenderFirstUseToast(src: string) {
       { store: pdfViewerStore },
       React.createElement(FirstUseToast, {
         onAccept: () => {
-          // TODO(M3-PR-B): trigger the bilingual translation pipeline here.
-          // PR #A only dismisses the toast — the viewer continues to render
-          // the PDF using native pdf.js without translation overlay.
+          // Flip the module-level policy so every future page render (and
+          // re-render on zoom) auto-enqueues its paragraphs. `retroEnqueueRef`
+          // walks `knownParagraphsRef` to catch up pages that already mounted
+          // while we were `"blocked"`. Scheduler-level dedup makes the
+          // retro-enqueue safe even if a paragraph happens to be re-seen
+          // later on a zoom event.
+          enqueuePolicyRef.current = "enabled"
+          retroEnqueueRef.current()
           unmount()
         },
         onSkipOnce: () => {
+          // User declined for this session. Leave the policy `"blocked"` so
+          // the scheduler stays idle; the PDF continues to render via native
+          // pdf.js with empty placeholder slots.
           unmount()
         },
         onNever: async () => {
