@@ -293,6 +293,22 @@ export class PageCacheCoordinator {
     this.aborted = true
     this.pages.clear()
   }
+
+  /**
+   * Drop the in-memory tracking state for a single page. Used by the
+   * pdf-viewer's LRU cap (M3 follow-up 1) when `overlayRoots` exceeds
+   * `MAX_LIVE_PAGES` and the oldest page is evicted. After this call any
+   * late `recordParagraphResult` for `pageIndex` is ignored, and a fresh
+   * `startPage(pageIndex, ...)` re-hydrates from the Dexie cache (or re-
+   * enqueues on miss) without double-counting against the quota.
+   *
+   * Does NOT touch the Dexie cache row: a re-visit should still get a
+   * cheap cache hit. Safe to call for unknown pages (no-op) and multiple
+   * times.
+   */
+  unloadPage(pageIndex: number): void {
+    this.pages.delete(pageIndex)
+  }
 }
 
 /**

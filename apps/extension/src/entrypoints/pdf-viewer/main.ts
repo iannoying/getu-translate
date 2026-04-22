@@ -35,6 +35,24 @@ import "pdfjs-dist/web/pdf_viewer.css"
 import "./style.css"
 
 /**
+ * Upper bound on the number of pages we keep live per-page state for
+ * (M3 follow-up 1). Caps total heap used by `overlayRoots` (React Root +
+ * HTMLElement) + `knownParagraphsRef` (Paragraph[]) + `pendingSeq`
+ * (number) + the coordinator's `PageState` entries.
+ *
+ * 50 pages × (~Paragraph[] + React Root + Map entries) ≈ under 10MB heap
+ * — tolerable even on low-end hardware and plenty of headroom for the
+ * window of pages a user can reasonably have on screen at once.
+ *
+ * When `overlayRoots.size` grows above this cap the oldest entry (by
+ * insertion / last-touch recency) is evicted: React root unmounted,
+ * DOM element removed, entries dropped from all four tracking structures
+ * + the coordinator. A re-visit to the evicted page rehydrates from the
+ * Dexie cache for free (no quota consumed for cache-hits).
+ */
+export const MAX_LIVE_PAGES = 50
+
+/**
  * Module-scoped Jotai store shared by every React root this entrypoint mounts
  * (per-page overlay roots + the first-use toast root). Using one store means
  * the translation scheduler (PR #B2 Task 3) and any React subscribers observe
@@ -108,9 +126,9 @@ export const enqueuePolicyRef: { current: EnqueuePolicy } = {
  * Cleared at the top of each `renderPdf` call, so a fresh session starts
  * empty.
  *
- * TODO(B3): like overlayRoots, entries accumulate per page within a single
- * PDF session and are never pruned. Bounded by page count (~1KB per entry),
- * tolerable for 500-page docs but worth revisiting during cache-layer work.
+ * M3 follow-up 1: bounded by `MAX_LIVE_PAGES` via the LRU cap in
+ * `mountOverlayForPage`. Entries are dropped in lockstep with
+ * `overlayRoots` so both maps stay aligned.
  */
 export const knownParagraphsRef: { current: Map<number, Paragraph[]> } = {
   current: new Map(),
@@ -443,12 +461,12 @@ async function renderPdf(
   // the overlay `<div>` from the DOM, which orphans the root — acceptable for
   // a bounded-memory viewer tab; can be tightened in a later task if needed.
   //
-  // Note: overlayRoots entries are not pruned when pdf.js destroys pages.
-  // For large documents (500+ pages) this retains a small leak (React Root
-  // + HTMLElement refs per page). Real cleanup needs a pdfjs eventBus event
-  // for page destruction; pdfjs-dist 4.x exposes `pagechanging` / `pagesinit`
-  // but not a clean per-page-destroyed hook. Revisit if memory becomes a
-  // concern in long-session testing on big PDFs.
+  // M3 follow-up 1: capped at `MAX_LIVE_PAGES` with LRU eviction on every
+  // `mountOverlayForPage` call. Map insertion order is used as the recency
+  // signal: re-touching a page deletes + re-sets the key so it moves to the
+  // tail, and the head (oldest-touched) is evicted when size exceeds the
+  // cap. Evicted pages drop their React root + DOM element + coordinator
+  // state; a re-visit re-hydrates from the Dexie cache transparently.
   const overlayRoots = new Map<number, {
     root: import("react-dom/client").Root
     container: HTMLElement
@@ -470,6 +488,38 @@ async function renderPdf(
     // IIFE so pdf.js's event dispatch isn't awaiting us.
     void mountOverlayForPage(event.pageNumber, event.source)
   })
+
+  /**
+   * Drop every piece of live per-page state for `pageNumber`: unmount the
+   * React root, remove the overlay element from the DOM, delete entries
+   * from all three viewer-owned Maps, and tell the coordinator to forget
+   * the page. Cache rows in Dexie are NOT touched — a re-visit re-hydrates
+   * from cache and re-mounts fresh.
+   *
+   * Idempotent + safe to call for unknown pages (all four structures
+   * handle missing keys as no-ops).
+   */
+  function evictPage(pageNumber: number) {
+    const victim = overlayRoots.get(pageNumber)
+    if (victim) {
+      try {
+        victim.root.unmount()
+      }
+      catch (err) {
+        // React occasionally throws if unmount races a parent teardown.
+        // Log + continue so the rest of the LRU cleanup still happens.
+        console.warn(
+          `[pdf-viewer] React unmount failed for page ${pageNumber}:`,
+          err,
+        )
+      }
+      victim.container.remove()
+    }
+    overlayRoots.delete(pageNumber)
+    pendingSeq.delete(pageNumber)
+    knownParagraphsRef.current.delete(pageNumber)
+    coordinator.unloadPage(pageNumber - 1)
+  }
 
   async function mountOverlayForPage(pageNumber: number, source: unknown) {
     // Claim the latest sequence number for this page *before* any await, so
@@ -556,10 +606,31 @@ async function renderPdf(
         entry = { root, container: overlayEl }
         overlayRoots.set(pageNumber, entry)
       }
-      else if (!entry.container.isConnected) {
-        // pdf.js recycled the page container (e.g. user scrolled far, page was
-        // destroyed + re-rendered). Re-attach our overlay to the new container.
-        pageContainer.appendChild(entry.container)
+      else {
+        // LRU recency bump: re-insert the existing entry so it moves to the
+        // tail of the Map (JS Maps preserve insertion order). The head of
+        // the Map is therefore always the least-recently-touched page,
+        // which is what we evict below.
+        overlayRoots.delete(pageNumber)
+        overlayRoots.set(pageNumber, entry)
+        if (!entry.container.isConnected) {
+          // pdf.js recycled the page container (e.g. user scrolled far, page
+          // was destroyed + re-rendered). Re-attach our overlay to the new
+          // container.
+          pageContainer.appendChild(entry.container)
+        }
+      }
+
+      // Enforce `MAX_LIVE_PAGES` cap (M3 follow-up 1). Walk from the head
+      // (oldest-touched) and evict until we're under the cap. Normally only
+      // one page at a time crosses the cap, but evict in a loop to cover any
+      // bulk re-entry (e.g. a future prefetch that inserts multiple pages
+      // between cap checks).
+      while (overlayRoots.size > MAX_LIVE_PAGES) {
+        const oldestPage = overlayRoots.keys().next().value
+        if (oldestPage === undefined)
+          break
+        evictPage(oldestPage)
       }
 
       // Pass the live `PDFPageView.viewport` through so the overlay can apply
