@@ -11,6 +11,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@getu/contract": "workspace:*",
+    "@orpc/client": "^1.13.14",
     "better-auth": "^1.6.3",
     "next": "^15.1.4",
     "react": "^19.0.0",
