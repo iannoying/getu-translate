@@ -29,6 +29,13 @@ export const YOUTUBE_WATCH_URL_PATTERN = "youtube.com/watch"
 export const YOUTUBE_NAVIGATE_START_EVENT = "yt-navigate-start"
 export const YOUTUBE_NAVIGATE_FINISH_EVENT = "yt-navigate-finish"
 export const YOUTUBE_NATIVE_SUBTITLES_CLASS = ".ytp-caption-window-container"
+
+// Bilibili specific
+export const BILIBILI_VIDEO_URL_PATTERN = /^\/video\/(BV[a-z0-9]+|av\d+)/i
+export const BILIBILI_SPA_NAVIGATED_EVENT = "bilibili:spa-navigated"
+export const BILIBILI_NATIVE_SUBTITLES_CLASS = ".bpx-player-subtitle-panel-text"
+export const BILIBILI_PLAYER_API_URL = "https://api.bilibili.com/x/player/v2"
+export const BILIBILI_VIEW_API_URL = "https://api.bilibili.com/x/web-interface/view"
 export const PLAYER_DATA_REQUEST_TYPE = "READ_FROG_GET_PLAYER_DATA"
 export const PLAYER_DATA_RESPONSE_TYPE = "READ_FROG_PLAYER_DATA"
 export const WAIT_TIMEDTEXT_REQUEST_TYPE = "READ_FROG_WAIT_TIMEDTEXT"
