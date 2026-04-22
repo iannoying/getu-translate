@@ -131,6 +131,36 @@ function makeRow(
   }
 }
 
+/**
+ * Variant of `makeRow` where every paragraph carries a distinct bounding
+ * box. Used to exercise the inline-draw path introduced by the M3
+ * follow-up.
+ */
+function makeRowWithBboxes(
+  pageIndex: number,
+  translations: string[],
+  bboxes: Array<{ x: number, y: number, width: number, height: number }>,
+  overrides: Partial<PdfTranslationRow> = {},
+): PdfTranslationRow {
+  if (translations.length !== bboxes.length)
+    throw new Error("translations and bboxes must be the same length")
+  return {
+    id: `${FILE_HASH}:${pageIndex}`,
+    fileHash: FILE_HASH,
+    pageIndex,
+    targetLang: TARGET_LANG,
+    providerId: PROVIDER_ID,
+    paragraphs: translations.map((t, i) => ({
+      srcHash: `src-${pageIndex}-${i}`,
+      translation: t,
+      boundingBox: bboxes[i],
+    })),
+    createdAt: 1,
+    lastAccessedAt: 1,
+    ...overrides,
+  }
+}
+
 // --- test suite ------------------------------------------------------------
 
 describe("exportBilingualPdf", () => {
@@ -409,5 +439,271 @@ describe("exportBilingualPdf", () => {
         providerId: PROVIDER_ID,
       }),
     ).rejects.toThrow(/CJK font fetch failed.*HTTP 500/)
+  })
+
+  // --- M3 follow-up: inline bounding-box layout ----------------------------
+
+  describe("inline bounding-box layout (M3 follow-up)", () => {
+    /**
+     * Helper: spy on `PDFPage.prototype.drawText` and collect the draw calls
+     * into an array of `{ text, x, y }` so tests can assert inline placement
+     * without depending on pdf-lib's internal graphics state. The spy is
+     * restored by the caller.
+     */
+    function spyOnDrawText(): {
+      spy: ReturnType<typeof vi.spyOn>
+      calls: Array<{ text: string, x: number, y: number, font: unknown }>
+    } {
+      const calls: Array<{ text: string, x: number, y: number, font: unknown }> = []
+      const spy = vi
+        .spyOn(PDFPage.prototype, "drawText")
+        .mockImplementation((text: string, options?: unknown) => {
+          const opts = (options ?? {}) as { x?: number, y?: number, font?: unknown }
+          calls.push({
+            text,
+            x: opts.x ?? 0,
+            y: opts.y ?? 0,
+            font: opts.font,
+          })
+        })
+      return { spy, calls }
+    }
+
+    it("inline path: draws each translation at (bbox.x, bbox.y - padding - fontSize)", async () => {
+      const pdfBytes = await makeFixturePdfBytes(1)
+      fetchMock.mockResolvedValueOnce(fakeResponse(pdfBytes))
+
+      // Bbox at the top of an A4 page (y=700) so drawn baseline stays > 0.
+      getCachedPageMock.mockResolvedValueOnce(
+        makeRowWithBboxes(
+          0,
+          ["Short translation"],
+          [{ x: 72, y: 700, width: 450, height: 14 }],
+        ),
+      )
+
+      const { spy, calls } = spyOnDrawText()
+
+      await exportBilingualPdf({
+        src: PDF_SRC,
+        fileHash: FILE_HASH,
+        targetLang: TARGET_LANG,
+        providerId: PROVIDER_ID,
+      })
+
+      expect(calls).toHaveLength(1)
+      const call = calls[0]
+      expect(call.text).toBe("Short translation")
+      expect(call.x).toBe(72)
+      // y should be bbox.y - TOP_PADDING - FONT_SIZE = 700 - 2 - 9 = 689.
+      // The footer fallback would use FOOTER.MARGIN or similar (36 or a
+      // much larger offset), so 689 is a load-bearing assertion that the
+      // inline path ran.
+      expect(call.y).toBe(689)
+
+      spy.mockRestore()
+    })
+
+    it("inline path: y-flip demonstration — higher bbox.y means higher draw position", async () => {
+      // Two paragraphs on one page at different heights. The upper one
+      // (bbox.y=600) should produce a draw call at y ~= 570 (or thereabouts),
+      // which is strictly greater than the lower paragraph's draw y.
+      // pdf-lib's coordinate system has y growing upward, so "higher on
+      // page" = "larger y".
+      const pdfBytes = await makeFixturePdfBytes(1)
+      fetchMock.mockResolvedValueOnce(fakeResponse(pdfBytes))
+
+      getCachedPageMock.mockResolvedValueOnce(
+        makeRowWithBboxes(
+          0,
+          ["Upper translation", "Lower translation"],
+          [
+            { x: 72, y: 600, width: 450, height: 14 },
+            { x: 72, y: 400, width: 450, height: 14 },
+          ],
+        ),
+      )
+
+      const { spy, calls } = spyOnDrawText()
+
+      await exportBilingualPdf({
+        src: PDF_SRC,
+        fileHash: FILE_HASH,
+        targetLang: TARGET_LANG,
+        providerId: PROVIDER_ID,
+      })
+
+      expect(calls.length).toBeGreaterThanOrEqual(2)
+      const upper = calls.find(c => c.text === "Upper translation")!
+      const lower = calls.find(c => c.text === "Lower translation")!
+      expect(upper).toBeDefined()
+      expect(lower).toBeDefined()
+      // Upper paragraph's translation is drawn near y=589, lower near y=389.
+      // Invariant: larger bbox.y → larger draw y.
+      expect(upper.y).toBeGreaterThan(lower.y)
+      // Exact placement: bbox.y - TOP_PADDING(2) - FONT_SIZE(9).
+      expect(upper.y).toBe(589)
+      expect(lower.y).toBe(389)
+
+      spy.mockRestore()
+    })
+
+    it("fallback: any missing bbox → entire page uses footer layout", async () => {
+      const pdfBytes = await makeFixturePdfBytes(1)
+      fetchMock.mockResolvedValueOnce(fakeResponse(pdfBytes))
+
+      // Two paragraphs, one with bbox, one without — page must fall back
+      // to the footer layout across the board, not draw some inline + some
+      // footer.
+      const row: PdfTranslationRow = {
+        id: `${FILE_HASH}:0`,
+        fileHash: FILE_HASH,
+        pageIndex: 0,
+        targetLang: TARGET_LANG,
+        providerId: PROVIDER_ID,
+        paragraphs: [
+          {
+            srcHash: "a",
+            translation: "With bbox paragraph",
+            boundingBox: { x: 72, y: 700, width: 450, height: 14 },
+          },
+          {
+            srcHash: "b",
+            translation: "Without bbox paragraph",
+          },
+        ],
+        createdAt: 1,
+        lastAccessedAt: 1,
+      }
+      getCachedPageMock.mockResolvedValueOnce(row)
+
+      const { spy, calls } = spyOnDrawText()
+
+      await exportBilingualPdf({
+        src: PDF_SRC,
+        fileHash: FILE_HASH,
+        targetLang: TARGET_LANG,
+        providerId: PROVIDER_ID,
+      })
+
+      // Footer layout numbers paragraphs ("1. …", "2. …") and draws from
+      // FOOTER.MARGIN=36. The inline path would have produced text starting
+      // with the raw translation and an x=72. Assert we see the numbered
+      // prefix and the footer x offset.
+      expect(calls.length).toBeGreaterThan(0)
+      for (const call of calls) {
+        expect(call.x).toBe(36) // FOOTER.MARGIN
+      }
+      expect(calls.some(c => c.text.startsWith("1. "))).toBe(true)
+      expect(calls.some(c => c.text.startsWith("2. "))).toBe(true)
+
+      spy.mockRestore()
+    })
+
+    it("fallback: legacy row with no bboxes on any paragraph uses footer layout", async () => {
+      const pdfBytes = await makeFixturePdfBytes(1)
+      fetchMock.mockResolvedValueOnce(fakeResponse(pdfBytes))
+
+      getCachedPageMock.mockResolvedValueOnce(
+        makeRow(0, ["Legacy paragraph one", "Legacy paragraph two"]),
+      )
+
+      const { spy, calls } = spyOnDrawText()
+
+      await exportBilingualPdf({
+        src: PDF_SRC,
+        fileHash: FILE_HASH,
+        targetLang: TARGET_LANG,
+        providerId: PROVIDER_ID,
+      })
+
+      // Footer-numbered output at FOOTER.MARGIN x-offset.
+      for (const call of calls) {
+        expect(call.x).toBe(36)
+      }
+      expect(calls.some(c => c.text.startsWith("1. "))).toBe(true)
+      expect(calls.some(c => c.text.startsWith("2. "))).toBe(true)
+
+      spy.mockRestore()
+    })
+
+    it("inline path: CJK translation draws with the CJK font at bbox coordinates", async () => {
+      const pdfBytes = await makeFixturePdfBytes(1)
+      fetchMock
+        .mockResolvedValueOnce(fakeResponse(pdfBytes))
+        .mockResolvedValueOnce(fakeResponse(new Uint8Array([0x00, 0x01]).buffer))
+
+      getCachedPageMock.mockResolvedValueOnce(
+        makeRowWithBboxes(
+          0,
+          ["你好世界"],
+          [{ x: 100, y: 500, width: 400, height: 14 }],
+        ),
+      )
+
+      const realFont = await makeRealStandardFont()
+      const embedFontSpy = vi
+        .spyOn(PDFDocument.prototype, "embedFont")
+        .mockResolvedValue(realFont)
+
+      const { spy, calls } = spyOnDrawText()
+
+      await exportBilingualPdf({
+        src: PDF_SRC,
+        fileHash: FILE_HASH,
+        targetLang: TARGET_LANG,
+        providerId: PROVIDER_ID,
+      })
+
+      // CJK font fetched + embedded once.
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      expect(embedFontSpy).toHaveBeenCalledTimes(1)
+
+      // The drawn text is the translation (no footer numeric prefix) and
+      // x matches bbox.x — i.e. we went down the inline path.
+      expect(calls.length).toBeGreaterThanOrEqual(1)
+      expect(calls[0].text).toBe("你好世界")
+      expect(calls[0].x).toBe(100)
+      expect(calls[0].y).toBe(489) // 500 - 2 - 9
+
+      embedFontSpy.mockRestore()
+      spy.mockRestore()
+    })
+
+    it("inline path: long translation wraps within bbox.width", async () => {
+      const pdfBytes = await makeFixturePdfBytes(1)
+      fetchMock.mockResolvedValueOnce(fakeResponse(pdfBytes))
+
+      // Narrow bbox forces wrapping. The source translation is much longer
+      // than a single line at width=50.
+      getCachedPageMock.mockResolvedValueOnce(
+        makeRowWithBboxes(
+          0,
+          ["This translation has many words that must be wrapped across multiple lines"],
+          [{ x: 72, y: 700, width: 50, height: 14 }],
+        ),
+      )
+
+      const { spy, calls } = spyOnDrawText()
+
+      await exportBilingualPdf({
+        src: PDF_SRC,
+        fileHash: FILE_HASH,
+        targetLang: TARGET_LANG,
+        providerId: PROVIDER_ID,
+      })
+
+      // Expect multiple draw calls (one per wrapped line), each at the
+      // same x, with y decreasing monotonically as we walk down the page.
+      expect(calls.length).toBeGreaterThan(1)
+      for (const call of calls) {
+        expect(call.x).toBe(72)
+      }
+      for (let i = 1; i < calls.length; i++) {
+        expect(calls[i].y).toBeLessThan(calls[i - 1].y)
+      }
+
+      spy.mockRestore()
+    })
   })
 })

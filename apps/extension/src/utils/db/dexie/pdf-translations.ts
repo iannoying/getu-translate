@@ -1,13 +1,20 @@
+import type { BoundingBox } from "@/entrypoints/pdf-viewer/paragraph/types"
 import { db } from "./db"
 
 /**
  * Paragraph-level cache payload stored inside a page row. `srcHash` is the
  * SHA-256 of the source paragraph text so the caller can detect stale
  * content on re-extraction.
+ *
+ * `boundingBox` is optional: introduced in schema v9 (M3 follow-up). When
+ * present, the bilingual exporter draws the translation inline directly
+ * below the source paragraph; when absent (legacy v8 rows) the entire page
+ * falls back to the footer layout.
  */
 export interface PdfTranslationParagraph {
   srcHash: string
   translation: string
+  boundingBox?: BoundingBox
 }
 
 /**

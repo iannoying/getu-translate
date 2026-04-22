@@ -1,38 +1,46 @@
 /**
- * Bilingual PDF exporter (M3 PR#C Task 2, Pro tier).
+ * Bilingual PDF exporter (M3 PR#C Task 2, Pro tier; inline export in
+ * follow-up Task 3).
  *
  * Given an original PDF URL + the keys into the Dexie `pdfTranslations`
- * cache, re-writes the PDF with translated paragraphs appended to each page
- * so a Pro user can download a bilingual copy of the source they just
- * translated in the viewer.
+ * cache, re-writes the PDF with translated paragraphs drawn either
+ * **directly below** each source paragraph (when bounding-box metadata
+ * is available on every paragraph of a page) or, for legacy cache rows
+ * that predate the bbox capture, as a footer block at the bottom of the
+ * page.
  *
  * # Scope of this module
  *
- * Task 2 is the pure export pipeline: fetch → load → walk pages → draw →
- * serialize. Wiring it to a UI button (loading states, download trigger,
- * entitlement gating) lives in Task 3, and the CJK font asset drop-in is a
+ * Pure export pipeline: fetch → load → walk pages → draw → serialize.
+ * Wiring it to a UI button (loading states, download trigger, entitlement
+ * gating) lives in M3 PR#C Task 3, and the CJK font asset drop-in is a
  * one-time ops step documented in
  * `apps/extension/public/assets/fonts/README.md`.
  *
- * # Why a footer layout, not inline
+ * # Layout decision
  *
- * The current Dexie cache row shape (`PdfTranslationParagraph`) only stores
- * `{ srcHash, translation }` — it intentionally does **not** record each
- * paragraph's bounding box. That means we can't draw a translation directly
- * below the matching source paragraph without either (a) extending the
- * cache schema or (b) re-running text extraction at export time. Both are
- * viable but land outside this task's surface.
+ * For each page we look at its cached paragraphs:
+ *   - If **every** paragraph has a `boundingBox`, we draw the translation
+ *     directly under the source paragraph at `(bbox.x, bbox.y - …)` in
+ *     PDF coords, wrapping to `bbox.width`. This is the "inline" layout
+ *     and produces a proper bilingual reading flow.
+ *   - If **any** paragraph lacks `boundingBox` (legacy v8 cache rows
+ *     written before M3 follow-up Task 2), we fall back to the footer
+ *     layout for the entire page. Per-page decision avoids mixed layouts
+ *     within a single page and keeps the test matrix small.
  *
- * For the MVP export we render all translated paragraphs for a page as a
- * footer block in the bottom margin of that same page, prefixed with a
- * numeric marker. Readers can still cross-reference "paragraph 1 /
- * paragraph 2" against the original layout; the export is useful even
- * without spatial alignment, and the footer layout is robust across PDFs
- * with wildly different geometry.
+ * Users who exported a PDF and want to re-export with inline placement
+ * can clear the cache (Options → "Clear cache") and re-translate.
  *
- * Follow-up: PR #C+1 should extend `PdfTranslationParagraph` with an
- * optional `boundingBox` (PDF-unit coords) so the writer can switch to an
- * inline "draw translation directly under the source paragraph" layout.
+ * # Coordinate system
+ *
+ * pdf-lib uses PDF native coordinates: `(0, 0)` is the bottom-left corner
+ * of the page and y grows **upward**. `pdfjs-dist` (used at extract time)
+ * already normalises text items into this space, so the `BoundingBox`
+ * values stored in the cache map directly to pdf-lib's `drawText` inputs
+ * with no axis flip. When we draw a translation "below" a source
+ * paragraph, that means **subtracting** from `bbox.y` because smaller y
+ * is lower on the page.
  *
  * # Font strategy
  *
@@ -49,6 +57,7 @@
  */
 
 import type { PDFFont, PDFPage } from "pdf-lib"
+import type { PdfTranslationParagraph } from "@/utils/db/dexie/pdf-translations"
 import fontkit from "@pdf-lib/fontkit"
 import { PDFDocument, StandardFonts } from "pdf-lib"
 import { getCachedPage } from "@/utils/db/dexie/pdf-translations"
@@ -75,8 +84,8 @@ export interface ExportOptions {
 }
 
 /**
- * Footer layout constants. Kept module-private so tests can assert behavior
- * without coupling to specific pixel offsets.
+ * Footer layout constants (legacy fallback). Kept module-private so tests
+ * can assert behavior without coupling to specific pixel offsets.
  */
 const FOOTER = {
   /** Font size (pt) of translated paragraph lines in the footer block. */
@@ -96,6 +105,31 @@ const FOOTER = {
 } as const
 
 /**
+ * Inline layout constants used when every paragraph on a page has a
+ * bounding box. Tuned so the translation reads as a secondary line
+ * directly below the source paragraph without fighting the original
+ * typography.
+ */
+const INLINE = {
+  /**
+   * Font size (pt) of inline translations. Slightly smaller than the
+   *  typical 10-11pt body of an academic paper so the translation reads
+   *  as a secondary layer.
+   */
+  FONT_SIZE: 9,
+  /** Line height multiplier relative to font size. */
+  LINE_HEIGHT: 1.2,
+  /**
+   * Vertical padding (pt) between the source paragraph's bottom edge and
+   * the first line of the translation. Keeps the two from visually
+   * colliding while staying tight enough to read as associated.
+   */
+  TOP_PADDING: 2,
+  /** Horizontal padding (pt) applied to `bbox.width` before wrapping. */
+  SIDE_PADDING: 0,
+} as const
+
+/**
  * Export the original PDF at `options.src` enriched with the cached
  * translations for each page.
  *
@@ -108,6 +142,8 @@ const FOOTER = {
  *     HTTP status so the caller can surface a user-visible error.
  *   - Loads the bytes into `pdf-lib`. If a page has no cached translations
  *     (cache miss or config mismatch), it's left untouched in the output.
+ *   - Picks per-page layout: inline when every paragraph has a bbox,
+ *     footer otherwise.
  *   - Embeds at most one Latin font and at most one CJK font per export,
  *     both lazily.
  *
@@ -157,9 +193,9 @@ export async function exportBilingualPdf(options: ExportOptions): Promise<Blob> 
     return latinFont
   }
 
-  // 4. Walk every page and draw any cached translations as a footer block.
-  // A cache miss (or config-mismatch miss) leaves the page untouched — we
-  // silently skip rather than throw so partial translations still export.
+  // 4. Walk every page and draw any cached translations. A cache miss (or
+  // config-mismatch miss) leaves the page untouched — we silently skip
+  // rather than throw so partial translations still export.
   const pages = pdfDoc.getPages()
   for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
     const page = pages[pageIndex]
@@ -181,7 +217,20 @@ export async function exportBilingualPdf(options: ExportOptions): Promise<Blob> 
     const pageHasCjk = cached.paragraphs.some(p => containsCJK(p.translation))
     const font = pageHasCjk ? await embedCjkFont() : await embedLatinFont()
 
-    drawFooterTranslations(page, cached.paragraphs.map(p => p.translation), font)
+    // Inline layout requires bbox on *every* paragraph on the page. If
+    // any is missing we fall back to the legacy footer layout for the
+    // whole page — mixing layouts within one page would look chaotic and
+    // complicates the visual result.
+    if (allHaveBoundingBox(cached.paragraphs)) {
+      drawInlineTranslations(page, cached.paragraphs, font)
+    }
+    else {
+      drawFooterTranslations(
+        page,
+        cached.paragraphs.map(p => p.translation),
+        font,
+      )
+    }
   }
 
   // 5. Serialize to a Blob. `Uint8Array` → Blob cast is safe: pdf-lib's
@@ -189,6 +238,69 @@ export async function exportBilingualPdf(options: ExportOptions): Promise<Blob> 
   // constructor.
   const outBytes = await pdfDoc.save()
   return new Blob([outBytes as BlobPart], { type: "application/pdf" })
+}
+
+/**
+ * Type guard: returns true when **every** paragraph in the array has a
+ * `boundingBox`. A page only switches to inline layout when this holds;
+ * a single missing bbox forces the entire page to the footer fallback.
+ */
+function allHaveBoundingBox(
+  paragraphs: readonly PdfTranslationParagraph[],
+): paragraphs is ReadonlyArray<Required<Pick<PdfTranslationParagraph, "boundingBox">> & PdfTranslationParagraph> {
+  return paragraphs.every(p => p.boundingBox !== undefined)
+}
+
+/**
+ * Draw each paragraph's translation directly under the source paragraph
+ * using its captured bounding box.
+ *
+ * Coordinates
+ * -----------
+ * - `bbox.x` is the left edge of the source paragraph in PDF units.
+ * - `bbox.y` is the **bottom** edge of the source paragraph (pdf.js
+ *   normalises y-up at extraction time; see `paragraph/types.ts`). The
+ *   first translation line sits just below that edge, at
+ *   `bbox.y - INLINE.TOP_PADDING - INLINE.FONT_SIZE`. We subtract
+ *   `FONT_SIZE` because pdf-lib's `drawText` places the baseline at the
+ *   supplied `y`, and we want the glyph ascenders to live inside the
+ *   `(bbox.y - padding)` boundary rather than straddle it.
+ * - Subsequent wrapped lines step further down by one `lineHeight`.
+ *
+ * When a translation wraps to more lines than fit above the page bottom
+ * margin, the overflow is silently dropped — same behaviour as the
+ * footer fallback.
+ */
+function drawInlineTranslations(
+  page: PDFPage,
+  paragraphs: readonly PdfTranslationParagraph[],
+  font: PDFFont,
+): void {
+  const lineHeight = INLINE.FONT_SIZE * INLINE.LINE_HEIGHT
+
+  for (const para of paragraphs) {
+    const bbox = para.boundingBox
+    if (!bbox)
+      continue // Defensive: allHaveBoundingBox guarded this, but TS narrowing.
+    const maxWidth = Math.max(bbox.width - INLINE.SIDE_PADDING * 2, 1)
+    const wrapped = wrapText(para.translation ?? "", font, INLINE.FONT_SIZE, maxWidth)
+
+    // Baseline of the first wrapped line. Place ascenders just under
+    // `bbox.y` by subtracting padding + font size.
+    let y = bbox.y - INLINE.TOP_PADDING - INLINE.FONT_SIZE
+    for (const line of wrapped) {
+      // Clip at the bottom of the page (y < 0 means off-page).
+      if (y < 0)
+        break
+      page.drawText(line, {
+        x: bbox.x + INLINE.SIDE_PADDING,
+        y,
+        size: INLINE.FONT_SIZE,
+        font,
+      })
+      y -= lineHeight
+    }
+  }
 }
 
 /**
@@ -240,9 +352,9 @@ function drawFooterTranslations(
 }
 
 /**
- * Greedy word-wrap for the footer block. Splits on whitespace for
- * Latin-script text and falls back to per-character wrapping for CJK
- * (which has no whitespace between glyphs).
+ * Greedy word-wrap. Splits on whitespace for Latin-script text and falls
+ * back to per-character wrapping for CJK (which has no whitespace between
+ * glyphs).
  *
  * Exported via the test entrypoint only — not part of the public API.
  */
@@ -293,4 +405,6 @@ function wrapText(
 export const __test = {
   wrapText,
   FOOTER,
+  INLINE,
+  allHaveBoundingBox,
 }

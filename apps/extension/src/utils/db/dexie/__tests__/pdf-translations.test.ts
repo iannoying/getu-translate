@@ -8,13 +8,14 @@ import {
   touchCachedPage,
 } from "../pdf-translations"
 
+interface BBox { x: number, y: number, width: number, height: number }
 interface Row {
   id: string
   fileHash: string
   pageIndex: number
   targetLang: string
   providerId: string
-  paragraphs: Array<{ srcHash: string, translation: string }>
+  paragraphs: Array<{ srcHash: string, translation: string, boundingBox?: BBox }>
   createdAt: number
   lastAccessedAt: number
 }
@@ -126,6 +127,43 @@ describe("pdf-translations cache", () => {
     expect(got?.pageIndex).toBe(0)
     expect(got?.paragraphs).toEqual(SAMPLE_PARAGRAPHS)
     expect(got?.lastAccessedAt).toBe(got?.createdAt)
+  })
+
+  it("put + get round-trip preserves optional boundingBox when present (v9 schema)", async () => {
+    const paragraphsWithBbox = [
+      {
+        srcHash: "aaa",
+        translation: "你好",
+        boundingBox: { x: 72, y: 600, width: 450, height: 14 },
+      },
+      {
+        srcHash: "bbb",
+        translation: "世界",
+        boundingBox: { x: 72, y: 580, width: 450, height: 14 },
+      },
+    ]
+    await putCachedPage(makeRow({ paragraphs: paragraphsWithBbox }))
+    const got = await getCachedPage("file1", 0, "zh-CN", "openai")
+    expect(got).not.toBeNull()
+    expect(got?.paragraphs).toEqual(paragraphsWithBbox)
+    expect(got?.paragraphs[0].boundingBox).toEqual({
+      x: 72,
+      y: 600,
+      width: 450,
+      height: 14,
+    })
+  })
+
+  it("put + get round-trip leaves boundingBox absent for legacy-shaped rows", async () => {
+    // Simulates a v8-era row: paragraphs lack the boundingBox field. The
+    // cache layer is transparent — whatever shape the caller puts, it gets
+    // back verbatim. No migration runs on read.
+    await putCachedPage(makeRow())
+    const got = await getCachedPage("file1", 0, "zh-CN", "openai")
+    expect(got).not.toBeNull()
+    for (const para of got!.paragraphs) {
+      expect(para.boundingBox).toBeUndefined()
+    }
   })
 
   it("cache miss returns null for an unknown key", async () => {

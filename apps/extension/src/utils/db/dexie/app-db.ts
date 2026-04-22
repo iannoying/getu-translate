@@ -211,6 +211,43 @@ export default class AppDB extends Dexie {
         dateKey,
         updatedAt`,
     })
+    // v9 (M3 follow-up · inline export): `PdfTranslationParagraph` grew an
+    // optional `boundingBox` field. No index change is required — existing
+    // rows stay valid and simply have `paragraphs[i].boundingBox === undefined`,
+    // which the pdf-lib writer handles explicitly by falling back to the
+    // footer layout for any page that lacks bbox on any paragraph.
+    this.version(9).stores({
+      translationCache: `
+        key,
+        translation,
+        createdAt`,
+      batchRequestRecord: `
+        key,
+        createdAt,
+        originalRequestCount,
+        provider,
+        model`,
+      articleSummaryCache: `
+        key,
+        createdAt`,
+      aiSegmentationCache: `
+        key,
+        createdAt`,
+      entitlementsCache: `
+        userId,
+        updatedAt`,
+      inputTranslationUsage: `
+        dateKey,
+        updatedAt`,
+      pdfTranslations: `
+        id,
+        fileHash,
+        createdAt,
+        lastAccessedAt`,
+      pdfTranslationUsage: `
+        dateKey,
+        updatedAt`,
+    })
     this.translationCache.mapToClass(TranslationCache)
     this.batchRequestRecord.mapToClass(BatchRequestRecord)
     this.articleSummaryCache.mapToClass(ArticleSummaryCache)

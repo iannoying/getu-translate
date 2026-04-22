@@ -9,7 +9,16 @@ function makeParagraph(pageIndex: number, paragraphIndex: number, text: string):
   return {
     items: [],
     text,
-    boundingBox: { x: 0, y: 0, width: 0, height: 0 },
+    // Give each paragraph a distinct bbox so tests can assert the coordinator
+    // propagates per-paragraph geometry into the cache write (M3 inline
+    // export Task 2). `y` decreases as paragraphIndex grows to mimic top-to-
+    // bottom flow in PDF coords (y grows upward).
+    boundingBox: {
+      x: 72,
+      y: 700 - paragraphIndex * 20,
+      width: 450,
+      height: 14,
+    },
     fontSize: 12,
     key: `p-${pageIndex}-${paragraphIndex}`,
   }
@@ -175,13 +184,47 @@ describe("pageCacheCoordinator", () => {
       targetLang: "zh-CN",
       providerId: "openai",
       paragraphs: [
-        { srcHash: Sha256Hex("alpha"), translation: "甲" },
-        { srcHash: Sha256Hex("beta"), translation: "乙" },
+        {
+          srcHash: Sha256Hex("alpha"),
+          translation: "甲",
+          boundingBox: paragraphs[0].boundingBox,
+        },
+        {
+          srcHash: Sha256Hex("beta"),
+          translation: "乙",
+          boundingBox: paragraphs[1].boundingBox,
+        },
       ],
       createdAt: 42_000,
     })
     expect(h.onPageSuccess).toHaveBeenCalledOnce()
     expect(h.onPageSuccess).toHaveBeenCalledWith(0)
+  })
+
+  it("propagates each paragraph's boundingBox into the cache row (M3 inline export)", async () => {
+    // Captured at startPage from the fresh Paragraph[] and written verbatim
+    // when every paragraph lands done. The exporter depends on this field
+    // to draw translations under their source paragraph.
+    const h = makeHarness({ now: () => 1 })
+    const paragraphs = [
+      makeParagraph(0, 0, "alpha"),
+      makeParagraph(0, 1, "beta"),
+      makeParagraph(0, 2, "gamma"),
+    ]
+
+    await h.coordinator.startPage(0, paragraphs)
+    h.coordinator.recordParagraphResult(0, 0, { kind: "done", translation: "α" })
+    h.coordinator.recordParagraphResult(0, 1, { kind: "done", translation: "β" })
+    h.coordinator.recordParagraphResult(0, 2, { kind: "done", translation: "γ" })
+    await flush()
+
+    expect(h.putCachedPage).toHaveBeenCalledOnce()
+    const [row] = h.putCachedPage.mock.calls[0]
+    expect(row.paragraphs).toHaveLength(3)
+    for (let i = 0; i < 3; i++) {
+      expect(row.paragraphs[i]).toHaveProperty("boundingBox")
+      expect(row.paragraphs[i].boundingBox).toEqual(paragraphs[i].boundingBox)
+    }
   })
 
   it("partial failure: does NOT write cache when any paragraph errors", async () => {
@@ -231,8 +274,16 @@ describe("pageCacheCoordinator", () => {
     const page0Write = h.putCachedPage.mock.calls.find(([row]) => row.pageIndex === 0)?.[0]
     expect(page0Write).toBeDefined()
     expect(page0Write!.paragraphs).toEqual([
-      { srcHash: Sha256Hex("a0"), translation: "a0-tr" },
-      { srcHash: Sha256Hex("a1"), translation: "a1-tr" },
+      {
+        srcHash: Sha256Hex("a0"),
+        translation: "a0-tr",
+        boundingBox: page0[0].boundingBox,
+      },
+      {
+        srcHash: Sha256Hex("a1"),
+        translation: "a1-tr",
+        boundingBox: page0[1].boundingBox,
+      },
     ])
   })
 
