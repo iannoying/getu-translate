@@ -35,3 +35,14 @@ body {
   line-height: 1.2;
   padding: 2px 0;
 }
+
+/* Fixed-position mount for the Pro "Download bilingual PDF" button
+ * (M3 PR#C Task 3). Sits above the viewer scroll area at the top-right so
+ * it stays visible during long docs; z-index puts it above pdf.js page
+ * chrome without interfering with the first-use toast. */
+#export-button-root {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+}
