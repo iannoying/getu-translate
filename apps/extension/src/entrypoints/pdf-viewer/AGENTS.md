@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-21 | Updated: 2026-04-22 (M3 PR #B1) -->
+<!-- Generated: 2026-04-21 | Updated: 2026-04-22 (M3 PR #B2) -->
 
 # pdf-viewer
 
@@ -7,7 +7,9 @@
 
 Standalone WXT HTML entrypoint that renders a PDF inside the extension itself. The page reads a `?src=<url>` query parameter and hands it to `pdfjs-dist`'s `PDFViewer`, so the rest of the extension can redirect user navigations to PDF URLs into `chrome-extension://<id>/pdf-viewer.html?src=<url>` and keep the document inside an origin the extension fully controls.
 
-PR #B1 added the translation-overlay scaffolding: on every `textlayerrendered` event we run a pure BabelDOC-inspired paragraph detector over the page's `TextItem[]` and mount a per-page React root that positions `[...]` placeholder slots beneath each detected paragraph. Push-down layout reserves vertical space below the page so the real translation blocks have somewhere to live. Actual translation rendering (providers, scheduler, caching) is wired in PR #B2 — this entrypoint currently paints placeholders only.
+PR #B1 added the translation-overlay scaffolding: on every `textlayerrendered` event we run a pure BabelDOC-inspired paragraph detector over the page's `TextItem[]` and mount a per-page React root that positions `[...]` placeholder slots beneath each detected paragraph. Push-down layout reserves vertical space below the page so the real translation blocks have somewhere to live.
+
+PR #B2 wires the actual translation pipeline: a `TranslationScheduler` (concurrency 6, abort, dedup) enqueues each detected paragraph through `translate-segment.ts` (thin wrapper over `translateTextForPage`) and writes results into `segmentStatusAtomFamily`. `<OverlayLayer>`'s slots subscribe to that atom family via `useAtomValue` and progressively replace the `[...]` placeholder with the translation as each paragraph resolves. Activation is gated by a module-level enqueue policy — `"always"` translates on sight, `"ask"` waits for the first-use toast's Accept, `"manual"` stays idle. PR #B3 will add the file-hash cache, daily quota, and `useProGuard` upgrade path.
 
 ## Key Files
 
@@ -21,11 +23,13 @@ PR #B1 added the translation-overlay scaffolding: on every `textlayerrendered` e
 
 ## Subdirectories
 
-| Directory    | Purpose                                                                                                                                                                                                                                                                                                                                                 |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `__tests__/` | Vitest specs for the pure helpers in `main.ts` (e.g. `parseSrcParam`).                                                                                                                                                                                                                                                                                  |
-| `paragraph/` | Pure-TS, BabelDOC-inspired paragraph detection. `types.ts` declares `TextItem` / `Paragraph` / `BoundingBox` independently of `pdfjs-dist`; `aggregate.ts` groups a page's `TextItem[]` into reading-order `Paragraph[]` via font + line-spacing + x-alignment heuristics. `__tests__/fixtures/` captures real-PDF dumps. See `BABELDOC_PORT_NOTES.md`. |
-| `overlay/`   | React overlay layer mounted as a sibling of each page's `.textLayer`. `layer.tsx` (`<OverlayLayer/>`) + `slot.tsx` (`<Slot/>`) render one `[...]` placeholder per paragraph; `position-sync.ts` projects PDF-unit bounding boxes to CSS px via the active `PDFPageView.viewport.transform`; `push-down-layout.ts` reserves page-container padding.      |
+| Directory      | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `__tests__/`   | Vitest specs for the pure helpers in `main.ts` (e.g. `parseSrcParam`).                                                                                                                                                                                                                                                                                                                                                                  |
+| `paragraph/`   | Pure-TS, BabelDOC-inspired paragraph detection (B1). `types.ts` declares `TextItem` / `Paragraph` / `BoundingBox` independently of `pdfjs-dist`; `aggregate.ts` groups a page's `TextItem[]` into reading-order `Paragraph[]` via font + line-spacing + x-alignment heuristics. `__tests__/fixtures/` captures real-PDF dumps. See `BABELDOC_PORT_NOTES.md`.                                                                            |
+| `overlay/`     | React overlay layer mounted as a sibling of each page's `.textLayer` (B1). `layer.tsx` (`<OverlayLayer/>`) + `slot.tsx` (`<Slot/>`) render one slot per paragraph; `position-sync.ts` projects PDF-unit bounding boxes to CSS px via the active `PDFPageView.viewport.transform`; `push-down-layout.ts` reserves page-container padding; `segment-content.tsx` is the atom subscriber that swaps the `[...]` placeholder for live text. |
+| `translation/` | Translation pipeline (B2). `atoms.ts` exposes `segmentStatusAtomFamily` (keyed by `${fileHash}:${paragraph.key}`); `scheduler.ts` runs the bounded-concurrency promise pool with abort + dedup; `translate-segment.ts` wraps `translateTextForPage` for the scheduler's injection point; `enqueue-policy.ts` is the pure `decideInitialPolicy(activationMode)` helper that gates on-sight vs. toast-gated enqueueing.                   |
+| `components/`  | React chrome (PR #A + B2). `first-use-toast.tsx` renders the Accept / Not this time / Never on this site prompt shown under `activationMode === "ask"`; `main.ts` wires its `onAccept` handler in B2 to flip the enqueue policy to `"enabled"` and retroactively schedule every already-rendered page.                                                                                                                                  |
 
 ## For AI Agents
 
@@ -36,8 +40,9 @@ PR #B1 added the translation-overlay scaffolding: on every `textlayerrendered` e
 - `pdf-viewer.html` must stay listed in `web_accessible_resources` inside `apps/extension/wxt.config.ts`. Any later redirect interceptor that points at this entrypoint depends on it being web-accessible from `*://*/*` and `file:///*`.
 - Keep `paragraph/aggregate.ts` a pure function of the item stream — no DOM, no `pdfjs-dist` runtime imports. Coordinate projection (PDF units → CSS px) stays in `overlay/position-sync.ts` so re-aggregation isn't required on every zoom.
 - Each pdf.js page gets one React root in `main.ts`'s `overlayRoots` map, keyed by 1-based page number. Re-invoke `root.render(...)` on every `textlayerrendered` event with a fresh `viewport` prop rather than unmount/remount — pdf.js fires this on every zoom + re-layout.
-- **PR #B2 integration hook:** translation text should be injected into the DOM by targeting the `data-segment-key` attribute on `.getu-slot` divs (matches each `Paragraph.key`, format `p-${pageIndex}-${paragraphIndex}`). Prefer driving slot content through props on `<OverlayLayer/>` (e.g. a `translations: Map<key, string>` or Jotai atom) over mutating the DOM directly, so React stays the single source of truth for slot contents.
-- **Push-down layout:** `overlay/push-down-layout.ts` exports `computePageExtension(paragraphs, minSlotHeight)` and `DEFAULT_MIN_SLOT_HEIGHT_PX`. `main.ts` applies the result as `pageContainer.style.paddingBottom` after each overlay render. B1 uses a simple `paragraphCount * minSlotHeight` linear model; B2 will refine with per-slot measured heights once real translation text lands.
+- **Translation-to-slot wiring:** translations land in `<Slot>` via the `renderSlotContent` callback on `<OverlayLayer>`, which returns a `<SegmentContent segmentKey={...} />` that reads `segmentStatusAtomFamily(key)` through `useAtomValue`. Consumers don't mutate DOM; they set status atoms (usually via `TranslationScheduler`) and React re-renders. Segment keys are `${fileHash}:${paragraph.key}` so atoms across different PDFs stay isolated.
+- **Module-level refs in `main.ts`:** a small set of exported refs (`schedulerRef`, `enqueuePolicyRef`, `knownParagraphsRef`) plus a private `retroEnqueueRef` carry per-file state that has to survive across React roots and the toast callback. They're re-seeded at the top of each `renderPdf` call; the module itself is not reinstantiated between files, so any new per-file state you add has to be cleared there too, not at module init.
+- **Push-down layout:** `overlay/push-down-layout.ts` exports `computePageExtension(paragraphs, minSlotHeight)` and `DEFAULT_MIN_SLOT_HEIGHT_PX`. `main.ts` applies the result as `pageContainer.style.paddingBottom` after each overlay render. B1/B2 use a simple `paragraphCount * minSlotHeight` linear model; future work can refine with per-slot measured heights as real translation text stabilises in each slot.
 
 ### Testing Requirements
 
@@ -52,17 +57,20 @@ Run `SKIP_FREE_API=true pnpm --filter @getu/extension test -- pdf-viewer`. The s
 
 ### Internal
 
-- `@/utils/config/storage` + `@/utils/constants/config` (first-use-toast activation decision)
-- `@/utils/atoms/storage-adapter` + `@/types/config/config` (blocklist write in "Never on this site")
+- `@/utils/config/storage` + `@/utils/constants/config` (first-use-toast activation decision, initial enqueue-policy seed)
+- `@/utils/atoms/pdf-translation` — `addDomainToBlocklistAtom` for the toast's "Never on this site" action (write goes through the shared Jotai store, not storageAdapter directly)
+- `@/types/config/config` — `PdfTranslationConfig["activationMode"]` type feeds `decideInitialPolicy`
 - `@/utils/pdf/domain` (hostname extraction for blocklist matching)
-- `./components/first-use-toast` (toast UI — M3 PR #A)
-- `./paragraph/*`, `./overlay/*` (B1 paragraph detection + overlay; see Subdirectories)
-- PR #B2 will additionally pull translation atoms / providers from `@/utils/*`.
+- `@/utils/pdf/fingerprint` — `fingerprintForSrc` computes the per-file hash that keys segment atoms (B3 will swap in a content-based hash)
+- `@/utils/host/translate/translate-variants` — `translateTextForPage` is the translation primitive wrapped by `translation/translate-segment.ts` and injected into `TranslationScheduler`
+- `./components/first-use-toast` (toast UI — PR #A; `onAccept` wired to scheduler in B2)
+- `./paragraph/*`, `./overlay/*`, `./translation/*` (see Subdirectories)
 
 ### External
 
 - `pdfjs-dist` (`pdfjsLib.getDocument`, `GlobalWorkerOptions`) and `pdfjs-dist/web/pdf_viewer.mjs` (`EventBus`, `PDFLinkService`, `PDFViewer`) plus `pdfjs-dist/web/pdf_viewer.css`.
 - `react` + `react-dom/client` (per-page overlay roots, lazy-loaded inside `mountOverlayForPage` to keep the blocklisted / unsupported-URL path off the React bundle).
+- `jotai` — `createStore` at module scope for `pdfViewerStore`, `Provider` wrapping every overlay + toast root so atom writes cross React roots. Also lazy-loaded inside `mountOverlayForPage`.
 
 ## Browser Compatibility
 

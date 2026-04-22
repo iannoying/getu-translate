@@ -37,6 +37,16 @@ export interface OverlayLayerProps {
    * Defaults to 24 — enough to display the `[...]` placeholder legibly.
    */
   minSlotHeight?: number
+  /**
+   * Optional render function called per paragraph to produce slot content.
+   * The returned node is passed to `<Slot>` as its children; `undefined` /
+   * `null` keeps the slot's default `[...]` placeholder.
+   *
+   * PR #B2 Task 4 will wire this to `segmentStatusAtomFamily` so each slot
+   * swaps to real translation text the moment the scheduler flips status to
+   * `done`.
+   */
+  renderSlotContent?: (paragraph: Paragraph) => React.ReactNode
 }
 
 /**
@@ -78,6 +88,7 @@ export function OverlayLayer({
   pageIndex,
   viewport,
   minSlotHeight,
+  renderSlotContent,
 }: OverlayLayerProps) {
   return (
     <div
@@ -95,7 +106,9 @@ export function OverlayLayer({
           paragraph={paragraph}
           position={computeSlotPosition(paragraph, viewport)}
           minHeight={minSlotHeight}
-        />
+        >
+          {renderSlotContent?.(paragraph)}
+        </Slot>
       ))}
     </div>
   )

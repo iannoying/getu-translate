@@ -56,21 +56,6 @@ describe("overlayLayer", () => {
     expect(slot.style.width).toBe("440px")
   })
 
-  it("renders `[...]` placeholder text in each slot", () => {
-    const { container } = render(
-      <OverlayLayer
-        paragraphs={[makeFakeParagraph(), makeFakeParagraph({ key: "p-0-1" })]}
-        pageIndex={0}
-        viewport={IDENTITY}
-      />,
-    )
-    const slots = container.querySelectorAll(".getu-slot")
-    expect(slots).toHaveLength(2)
-    for (const slot of Array.from(slots)) {
-      expect(slot.textContent).toBe("[...]")
-    }
-  })
-
   it("annotates the inner wrapper with data-page-index", () => {
     const { container } = render(
       <OverlayLayer paragraphs={[]} pageIndex={7} viewport={IDENTITY} />,
@@ -111,6 +96,65 @@ describe("overlayLayer", () => {
     )
     expect(container.querySelectorAll(".getu-slot")).toHaveLength(0)
     expect(container.querySelector(".getu-overlay-inner")).not.toBeNull()
+  })
+
+  it("falls back to `[...]` placeholder when no renderSlotContent is provided", () => {
+    const { container } = render(
+      <OverlayLayer
+        paragraphs={[makeFakeParagraph(), makeFakeParagraph({ key: "p-0-1" })]}
+        pageIndex={0}
+        viewport={IDENTITY}
+      />,
+    )
+    const slots = container.querySelectorAll(".getu-slot")
+    expect(slots).toHaveLength(2)
+    for (const slot of Array.from(slots)) {
+      expect(slot.textContent).toBe("[...]")
+    }
+  })
+
+  it("invokes renderSlotContent for each paragraph and forwards the result to the slot", () => {
+    const paragraphs = [
+      makeFakeParagraph({ key: "p-0-0", text: "alpha" }),
+      makeFakeParagraph({ key: "p-0-1", text: "beta" }),
+    ]
+    const seen: string[] = []
+    const renderSlotContent = (p: Paragraph) => {
+      seen.push(p.key)
+      return `translated:${p.text}`
+    }
+    const { container } = render(
+      <OverlayLayer
+        paragraphs={paragraphs}
+        pageIndex={0}
+        viewport={IDENTITY}
+        renderSlotContent={renderSlotContent}
+      />,
+    )
+    expect(seen).toEqual(["p-0-0", "p-0-1"])
+    const slots = Array.from(container.querySelectorAll(".getu-slot"))
+    expect(slots[0]!.textContent).toBe("translated:alpha")
+    expect(slots[1]!.textContent).toBe("translated:beta")
+  })
+
+  it("falls back to placeholder for paragraphs whose renderSlotContent returns nullish", () => {
+    const paragraphs = [
+      makeFakeParagraph({ key: "p-0-0", text: "alpha" }),
+      makeFakeParagraph({ key: "p-0-1", text: "beta" }),
+    ]
+    const renderSlotContent = (p: Paragraph) =>
+      p.key === "p-0-0" ? `hello:${p.text}` : undefined
+    const { container } = render(
+      <OverlayLayer
+        paragraphs={paragraphs}
+        pageIndex={0}
+        viewport={IDENTITY}
+        renderSlotContent={renderSlotContent}
+      />,
+    )
+    const slots = Array.from(container.querySelectorAll(".getu-slot"))
+    expect(slots[0]!.textContent).toBe("hello:alpha")
+    expect(slots[1]!.textContent).toBe("[...]")
   })
 })
 
