@@ -30,7 +30,7 @@
  *     The coordinator never calls it for cache-hit pages — only for pages
  *     that were freshly translated via the scheduler.
  */
-import type { Paragraph } from "../paragraph/types"
+import type { BoundingBox, Paragraph } from "../paragraph/types"
 import type { SegmentStatus } from "./atoms"
 import type {
   PdfTranslationParagraph,
@@ -91,6 +91,13 @@ interface PageState {
    * reports `{ kind: "done" }`. `undefined` means "not yet done".
    */
   readonly translations: Array<string | undefined>
+  /**
+   * Bounding boxes for each paragraph in PDF units (y grows upward),
+   * indexed parallel to `translations`. Captured at `startPage` time
+   * from the detected paragraphs so the cache row carries the geometry
+   * needed for the inline bilingual exporter.
+   */
+  readonly paragraphBoundingBoxes: BoundingBox[]
   /** Number of paragraphs that have reached `done` (never decremented). */
   doneCount: number
   /** `true` once any paragraph reports `error`; suppresses cache write. */
@@ -154,6 +161,7 @@ export class PageCacheCoordinator {
       this.pages.set(pageIndex, {
         paragraphs,
         translations: hit.paragraphs.map(p => p.translation),
+        paragraphBoundingBoxes: paragraphs.map(p => p.boundingBox),
         doneCount: paragraphs.length,
         errored: false,
         fromCache: true,
@@ -181,6 +189,7 @@ export class PageCacheCoordinator {
       this.pages.set(pageIndex, {
         paragraphs,
         translations: Array.from<string | undefined>({ length: paragraphs.length }).fill(undefined),
+        paragraphBoundingBoxes: paragraphs.map(p => p.boundingBox),
         doneCount: 0,
         errored: false,
         fromCache: false,
@@ -269,6 +278,7 @@ export class PageCacheCoordinator {
       paragraphs: state.paragraphs.map<PdfTranslationParagraph>((paragraph, i) => ({
         srcHash: Sha256Hex(paragraph.text),
         translation: state.translations[i] as string,
+        boundingBox: state.paragraphBoundingBoxes[i],
       })),
       createdAt: (this.deps.now ?? Date.now)(),
     }
