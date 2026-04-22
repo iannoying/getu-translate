@@ -19,6 +19,7 @@ ALLOWED_EXTENSION_ORIGINS = "chrome-extension://*,http://localhost:3000,https://
 BIANXIE_BASE_URL = "https://api.bianxie.ai/v1"
 # FLIP TO "true" ONLY after Paddle vendor approval + webhook handler live
 BILLING_ENABLED = "false"
+PADDLE_BASE_URL = "https://sandbox-api.paddle.com"
 
 # Production deploy — invoked via `wrangler deploy --env production`
 [env.production]
@@ -36,3 +37,5 @@ ALLOWED_EXTENSION_ORIGINS = "chrome-extension://*,https://getutranslate.com,http
 BIANXIE_BASE_URL = "https://api.bianxie.ai/v1"
 # FLIP TO "true" ONLY after Paddle vendor approval + webhook handler live
 BILLING_ENABLED = "false"
+# stays on sandbox until paddle vendor approval — flip to https://api.paddle.com then
+PADDLE_BASE_URL = "https://sandbox-api.paddle.com"
