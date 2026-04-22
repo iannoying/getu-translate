@@ -18,6 +18,13 @@ vi.mock("../../billing/quota", () => ({
     reset_at: "2026-05-01T00:00:00.000Z",
   })),
 }))
+vi.mock("../../billing/checkout", () => ({
+  createCheckoutSession: vi.fn(async () => ({ url: "https://pay.paddle.io/hsc_01" })),
+  createPortalSession: vi.fn(async () => ({ url: "https://customer-portal.paddle.com/ptl_01" })),
+}))
+vi.mock("../../billing/paddle/client", () => ({
+  createPaddleClient: vi.fn(() => ({})),
+}))
 
 function ctx(session: Ctx["session"]): Ctx {
   return { env: { DB: {} as any, BILLING_ENABLED: "false" } as Ctx["env"], auth: {} as Ctx["auth"], session }
@@ -116,5 +123,52 @@ describe("billing.consumeQuota", () => {
       expect.any(Number),
       expect.any(String),
     )
+  })
+})
+
+describe("billing.createCheckoutSession", () => {
+  it("router has 4 procedures", async () => {
+    const { billingRouter } = await import("../billing")
+    expect(Object.keys(billingRouter)).toHaveLength(4)
+    expect(Object.keys(billingRouter)).toContain("createCheckoutSession")
+    expect(Object.keys(billingRouter)).toContain("createPortalSession")
+  })
+
+  it("rejects anonymous", async () => {
+    const client = createRouterClient(router, { context: ctx(null) })
+    await expect(
+      client.billing.createCheckoutSession({
+        plan: "pro_monthly",
+        successUrl: "https://getutranslate.com/upgrade/success",
+        cancelUrl: "https://getutranslate.com/price",
+      }),
+    ).rejects.toThrow()
+  })
+
+  it("returns checkout url for authenticated user", async () => {
+    const client = createRouterClient(router, {
+      context: ctx({ user: { id: "u1", email: "u@x.com" }, session: { id: "s1" } } as any),
+    })
+    const result = await client.billing.createCheckoutSession({
+      plan: "pro_monthly",
+      successUrl: "https://getutranslate.com/upgrade/success",
+      cancelUrl: "https://getutranslate.com/price",
+    })
+    expect(result).toEqual({ url: "https://pay.paddle.io/hsc_01" })
+  })
+})
+
+describe("billing.createPortalSession", () => {
+  it("rejects anonymous", async () => {
+    const client = createRouterClient(router, { context: ctx(null) })
+    await expect(client.billing.createPortalSession({})).rejects.toThrow()
+  })
+
+  it("returns portal url for authenticated user", async () => {
+    const client = createRouterClient(router, {
+      context: ctx({ user: { id: "u1", email: "u@x.com" }, session: { id: "s1" } } as any),
+    })
+    const result = await client.billing.createPortalSession({})
+    expect(result).toEqual({ url: "https://customer-portal.paddle.com/ptl_01" })
   })
 })

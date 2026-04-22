@@ -1,7 +1,16 @@
+import { z } from "zod"
 import { createDb } from "@getu/db"
-import { consumeQuotaInputSchema, consumeQuotaOutputSchema } from "@getu/contract"
+import {
+  consumeQuotaInputSchema,
+  consumeQuotaOutputSchema,
+  createCheckoutSessionInputSchema,
+  createCheckoutSessionOutputSchema,
+  createPortalSessionOutputSchema,
+} from "@getu/contract"
 import { loadEntitlements } from "../billing/entitlements"
 import { consumeQuota as consumeQuotaImpl } from "../billing/quota"
+import { createPaddleClient } from "../billing/paddle/client"
+import { createCheckoutSession as createCheckoutImpl, createPortalSession as createPortalImpl } from "../billing/checkout"
 import { authed } from "./context"
 
 export const billingRouter = {
@@ -22,5 +31,34 @@ export const billingRouter = {
         input.amount,
         input.request_id,
       )
+    }),
+  createCheckoutSession: authed
+    .input(createCheckoutSessionInputSchema)
+    .output(createCheckoutSessionOutputSchema)
+    .handler(async ({ context, input }) => {
+      const db = createDb(context.env.DB)
+      const paddle = createPaddleClient({
+        apiKey: context.env.PADDLE_API_KEY,
+        baseUrl: context.env.PADDLE_BASE_URL,
+      })
+      return createCheckoutImpl({
+        db,
+        paddle,
+        env: context.env,
+        userId: context.session.user.id,
+        userEmail: context.session.user.email,
+        input,
+      })
+    }),
+  createPortalSession: authed
+    .input(z.object({}).strict())
+    .output(createPortalSessionOutputSchema)
+    .handler(async ({ context }) => {
+      const db = createDb(context.env.DB)
+      const paddle = createPaddleClient({
+        apiKey: context.env.PADDLE_API_KEY,
+        baseUrl: context.env.PADDLE_BASE_URL,
+      })
+      return createPortalImpl({ db, paddle, env: context.env, userId: context.session.user.id })
     }),
 }
