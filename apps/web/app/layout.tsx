@@ -1,6 +1,8 @@
+import "./globals.css"
+
 export const metadata = {
   title: "GetU Translate",
-  description: "懂你翻译 — understand any webpage in your native language",
+  description: "AI-powered browser translation for language learners and multilingual readers.",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
