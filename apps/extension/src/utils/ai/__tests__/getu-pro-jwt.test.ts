@@ -44,6 +44,19 @@ describe("getProJwt", () => {
     await expect(getProJwt()).rejects.toThrow(/401/)
   })
 
+  it("deduplicates concurrent cold-cache calls", async () => {
+    const fetchMock = vi.fn(async () => {
+      await new Promise(r => setTimeout(r, 10))
+      return new Response(JSON.stringify({ token: "jwt-x", expires_in: 900 }), { status: 200 })
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    const [a, b, c] = await Promise.all([getProJwt(), getProJwt(), getProJwt()])
+    expect(a).toBe("jwt-x")
+    expect(b).toBe("jwt-x")
+    expect(c).toBe("jwt-x")
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
   it("refetches when within 30s of expiry", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({ token: "jwt-1", expires_in: 900 }), { status: 200 }))
