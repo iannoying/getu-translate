@@ -11,6 +11,11 @@ import { getLobeIconsCDNUrlFn } from "../logo"
 import { WEBSITE_URL } from "./url"
 
 export const DEFAULT_LLM_PROVIDER_MODELS: LLMProviderModels = {
+  "getu-pro": {
+    model: "gpt-4o-mini",
+    isCustomModel: false,
+    customModel: null,
+  },
   "openrouter": {
     model: "x-ai/grok-4-fast:free",
     isCustomModel: false,
@@ -320,6 +325,11 @@ export const PROVIDER_ITEMS: Record<AllProviderTypes, { logo: (theme: Theme) => 
       name: "Hugging Face",
       website: "https://huggingface.co/",
     },
+    "getu-pro": {
+      logo: () => customProviderLogo,
+      name: "GetU Translate Pro",
+      website: `${WEBSITE_URL}/pricing`,
+    },
   }
 
 export const DEFAULT_PROVIDER_CONFIG = {
@@ -595,6 +605,14 @@ export const DEFAULT_PROVIDER_CONFIG = {
     provider: "huggingface",
     model: DEFAULT_LLM_PROVIDER_MODELS.huggingface,
   },
+  "getu-pro": {
+    id: "getu-pro-default",
+    name: PROVIDER_ITEMS["getu-pro"].name,
+    description: i18n.t("options.apiProviders.providers.description.getuPro"),
+    enabled: true,
+    provider: "getu-pro",
+    model: DEFAULT_LLM_PROVIDER_MODELS["getu-pro"],
+  },
 } as const satisfies Record<AllProviderTypes, ProviderConfig>
 
 export interface ConnectionOptionFieldDef {
@@ -614,6 +632,7 @@ export const PROVIDER_CONNECTION_OPTIONS_FIELDS: Partial<
 }
 
 export const DEFAULT_PROVIDER_CONFIG_LIST: ProvidersConfig = [
+  DEFAULT_PROVIDER_CONFIG["getu-pro"],
   DEFAULT_PROVIDER_CONFIG["microsoft-translate"],
   DEFAULT_PROVIDER_CONFIG["google-translate"],
   DEFAULT_PROVIDER_CONFIG["bing-translate"],
