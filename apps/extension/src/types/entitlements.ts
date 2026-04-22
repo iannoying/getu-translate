@@ -7,6 +7,7 @@ import { z } from "zod"
  */
 export const FeatureKeySchema = z.enum([
   "pdf_translate",
+  "pdf_translate_unlimited",
   "input_translate_unlimited",
   "vocab_unlimited",
   "vocab_cloud_sync",
