@@ -1116,6 +1116,10 @@ billing:
     title: Unlock this feature with Pro
     description: Pro unlocks PDF translation, unlimited input-field translation, cloud-synced vocabulary, and more.
     close: Close
+    planYearly: Yearly
+    planMonthly: Monthly
+    loading: Loading...
+    comingSoon: Coming soon
   quota:
     outOf: of
     remaining: remaining

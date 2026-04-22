@@ -35,6 +35,9 @@ const PRO_ENTITLEMENTS: Entitlements = {
   features: ["pdf_translate", "vocab_unlimited"],
   quota: {},
   expiresAt: "2099-01-01T00:00:00.000Z",
+  graceUntil: null,
+  billingEnabled: true,
+  billingProvider: "paddle",
 }
 
 function renderWithProviders(ui: ReactNode) {

@@ -36,6 +36,9 @@ const PRO_ENTITLEMENTS: Entitlements = {
   features: ["pdf_translate", "vocab_unlimited"],
   quota: { ai_translate_monthly: { used: 0, limit: 50000 } },
   expiresAt: "2099-01-01T00:00:00.000Z",
+  graceUntil: null,
+  billingEnabled: true,
+  billingProvider: "paddle",
 }
 
 function renderWithProviders<T>(hook: () => T) {
@@ -153,6 +156,9 @@ describe("useEntitlements", () => {
       features: ["pdf_translate"],
       quota: {},
       expiresAt: "2020-01-01T00:00:00.000Z", // in the past → isPro returns false
+      graceUntil: null,
+      billingEnabled: true,
+      billingProvider: "paddle",
     }
     fetchMock.mockRejectedValue(new Error("network error"))
     readCacheMock.mockResolvedValue({ userId: "user-1", value: stalePro, updatedAt: new Date() })

@@ -30,6 +30,9 @@ const PRO_ENTITLEMENTS: Entitlements = {
   features: ["pdf_translate", "pdf_translate_export"],
   quota: {},
   expiresAt: "2099-01-01T00:00:00.000Z",
+  graceUntil: null,
+  billingEnabled: true,
+  billingProvider: "paddle",
 }
 
 const PRO_WITHOUT_EXPORT: Entitlements = {
@@ -37,6 +40,9 @@ const PRO_WITHOUT_EXPORT: Entitlements = {
   features: ["pdf_translate"],
   quota: {},
   expiresAt: "2099-01-01T00:00:00.000Z",
+  graceUntil: null,
+  billingEnabled: true,
+  billingProvider: "paddle",
 }
 
 const PROPS = {

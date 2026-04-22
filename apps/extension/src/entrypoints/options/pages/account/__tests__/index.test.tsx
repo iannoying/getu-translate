@@ -70,6 +70,9 @@ const PRO_ENTITLEMENTS: Entitlements = {
     vocab: { used: 10, limit: 100 },
   },
   expiresAt: "2099-01-01T00:00:00.000Z",
+  graceUntil: null,
+  billingEnabled: true,
+  billingProvider: "paddle",
 }
 
 const EXPIRED_PRO_ENTITLEMENTS: Entitlements = {
@@ -77,6 +80,9 @@ const EXPIRED_PRO_ENTITLEMENTS: Entitlements = {
   features: [],
   quota: {},
   expiresAt: "2020-01-01T00:00:00.000Z",
+  graceUntil: null,
+  billingEnabled: true,
+  billingProvider: "paddle",
 }
 
 function renderWithProviders(ui: ReactNode, store = createStore()) {

@@ -1,6 +1,7 @@
 import { browser, i18n } from "#imports"
 import { Icon } from "@iconify/react"
 import { UserAccount } from "@/components/user-account"
+import { useProExpiryEffect } from "@/hooks/use-pro-expiry-effect"
 import { version } from "../../../package.json"
 import { AISmartContext } from "./components/ai-smart-context"
 import { AlwaysTranslate } from "./components/always-translate"
@@ -18,6 +19,7 @@ import { TranslationHubButton } from "./components/translation-hub-button"
 import TranslationModeSelector from "./components/translation-mode-selector"
 
 function App() {
+  useProExpiryEffect()
   return (
     <>
       <div className="bg-background flex flex-col gap-4 px-6 pt-5 pb-4">
