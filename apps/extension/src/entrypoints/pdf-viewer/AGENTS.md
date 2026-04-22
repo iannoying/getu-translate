@@ -1,11 +1,13 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-21 | Updated: 2026-04-21 (Task 7) -->
+<!-- Generated: 2026-04-21 | Updated: 2026-04-22 (M3 PR #B1) -->
 
 # pdf-viewer
 
 ## Purpose
 
-Standalone WXT HTML entrypoint that renders a PDF inside the extension itself. The page reads a `?src=<url>` query parameter and hands it to `pdfjs-dist`'s `PDFViewer`, so the rest of the extension can redirect user navigations to PDF URLs into `chrome-extension://<id>/pdf-viewer.html?src=<url>` and keep the document inside an origin the extension fully controls. At this stage the viewer is bare — it only loads and renders the PDF. Translation, the first-use toast, and redirect interception are added in later M3 tasks.
+Standalone WXT HTML entrypoint that renders a PDF inside the extension itself. The page reads a `?src=<url>` query parameter and hands it to `pdfjs-dist`'s `PDFViewer`, so the rest of the extension can redirect user navigations to PDF URLs into `chrome-extension://<id>/pdf-viewer.html?src=<url>` and keep the document inside an origin the extension fully controls.
+
+PR #B1 added the translation-overlay scaffolding: on every `textlayerrendered` event we run a pure BabelDOC-inspired paragraph detector over the page's `TextItem[]` and mount a per-page React root that positions `[...]` placeholder slots beneath each detected paragraph. Push-down layout reserves vertical space below the page so the real translation blocks have somewhere to live. Actual translation rendering (providers, scheduler, caching) is wired in PR #B2 — this entrypoint currently paints placeholders only.
 
 ## Key Files
 
@@ -19,9 +21,11 @@ Standalone WXT HTML entrypoint that renders a PDF inside the extension itself. T
 
 ## Subdirectories
 
-| Directory    | Purpose                                         |
-| ------------ | ----------------------------------------------- |
-| `__tests__/` | Vitest specs for the pure helpers in `main.ts`. |
+| Directory    | Purpose                                                                                                                                                                                                                                                                                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `__tests__/` | Vitest specs for the pure helpers in `main.ts` (e.g. `parseSrcParam`).                                                                                                                                                                                                                                                                                  |
+| `paragraph/` | Pure-TS, BabelDOC-inspired paragraph detection. `types.ts` declares `TextItem` / `Paragraph` / `BoundingBox` independently of `pdfjs-dist`; `aggregate.ts` groups a page's `TextItem[]` into reading-order `Paragraph[]` via font + line-spacing + x-alignment heuristics. `__tests__/fixtures/` captures real-PDF dumps. See `BABELDOC_PORT_NOTES.md`. |
+| `overlay/`   | React overlay layer mounted as a sibling of each page's `.textLayer`. `layer.tsx` (`<OverlayLayer/>`) + `slot.tsx` (`<Slot/>`) render one `[...]` placeholder per paragraph; `position-sync.ts` projects PDF-unit bounding boxes to CSS px via the active `PDFPageView.viewport.transform`; `push-down-layout.ts` reserves page-container padding.      |
 
 ## For AI Agents
 
@@ -30,11 +34,14 @@ Standalone WXT HTML entrypoint that renders a PDF inside the extension itself. T
 - Keep `parseSrcParam` in its own `parse-src-param.ts` module so tests never import `main.ts` (which eagerly loads `pdfjs-dist/web/pdf_viewer.mjs`, and that module throws `ReferenceError: window is not defined` under the Vitest `node` environment). Add new pure helpers to sibling modules rather than inlining them in `main.ts`.
 - The worker URL uses Vite's `new URL("…", import.meta.url)` pattern — do not switch to `browser.runtime.getURL` unless the Vite-emitted URL stops resolving inside the extension bundle.
 - `pdf-viewer.html` must stay listed in `web_accessible_resources` inside `apps/extension/wxt.config.ts`. Any later redirect interceptor that points at this entrypoint depends on it being web-accessible from `*://*/*` and `file:///*`.
-- Do not add translation logic here yet — M3 PR #A Task 2 is scaffolding only. Translation hooks land in subsequent tasks alongside config wiring and toast UI.
+- Keep `paragraph/aggregate.ts` a pure function of the item stream — no DOM, no `pdfjs-dist` runtime imports. Coordinate projection (PDF units → CSS px) stays in `overlay/position-sync.ts` so re-aggregation isn't required on every zoom.
+- Each pdf.js page gets one React root in `main.ts`'s `overlayRoots` map, keyed by 1-based page number. Re-invoke `root.render(...)` on every `textlayerrendered` event with a fresh `viewport` prop rather than unmount/remount — pdf.js fires this on every zoom + re-layout.
+- **PR #B2 integration hook:** translation text should be injected into the DOM by targeting the `data-segment-key` attribute on `.getu-slot` divs (matches each `Paragraph.key`, format `p-${pageIndex}-${paragraphIndex}`). Prefer driving slot content through props on `<OverlayLayer/>` (e.g. a `translations: Map<key, string>` or Jotai atom) over mutating the DOM directly, so React stays the single source of truth for slot contents.
+- **Push-down layout:** `overlay/push-down-layout.ts` exports `computePageExtension(paragraphs, minSlotHeight)` and `DEFAULT_MIN_SLOT_HEIGHT_PX`. `main.ts` applies the result as `pageContainer.style.paddingBottom` after each overlay render. B1 uses a simple `paragraphCount * minSlotHeight` linear model; B2 will refine with per-slot measured heights once real translation text lands.
 
 ### Testing Requirements
 
-Run `SKIP_FREE_API=true pnpm --filter @getu/extension test -- pdf-viewer`. The suite currently asserts the query-param parser only; DOM / pdfjs integration is exercised manually by loading the built extension and visiting `chrome-extension://<id>/pdf-viewer.html?src=<pdf url>`.
+Run `SKIP_FREE_API=true pnpm --filter @getu/extension test -- pdf-viewer`. The suite covers: `parseSrcParam` URL handling, `paragraph/aggregate` against realistic `TextItem[]` fixtures (simple paragraph, multi-paragraph vertical gap, heading vs. body, double-column, hyphenated line continuation), `overlay/layer` RTL smoke (slot count, absolute positioning, placeholder text, data attributes, y-flip projection), `overlay/position-sync` matrix math, and `overlay/push-down-layout` linear-model unit tests. End-to-end PDF rendering is still verified manually by loading the built extension and visiting `chrome-extension://<id>/pdf-viewer.html?src=<pdf url>`.
 
 ### Common Patterns
 
@@ -45,11 +52,17 @@ Run `SKIP_FREE_API=true pnpm --filter @getu/extension test -- pdf-viewer`. The s
 
 ### Internal
 
-None yet. Later tasks will pull in config atoms, messaging helpers, and translation utilities from `@/utils/*`.
+- `@/utils/config/storage` + `@/utils/constants/config` (first-use-toast activation decision)
+- `@/utils/atoms/storage-adapter` + `@/types/config/config` (blocklist write in "Never on this site")
+- `@/utils/pdf/domain` (hostname extraction for blocklist matching)
+- `./components/first-use-toast` (toast UI — M3 PR #A)
+- `./paragraph/*`, `./overlay/*` (B1 paragraph detection + overlay; see Subdirectories)
+- PR #B2 will additionally pull translation atoms / providers from `@/utils/*`.
 
 ### External
 
 - `pdfjs-dist` (`pdfjsLib.getDocument`, `GlobalWorkerOptions`) and `pdfjs-dist/web/pdf_viewer.mjs` (`EventBus`, `PDFLinkService`, `PDFViewer`) plus `pdfjs-dist/web/pdf_viewer.css`.
+- `react` + `react-dom/client` (per-page overlay roots, lazy-loaded inside `mountOverlayForPage` to keep the blocklisted / unsupported-URL path off the React bundle).
 
 ## Browser Compatibility
 
