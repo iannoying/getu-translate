@@ -2,6 +2,7 @@ import { isProModel, normalizeTokens, type ProModel } from "@getu/contract"
 import { createDb } from "@getu/db"
 import { consumeQuota } from "../billing/quota"
 import { verifyAiJwt } from "./jwt"
+import { checkRateLimit } from "./rate-limit"
 import { extractUsageFromSSE } from "./usage-parser"
 import type { WorkerEnv } from "../env"
 
@@ -21,6 +22,11 @@ export async function handleChatCompletions(
   } catch {
     return json({ error: "invalid or expired token" }, 401)
   }
+
+  // Rate limit check — costs 1 small D1 read + 1 write per request
+  const db = createDb(env.DB)
+  const allowed = await checkRateLimit(db, userId)
+  if (!allowed) return json({ error: "rate limit exceeded: 300 req/min" }, 429)
 
   // 2. Parse + validate model
   const body = (await req.json().catch(() => null)) as {
@@ -59,7 +65,7 @@ export async function handleChatCompletions(
     (upstream.headers.get("content-type") ?? "").includes("text/event-stream")
   if (isStream) {
     const [forward, usageP] = extractUsageFromSSE(upstream.body)
-    ctx.waitUntil(chargeAfterStream(env, userId, model, usageP, requestId))
+    ctx.waitUntil(chargeAfterStream(db, userId, model, usageP, requestId))
     return new Response(forward, {
       status: 200,
       headers: filterResponseHeaders(upstream.headers),
@@ -78,7 +84,7 @@ export async function handleChatCompletions(
     parsed.usage?.prompt_tokens != null && parsed.usage?.completion_tokens != null
       ? { input: parsed.usage.prompt_tokens, output: parsed.usage.completion_tokens }
       : null
-  ctx.waitUntil(chargeAfterStream(env, userId, model, Promise.resolve(usage), requestId))
+  ctx.waitUntil(chargeAfterStream(db, userId, model, Promise.resolve(usage), requestId))
   return new Response(text, {
     status: 200,
     headers: filterResponseHeaders(upstream.headers),
@@ -86,7 +92,7 @@ export async function handleChatCompletions(
 }
 
 async function chargeAfterStream(
-  env: WorkerEnv,
+  db: ReturnType<typeof createDb>,
   userId: string,
   model: ProModel,
   usageP: Promise<{ input: number; output: number } | null>,
@@ -96,7 +102,6 @@ async function chargeAfterStream(
     const usage = await usageP
     const units = usage == null ? 1 : normalizeTokens(model, usage)
     if (units < 1) return
-    const db = createDb(env.DB)
     await consumeQuota(db, userId, "ai_translate_monthly", units, requestId)
     // NOTE: consumeQuota does not currently write upstream_model / input_tokens / output_tokens.
     // Those columns stay null in Phase 3 — deferred as future analytics enhancement.
