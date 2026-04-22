@@ -17,6 +17,7 @@ migrations_dir = "../../packages/db/drizzle"
 AUTH_BASE_URL = "http://localhost:8788"
 ALLOWED_EXTENSION_ORIGINS = "chrome-extension://*,http://localhost:3000,https://getutranslate.com,https://www.getutranslate.com"
 BIANXIE_BASE_URL = "https://api.bianxie.ai/v1"
+BILLING_ENABLED = "false"
 
 # Production deploy — invoked via `wrangler deploy --env production`
 [env.production]
@@ -32,3 +33,4 @@ migrations_dir = "../../packages/db/drizzle"
 AUTH_BASE_URL = "https://api.getutranslate.com"
 ALLOWED_EXTENSION_ORIGINS = "chrome-extension://*,https://getutranslate.com,https://www.getutranslate.com"
 BIANXIE_BASE_URL = "https://api.bianxie.ai/v1"
+BILLING_ENABLED = "false"

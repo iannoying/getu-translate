@@ -7,7 +7,8 @@ import { authed } from "./context"
 export const billingRouter = {
   getEntitlements: authed.handler(async ({ context }) => {
     const db = createDb(context.env.DB)
-    return loadEntitlements(db, context.session.user.id)
+    const enabled = context.env.BILLING_ENABLED === "true"
+    return loadEntitlements(db, context.session.user.id, enabled)
   }),
   consumeQuota: authed
     .input(consumeQuotaInputSchema)

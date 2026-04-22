@@ -5,17 +5,18 @@ import { user } from "./auth"
 const unixMsDefault = sql`(CAST(unixepoch('now','subsec') * 1000 AS INTEGER))`
 
 /**
- * Per-user commercialized tier + feature flags + Stripe linkage.
+ * Per-user commercialized tier + feature flags + billing provider linkage.
  * Phase 3 populates only: userId, tier, features, expiresAt.
- * Phase 4 webhook populates: stripeCustomerId, stripeSubscriptionId, graceUntil.
+ * Phase 4 webhook populates: providerCustomerId, providerSubscriptionId, billingProvider, graceUntil.
  */
 export const userEntitlements = sqliteTable("user_entitlements", {
   userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
   tier: text("tier", { enum: ["free", "pro", "enterprise"] }).notNull().default("free"),
   features: text("features").notNull().default("[]"),
   expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
-  stripeCustomerId: text("stripe_customer_id"),
-  stripeSubscriptionId: text("stripe_subscription_id"),
+  providerCustomerId: text("provider_customer_id"),
+  providerSubscriptionId: text("provider_subscription_id"),
+  billingProvider: text("billing_provider", { enum: ["paddle", "stripe"] }),
   graceUntil: integer("grace_until", { mode: "timestamp_ms" }),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().default(unixMsDefault),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().default(unixMsDefault),
@@ -59,4 +60,22 @@ export const quotaPeriod = sqliteTable("quota_period", {
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().default(unixMsDefault),
 }, t => ({
   pk: uniqueIndex("quota_period_pk").on(t.userId, t.bucket, t.periodKey),
+}))
+
+/**
+ * Webhook event idempotency + audit log.
+ * event_id is the provider's own event ID (e.g. Paddle's evt_*).
+ * Deduplication: INSERT OR IGNORE / ON CONFLICT DO NOTHING on event_id PK.
+ */
+export const billingWebhookEvents = sqliteTable("billing_webhook_events", {
+  eventId: text("event_id").primaryKey(),
+  provider: text("provider", { enum: ["paddle", "stripe"] }).notNull(),
+  eventType: text("event_type").notNull(),
+  receivedAt: integer("received_at", { mode: "timestamp_ms" }).notNull().default(unixMsDefault),
+  processedAt: integer("processed_at", { mode: "timestamp_ms" }),
+  status: text("status", { enum: ["received", "processed", "error"] }).notNull().default("received"),
+  errorMessage: text("error_message"),
+  payloadJson: text("payload_json").notNull(),
+}, t => ({
+  byReceivedAt: index("billing_webhook_events_received_at_idx").on(t.receivedAt),
 }))
