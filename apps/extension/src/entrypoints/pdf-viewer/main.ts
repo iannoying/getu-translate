@@ -5,10 +5,17 @@ import { createStore } from "jotai"
 import { addDomainToBlocklistAtom } from "@/utils/atoms/pdf-translation"
 import { getLocalConfig } from "@/utils/config/storage"
 import { DEFAULT_CONFIG } from "@/utils/constants/config"
+import {
+  getCachedPage,
+  putCachedPage,
+  touchCachedPage,
+} from "@/utils/db/dexie/pdf-translations"
 import { fingerprintForSrc } from "@/utils/pdf/fingerprint"
 import { parseSrcParam } from "./parse-src-param"
 import { segmentStatusAtomFamily } from "./translation/atoms"
 import { decideInitialPolicy } from "./translation/enqueue-policy"
+import { PageCacheCoordinator } from "./translation/page-cache-coordinator"
+import { parseSegmentKey } from "./translation/parse-segment-key"
 import { TranslationScheduler } from "./translation/scheduler"
 import { translateSegment } from "./translation/translate-segment"
 import "pdfjs-dist/web/pdf_viewer.css"
@@ -31,6 +38,16 @@ export const pdfViewerStore = createStore()
  * the scheduler without threading it through a closure. Exported for tests.
  */
 export const schedulerRef: { current: TranslationScheduler | null } = {
+  current: null,
+}
+
+/**
+ * Mutable reference to the current file's page-level cache coordinator
+ * (PR #B3 Task 4). One coordinator per file, same lifetime as the scheduler.
+ * Exported for tests and for PR #B3 Task 5 to wire quota enforcement onto
+ * `onPageSuccess`.
+ */
+export const coordinatorRef: { current: PageCacheCoordinator | null } = {
   current: null,
 }
 
@@ -82,19 +99,65 @@ async function boot() {
     return
   }
 
-  // Compute the per-file fingerprint once. PR #B3 will swap in a real
+  // Compute the per-file fingerprint once. PR #B3 Task 6 will swap in a real
   // content-based hash; for B2 `sha256(src)` is deterministic and sufficient
   // to keep segment atoms from different PDFs out of each other's way.
   const fileHash = fingerprintForSrc(src)
 
+  // Read once at boot time: the target language + translate provider id are
+  // part of the cache key (PR #B3 Task 1). We snapshot them so a mid-session
+  // config change doesn't produce mixed cache keys within one file. The
+  // scheduler is per-file, so the next PDF open picks up the update.
+  const config = (await getLocalConfig()) ?? DEFAULT_CONFIG
+  const targetLang = config.language.targetCode
+  const providerId = config.translate.providerId
+
+  // Scheduler and coordinator are mutually referential: the coordinator's
+  // miss path enqueues through the scheduler, and the scheduler's setStatus
+  // tee notifies the coordinator on every paragraph transition. Declare the
+  // scheduler first with a lazy coordinator reference, then instantiate the
+  // coordinator with a direct binding.
+  let coordinatorHandle: PageCacheCoordinator | null = null
+
   // One scheduler per file. Re-opening the same PDF (new tab / reload) gets a
   // fresh scheduler, which is what we want — no stale in-flight promises.
+  //
+  // The `setStatus` sink is a tee: the atom write drives the UI, and the
+  // parsed (pageIndex, paragraphIndex) feeds the coordinator so it can track
+  // per-page completion and write cache rows on full-page success.
+  // `parseSegmentKey` is defensive — an unrecognised key format is simply
+  // not forwarded to the coordinator (no crash, no double-write).
   const scheduler = new TranslationScheduler({
     translate: translateSegment,
-    setStatus: (key: SegmentKey, status) =>
-      pdfViewerStore.set(segmentStatusAtomFamily(key), status),
+    setStatus: (key: SegmentKey, status) => {
+      pdfViewerStore.set(segmentStatusAtomFamily(key), status)
+      if (!coordinatorHandle)
+        return
+      const parsed = parseSegmentKey(key)
+      if (parsed)
+        coordinatorHandle.recordParagraphResult(parsed.pageIndex, parsed.paragraphIndex, status)
+    },
   })
   schedulerRef.current = scheduler
+
+  // One coordinator per file — bridges the paragraph-granular scheduler with
+  // the page-granular cache. `onPageSuccess` is the hook point for PR #B3
+  // Task 5 (quota increment); left unwired here for B3 Task 4.
+  const coordinator = new PageCacheCoordinator({
+    fileHash,
+    targetLang,
+    providerId,
+    setSegmentStatus: (pageIndex, paragraphIndex, status) => {
+      const key: SegmentKey = `${fileHash}:p-${pageIndex}-${paragraphIndex}`
+      pdfViewerStore.set(segmentStatusAtomFamily(key), status)
+    },
+    enqueueSegment: (fh, paragraph) => scheduler.enqueue(fh, paragraph),
+    getCachedPage,
+    putCachedPage,
+    touchCachedPage,
+  })
+  coordinatorHandle = coordinator
+  coordinatorRef.current = coordinator
 
   // Kick off PDF load and the activation-toast decision in parallel.
   // We don't block PDF rendering on the (async) config read for the toast.
@@ -103,15 +166,18 @@ async function boot() {
     console.error("[pdf-viewer] first-use toast setup failed:", err)
   })
 
-  await renderPdf(src, { fileHash, scheduler })
+  await renderPdf(src, { fileHash, coordinator })
   await toastPromise
 }
 
 async function renderPdf(
   src: string,
-  opts: { fileHash: string, scheduler: TranslationScheduler },
+  opts: {
+    fileHash: string
+    coordinator: PageCacheCoordinator
+  },
 ) {
-  const { fileHash, scheduler } = opts
+  const { fileHash, coordinator } = opts
   // Read activation mode once at render time. We snapshot it here (rather
   // than in `mountOverlayForPage`) so every page of a single open session
   // uses a consistent policy even if the user toggles the setting mid-view;
@@ -129,14 +195,16 @@ async function renderPdf(
 
   // Expose the retroactive-enqueue closure to the toast handler. We define
   // it here (rather than in `maybeRenderFirstUseToast`) because it needs
-  // `fileHash` + `scheduler`, both of which are in scope only inside
+  // `fileHash` + coordinator, both of which are in scope only inside
   // `renderPdf`. The toast handler calls `retroEnqueueRef.current()` after
   // flipping the policy ref.
+  //
+  // PR #B3 Task 4: retroactive enqueue now goes through the coordinator so
+  // pages that rendered while the policy was `"blocked"` still benefit from
+  // cache-first lookup (and write-on-success) when the user Accepts.
   retroEnqueueRef.current = () => {
-    for (const paragraphs of knownParagraphsRef.current.values()) {
-      for (const paragraph of paragraphs) {
-        scheduler.enqueue(fileHash, paragraph)
-      }
+    for (const [pageNumber, paragraphs] of knownParagraphsRef.current) {
+      void coordinator.startPage(pageNumber - 1, paragraphs)
     }
   }
   // Lazy-load pdfjs so the initial bundle stays small and so tests can
@@ -351,22 +419,27 @@ async function renderPdf(
       // that rendered while the policy was `"blocked"`.
       knownParagraphsRef.current.set(pageNumber, paragraphs)
 
-      // Kick the scheduler once per paragraph iff the current enqueue policy
-      // permits it. Scheduler dedups re-enqueues while `pending` /
-      // `translating` / `done`, so hitting it again on every
-      // `textlayerrendered` (zoom, re-layout) is safe — each paragraph is
-      // translated exactly once per scheduler lifetime.
+      // Kick the coordinator once per page iff the current enqueue policy
+      // permits it. PR #B3 Task 4: `coordinator.startPage` first checks the
+      // page-level cache; on HIT it sets all paragraph statuses directly
+      // (skipping the scheduler) and on MISS it enqueues every paragraph
+      // via the scheduler. Either way it tracks per-page completion so a
+      // full-page success triggers a cache write.
+      //
+      // Idempotency: the coordinator short-circuits repeat calls for an
+      // already-cached / already-finalized page, and the scheduler dedups
+      // re-enqueues while `pending` / `translating` / `done`, so hitting
+      // `startPage` again on every `textlayerrendered` (zoom, re-layout) is
+      // safe — each paragraph is translated exactly once per file lifetime.
       //
       // Policy source (see `decideInitialPolicy`):
       //   `"always"` → policy starts `"enabled"`, translate on sight.
       //   `"ask"`   → policy starts `"blocked"`; Accept flips to `"enabled"`
-      //               and retroactively enqueues via `retroEnqueueRef`.
+      //               and retroactively starts pages via `retroEnqueueRef`.
       //   `"manual"` → policy stays `"blocked"`; popup button path handles
       //                activation (out of scope for B2).
       if (enqueuePolicyRef.current === "enabled") {
-        for (const paragraph of paragraphs) {
-          scheduler.enqueue(fileHash, paragraph)
-        }
+        void coordinator.startPage(pageIndex, paragraphs)
       }
 
       // Reserve vertical space below the pdf.js `.page` container so every
