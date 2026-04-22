@@ -4,6 +4,10 @@ import { handleChatCompletions } from "../proxy"
 vi.mock("../jwt", () => ({
   verifyAiJwt: vi.fn(),
 }))
+vi.mock("../rate-limit", () => ({
+  checkRateLimit: vi.fn(async () => true),
+  RATE_LIMIT_PER_MINUTE: 300,
+}))
 vi.mock("../../billing/quota", () => ({
   consumeQuota: vi.fn(async () => ({
     bucket: "ai_translate_monthly",
@@ -159,6 +163,23 @@ describe("handleChatCompletions", () => {
       900,
       "req-42",
     )
+  })
+
+  it("429 when rate limited", async () => {
+    const { verifyAiJwt } = await import("../jwt")
+    const { checkRateLimit } = await import("../rate-limit")
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    vi.mocked(checkRateLimit).mockResolvedValueOnce(false)
+
+    const req = new Request("https://x/ai/v1/chat/completions", {
+      method: "POST",
+      headers: { authorization: "Bearer ok" },
+      body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: "hi" }] }),
+    })
+    const r = await handleChatCompletions(req, env, fakeCtx() as any)
+    expect(r.status).toBe(429)
+    const body = (await r.json()) as { error: string }
+    expect(body.error).toMatch(/rate limit/i)
   })
 
   it("non-streaming branch: reads upstream as text and schedules charge", async () => {
