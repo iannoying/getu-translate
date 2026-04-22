@@ -18,6 +18,8 @@ const requestWhereMock = vi.fn()
 const summaryDeleteMock = vi.fn()
 const summaryWhereMock = vi.fn()
 
+const evictExpiredMock = vi.fn()
+
 const loggerInfoMock = vi.fn()
 const loggerErrorMock = vi.fn()
 
@@ -68,6 +70,10 @@ vi.mock("@/utils/db/dexie/db", () => ({
   },
 }))
 
+vi.mock("@/utils/db/dexie/pdf-translations", () => ({
+  evictExpired: evictExpiredMock,
+}))
+
 vi.mock("@/utils/logger", () => ({
   logger: {
     info: loggerInfoMock,
@@ -112,18 +118,21 @@ describe("setUpDatabaseCleanup", () => {
         delete: summaryDeleteMock,
       }),
     })
+
+    evictExpiredMock.mockResolvedValue(0)
   })
 
   it("does not run cleanup immediately on setup", async () => {
     const { setUpDatabaseCleanup } = await import("../db-cleanup")
     await setUpDatabaseCleanup()
 
-    expect(alarmsCreateMock).toHaveBeenCalledTimes(3)
+    expect(alarmsCreateMock).toHaveBeenCalledTimes(4)
     expect(alarmsAddListenerMock).toHaveBeenCalledTimes(1)
 
     expect(translationWhereMock).not.toHaveBeenCalled()
     expect(requestCountMock).not.toHaveBeenCalled()
     expect(summaryWhereMock).not.toHaveBeenCalled()
+    expect(evictExpiredMock).not.toHaveBeenCalled()
   })
 
   it("does not recreate alarms when they already exist", async () => {
@@ -131,6 +140,7 @@ describe("setUpDatabaseCleanup", () => {
       .mockResolvedValueOnce({ name: "cache-cleanup" })
       .mockResolvedValueOnce({ name: "request-record-cleanup" })
       .mockResolvedValueOnce({ name: "summary-cache-cleanup" })
+      .mockResolvedValueOnce({ name: "pdf-translations-eviction" })
 
     const { setUpDatabaseCleanup } = await import("../db-cleanup")
     await setUpDatabaseCleanup()
@@ -149,6 +159,7 @@ describe("setUpDatabaseCleanup", () => {
       REQUEST_RECORD_CLEANUP_ALARM,
       SUMMARY_CACHE_CLEANUP_ALARM,
       TRANSLATION_CACHE_CLEANUP_ALARM,
+      PDF_TRANSLATIONS_EVICTION_ALARM,
     } = await import("../db-cleanup")
 
     await setUpDatabaseCleanup()
@@ -160,12 +171,43 @@ describe("setUpDatabaseCleanup", () => {
     expect(translationWhereMock).toHaveBeenCalledTimes(1)
     expect(requestCountMock).not.toHaveBeenCalled()
     expect(summaryWhereMock).not.toHaveBeenCalled()
+    expect(evictExpiredMock).not.toHaveBeenCalled()
 
     await alarmListener({ name: REQUEST_RECORD_CLEANUP_ALARM })
     expect(requestCountMock).toHaveBeenCalledTimes(1)
     expect(summaryWhereMock).not.toHaveBeenCalled()
+    expect(evictExpiredMock).not.toHaveBeenCalled()
 
     await alarmListener({ name: SUMMARY_CACHE_CLEANUP_ALARM })
     expect(summaryWhereMock).toHaveBeenCalledTimes(1)
+    expect(evictExpiredMock).not.toHaveBeenCalled()
+
+    await alarmListener({ name: PDF_TRANSLATIONS_EVICTION_ALARM })
+    expect(evictExpiredMock).toHaveBeenCalledTimes(1)
+    expect(evictExpiredMock).toHaveBeenCalledWith(30 * 24 * 60 * 60 * 1000)
+  })
+
+  it("logs the evicted row count when pdf translations cleanup finds expired rows", async () => {
+    let alarmListener: ((alarm: { name: string }) => Promise<void>) | undefined
+    alarmsAddListenerMock.mockImplementation((listener: (alarm: { name: string }) => Promise<void>) => {
+      alarmListener = listener
+    })
+
+    evictExpiredMock.mockResolvedValueOnce(7)
+
+    const {
+      setUpDatabaseCleanup,
+      PDF_TRANSLATIONS_EVICTION_ALARM,
+    } = await import("../db-cleanup")
+
+    await setUpDatabaseCleanup()
+    if (!alarmListener) {
+      throw new Error("Alarm listener was not registered")
+    }
+
+    await alarmListener({ name: PDF_TRANSLATIONS_EVICTION_ALARM })
+
+    expect(evictExpiredMock).toHaveBeenCalledWith(30 * 24 * 60 * 60 * 1000)
+    expect(loggerInfoMock).toHaveBeenCalledWith(expect.stringContaining("Evicted 7"))
   })
 })
