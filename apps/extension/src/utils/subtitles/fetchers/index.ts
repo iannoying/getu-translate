@@ -1,4 +1,5 @@
 export { BilibiliSubtitlesFetcher } from "./bilibili"
 export { TedSubtitlesFetcher } from "./ted"
 export * from "./types"
+export { XSubtitlesFetcher } from "./x"
 export { YoutubeSubtitlesFetcher } from "./youtube"
