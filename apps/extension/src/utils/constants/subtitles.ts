@@ -37,6 +37,21 @@ export const BILIBILI_NATIVE_SUBTITLES_CLASS = ".bpx-player-subtitle-panel-text"
 export const BILIBILI_PLAYER_API_URL = "https://api.bilibili.com/x/player/v2"
 export const BILIBILI_VIEW_API_URL = "https://api.bilibili.com/x/web-interface/view"
 
+// X / Twitter specific
+// X status pages look like /{user}/status/{id}; timelines, search, profiles
+// are excluded so this only matches actual tweet detail pages.
+export const X_STATUS_URL_PATTERN = /^\/[^/]+\/status\/\d+/
+export const X_SPA_NAVIGATED_EVENT = "x:spa-navigated"
+// TO VERIFY (manual smoke test on twitter.com + x.com with a captioned video):
+// - X renders captions in an overlay that sits on top of the video. The
+//   selector below targets the most stable structural hook observed.
+export const X_NATIVE_SUBTITLES_CLASS = "div[data-testid=\"videoComponent\"] video::cue, div[data-testid=\"videoComponent\"] [data-testid=\"videoCaption\"]"
+export const X_VIDEO_SELECTOR = "div[data-testid=\"videoComponent\"] video"
+// Poll budget for lazy textTracks (X loads caption tracks asynchronously
+// after the <video> element is inserted).
+export const X_TEXTTRACKS_POLL_INTERVAL_MS = 200
+export const X_TEXTTRACKS_POLL_TIMEOUT_MS = 3000
+
 // TED specific
 // TED talk URLs look like /talks/{slug}; exclude /talks/ listings and TED Ed (/ed/).
 export const TED_TALK_URL_PATTERN = /^\/talks\/[\w-]+\/?(?:\?|$)/i
