@@ -7,6 +7,8 @@ import ArticleSummaryCache from "./tables/article-summary-cache"
 import BatchRequestRecord from "./tables/batch-request-record"
 import EntitlementsCache from "./tables/entitlements-cache"
 import InputTranslationUsage from "./tables/input-translation-usage"
+import PdfTranslationUsage from "./tables/pdf-translation-usage"
+import PdfTranslations from "./tables/pdf-translations"
 import TranslationCache from "./tables/translation-cache"
 
 export default class AppDB extends Dexie {
@@ -37,6 +39,16 @@ export default class AppDB extends Dexie {
 
   inputTranslationUsage!: EntityTable<
     InputTranslationUsage,
+    "dateKey"
+  >
+
+  pdfTranslations!: EntityTable<
+    PdfTranslations,
+    "id"
+  >
+
+  pdfTranslationUsage!: EntityTable<
+    PdfTranslationUsage,
     "dateKey"
   >
 
@@ -138,11 +150,74 @@ export default class AppDB extends Dexie {
         dateKey,
         updatedAt`,
     })
+    this.version(7).stores({
+      translationCache: `
+        key,
+        translation,
+        createdAt`,
+      batchRequestRecord: `
+        key,
+        createdAt,
+        originalRequestCount,
+        provider,
+        model`,
+      articleSummaryCache: `
+        key,
+        createdAt`,
+      aiSegmentationCache: `
+        key,
+        createdAt`,
+      entitlementsCache: `
+        userId,
+        updatedAt`,
+      inputTranslationUsage: `
+        dateKey,
+        updatedAt`,
+      pdfTranslations: `
+        id,
+        fileHash,
+        createdAt,
+        lastAccessedAt`,
+    })
+    this.version(8).stores({
+      translationCache: `
+        key,
+        translation,
+        createdAt`,
+      batchRequestRecord: `
+        key,
+        createdAt,
+        originalRequestCount,
+        provider,
+        model`,
+      articleSummaryCache: `
+        key,
+        createdAt`,
+      aiSegmentationCache: `
+        key,
+        createdAt`,
+      entitlementsCache: `
+        userId,
+        updatedAt`,
+      inputTranslationUsage: `
+        dateKey,
+        updatedAt`,
+      pdfTranslations: `
+        id,
+        fileHash,
+        createdAt,
+        lastAccessedAt`,
+      pdfTranslationUsage: `
+        dateKey,
+        updatedAt`,
+    })
     this.translationCache.mapToClass(TranslationCache)
     this.batchRequestRecord.mapToClass(BatchRequestRecord)
     this.articleSummaryCache.mapToClass(ArticleSummaryCache)
     this.aiSegmentationCache.mapToClass(AiSegmentationCache)
     this.entitlementsCache.mapToClass(EntitlementsCache)
     this.inputTranslationUsage.mapToClass(InputTranslationUsage)
+    this.pdfTranslations.mapToClass(PdfTranslations)
+    this.pdfTranslationUsage.mapToClass(PdfTranslationUsage)
   }
 }
