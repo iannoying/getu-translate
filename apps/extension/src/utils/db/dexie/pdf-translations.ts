@@ -101,6 +101,41 @@ export async function evictExpired(
 }
 
 /**
+ * Delete every row for `fileHash` whose stored `(targetLang, providerId)`
+ * tuple no longer matches the session's current config. Returns the number
+ * of deleted rows.
+ *
+ * Called once from the viewer's `boot()` (M3 PR#C Task 7 follow-up) right
+ * after `fileHash` is computed and before any `getCachedPage` lookup. The
+ * read path (`getCachedPage`) already treats mismatched rows as misses, but
+ * without this call those orphaned rows would accumulate forever — a user
+ * who switches from Google to OpenAI then to Anthropic would keep the first
+ * two providers' rows in Dexie until LRU eventually caught them.
+ *
+ * We scope the sweep to a single `fileHash` so reopening an unrelated PDF
+ * in one config doesn't nuke another file's cache (the user might legit
+ * re-open that other file in its original config tomorrow).
+ */
+export async function evictStaleConfigRows(
+  fileHash: string,
+  currentTargetLang: string,
+  currentProviderId: string,
+): Promise<number> {
+  const stale = await db.pdfTranslations
+    .where("fileHash")
+    .equals(fileHash)
+    .and(row =>
+      row.targetLang !== currentTargetLang
+      || row.providerId !== currentProviderId,
+    )
+    .toArray()
+  if (stale.length === 0)
+    return 0
+  await db.pdfTranslations.bulkDelete(stale.map(r => r.id))
+  return stale.length
+}
+
+/**
  * Test helper: drop every cached page. Not wired to production.
  */
 export async function clearPdfTranslations(): Promise<void> {
