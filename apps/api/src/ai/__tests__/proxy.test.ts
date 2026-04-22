@@ -162,6 +162,10 @@ describe("handleChatCompletions", () => {
       "ai_translate_monthly",
       900,
       "req-42",
+      undefined,
+      "gpt-4o-mini",
+      100,
+      200,
     )
   })
 
@@ -217,6 +221,10 @@ describe("handleChatCompletions", () => {
       "ai_translate_monthly",
       90,
       "req-ns",
+      undefined,
+      "gpt-4o-mini",
+      50,
+      10,
     )
   })
 })

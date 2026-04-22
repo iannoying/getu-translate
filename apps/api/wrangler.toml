@@ -1,7 +1,10 @@
 name = "getu-api"
-main = "src/index.ts"
+main = "src/worker.ts"
 compatibility_date = "2026-04-20"
 compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+crons = ["0 3 * * *"]
 
 [dev]
 port = 8788
