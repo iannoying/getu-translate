@@ -9,6 +9,9 @@ const PRO_ENTITLEMENTS: Entitlements = {
   features: ["pdf_translate", "vocab_unlimited"],
   quota: { ai_translate_monthly: { used: 10, limit: 50000 } },
   expiresAt: "2099-01-01T00:00:00.000Z",
+  graceUntil: null,
+  billingEnabled: true,
+  billingProvider: "paddle",
 }
 
 describe("entitlementsAtom", () => {

@@ -13,6 +13,9 @@ describe("entitlementsSchema", () => {
       features: ["pdf_translate", "input_translate_unlimited"],
       quota: { ai_translate_monthly: { used: 1200, limit: 50000 } },
       expiresAt: "2027-01-01T00:00:00.000Z",
+      graceUntil: null,
+      billingEnabled: true,
+      billingProvider: "paddle",
     }
     expect(() => EntitlementsSchema.parse(pro)).not.toThrow()
   })
@@ -64,6 +67,9 @@ describe("hasFeature", () => {
       features: ["pdf_translate"],
       quota: {},
       expiresAt: null,
+      graceUntil: null,
+      billingEnabled: true,
+      billingProvider: "paddle",
     }
     expect(hasFeature(e, "pdf_translate")).toBe(true)
   })
@@ -84,6 +90,9 @@ describe("isPro", () => {
       features: [],
       quota: {},
       expiresAt: new Date(Date.now() + 86400_000).toISOString(),
+      graceUntil: null,
+      billingEnabled: true,
+      billingProvider: "paddle",
     }
     expect(isPro(e)).toBe(true)
   })
@@ -94,6 +103,9 @@ describe("isPro", () => {
       features: [],
       quota: {},
       expiresAt: new Date(Date.now() - 86400_000).toISOString(),
+      graceUntil: null,
+      billingEnabled: true,
+      billingProvider: "paddle",
     }
     expect(isPro(e)).toBe(false)
   })
@@ -104,6 +116,9 @@ describe("isPro", () => {
       features: [],
       quota: {},
       expiresAt: null,
+      graceUntil: null,
+      billingEnabled: true,
+      billingProvider: null,
     }
     expect(isPro(e)).toBe(true)
   })
@@ -116,6 +131,9 @@ describe("isPro", () => {
       features: [],
       quota: {},
       expiresAt: null,
+      graceUntil: null,
+      billingEnabled: true,
+      billingProvider: "paddle",
     }
     expect(isPro(e)).toBe(false)
   })
@@ -127,6 +145,9 @@ describe("isPro", () => {
       features: [],
       quota: {},
       expiresAt: "2025-12-31T00:00:00.000Z",
+      graceUntil: null,
+      billingEnabled: true,
+      billingProvider: "paddle",
     }
     expect(isPro(e, () => frozenNow)).toBe(false)
   })

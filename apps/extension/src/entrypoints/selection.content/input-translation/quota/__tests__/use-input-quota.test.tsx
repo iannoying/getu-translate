@@ -36,6 +36,9 @@ const PRO_UNLIMITED: Entitlements = {
   features: ["input_translate_unlimited"],
   quota: {},
   expiresAt: "2099-01-01T00:00:00.000Z",
+  graceUntil: null,
+  billingEnabled: true,
+  billingProvider: "paddle",
 }
 
 const EXPIRED_PRO_WITH_FEATURE: Entitlements = {
@@ -45,6 +48,9 @@ const EXPIRED_PRO_WITH_FEATURE: Entitlements = {
   // expiresAt is in the past so isPro() returns false; defends against a
   // stale backend payload that leaves the feature flag on after expiry.
   expiresAt: "2020-01-01T00:00:00.000Z",
+  graceUntil: null,
+  billingEnabled: true,
+  billingProvider: "paddle",
 }
 
 function renderWithProviders<T>(hook: () => T) {

@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from "@testing-library/react"
+import type { Entitlements } from "@/types/entitlements"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { WEBSITE_URL } from "@/utils/constants/url"
+import { FREE_ENTITLEMENTS } from "@/types/entitlements"
 import { UpgradeDialog } from "../upgrade-dialog"
 
 // ---------------------------------------------------------------------------
@@ -10,6 +11,49 @@ import { UpgradeDialog } from "../upgrade-dialog"
 
 // i18n is already mocked globally in vitest.setup.ts: t(key) => key
 
+const useSessionMock = vi.fn()
+
+vi.mock("@/utils/auth/auth-client", () => ({
+  authClient: {
+    useSession: () => useSessionMock(),
+  },
+}))
+
+const useEntitlementsMock = vi.fn()
+
+vi.mock("@/hooks/use-entitlements", () => ({
+  useEntitlements: (userId: string | null) => useEntitlementsMock(userId),
+}))
+
+const startCheckoutMock = vi.fn()
+
+vi.mock("@/hooks/use-checkout", () => ({
+  useCheckout: () => ({
+    startCheckout: startCheckoutMock,
+    isLoading: false,
+    error: null,
+  }),
+}))
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const PRO_ENTITLEMENTS: Entitlements = {
+  tier: "pro",
+  features: ["pdf_translate", "vocab_unlimited"],
+  quota: {},
+  expiresAt: "2099-01-01T00:00:00.000Z",
+  graceUntil: null,
+  billingEnabled: true,
+  billingProvider: "paddle",
+}
+
+const BILLING_ENABLED_FREE: Entitlements = {
+  ...FREE_ENTITLEMENTS,
+  billingEnabled: true,
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -17,6 +61,9 @@ import { UpgradeDialog } from "../upgrade-dialog"
 describe("upgradeDialog", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    useSessionMock.mockReturnValue({ data: null, isPending: false })
+    useEntitlementsMock.mockReturnValue({ data: FREE_ENTITLEMENTS, isLoading: false, isFromCache: false })
+    startCheckoutMock.mockResolvedValue(undefined)
   })
 
   it("renders title and description from i18n keys", () => {
@@ -26,37 +73,78 @@ describe("upgradeDialog", () => {
     expect(screen.getByText("billing.upgrade.description")).toBeInTheDocument()
   })
 
-  it("cTA button opens pricing URL with source in a new tab", () => {
-    const openSpy = vi.spyOn(window, "open").mockImplementation(() => null)
+  it("shows plan toggle buttons for yearly and monthly", () => {
+    render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
 
-    render(<UpgradeDialog open={true} onOpenChange={vi.fn()} source="test-feature" />)
-
-    const cta = screen.getByRole("button", { name: "billing.upgrade.cta" })
-    fireEvent.click(cta)
-
-    expect(openSpy).toHaveBeenCalledWith(
-      `${WEBSITE_URL}/pricing?source=test-feature`,
-      "_blank",
-      "noopener,noreferrer",
-    )
+    expect(screen.getByText("billing.upgrade.planYearly")).toBeInTheDocument()
+    expect(screen.getByText("billing.upgrade.planMonthly")).toBeInTheDocument()
   })
 
-  it("cTA defaults source to 'paywall' when source is omitted", () => {
-    const openSpy = vi.spyOn(window, "open").mockImplementation(() => null)
+  it("defaults to yearly plan selection", () => {
+    render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
+
+    const yearlyBtn = screen.getByText("billing.upgrade.planYearly")
+    expect(yearlyBtn.className).toContain("bg-primary")
+    const monthlyBtn = screen.getByText("billing.upgrade.planMonthly")
+    expect(monthlyBtn.className).not.toContain("bg-primary")
+  })
+
+  it("switches plan when monthly button is clicked", () => {
+    render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
+
+    fireEvent.click(screen.getByText("billing.upgrade.planMonthly"))
+
+    const monthlyBtn = screen.getByText("billing.upgrade.planMonthly")
+    expect(monthlyBtn.className).toContain("bg-primary")
+  })
+
+  it("shows coming soon button when billingEnabled is false", () => {
+    useEntitlementsMock.mockReturnValue({ data: FREE_ENTITLEMENTS, isLoading: false, isFromCache: false })
 
     render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
 
-    const cta = screen.getByRole("button", { name: "billing.upgrade.cta" })
-    fireEvent.click(cta)
+    expect(screen.getByText("billing.upgrade.comingSoon")).toBeInTheDocument()
+    const comingSoonBtn = screen.getByRole("button", { name: "billing.upgrade.comingSoon" })
+    expect(comingSoonBtn).toBeDisabled()
+  })
 
-    expect(openSpy).toHaveBeenCalledWith(
-      `${WEBSITE_URL}/pricing?source=paywall`,
-      "_blank",
-      "noopener,noreferrer",
-    )
+  it("shows cTA upgrade button when billingEnabled is true", () => {
+    useEntitlementsMock.mockReturnValue({ data: BILLING_ENABLED_FREE, isLoading: false, isFromCache: false })
+
+    render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
+
+    expect(screen.getByText("billing.upgrade.cta")).toBeInTheDocument()
+    expect(screen.queryByText("billing.upgrade.comingSoon")).not.toBeInTheDocument()
+  })
+
+  it("calls startCheckout with yearly plan when cTA is clicked", async () => {
+    useEntitlementsMock.mockReturnValue({ data: BILLING_ENABLED_FREE, isLoading: false, isFromCache: false })
+
+    render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
+
+    fireEvent.click(screen.getByText("billing.upgrade.cta"))
+
+    await waitFor(() => {
+      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_yearly" })
+    })
+  })
+
+  it("calls startCheckout with monthly plan when plan is switched then cTA clicked", async () => {
+    useEntitlementsMock.mockReturnValue({ data: BILLING_ENABLED_FREE, isLoading: false, isFromCache: false })
+
+    render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
+
+    fireEvent.click(screen.getByText("billing.upgrade.planMonthly"))
+    fireEvent.click(screen.getByText("billing.upgrade.cta"))
+
+    await waitFor(() => {
+      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_monthly" })
+    })
   })
 
   it("uncontrolled mode: clicking a trigger opens the dialog", () => {
+    useEntitlementsMock.mockReturnValue({ data: FREE_ENTITLEMENTS, isLoading: false, isFromCache: false })
+
     render(
       <UpgradeDialog trigger={<button>Open</button>} />,
     )
@@ -80,18 +168,13 @@ describe("upgradeDialog", () => {
     expect(screen.getByText("billing.upgrade.title")).toBeInTheDocument()
   })
 
-  it("uRL-encodes special characters in source param", () => {
-    const openSpy = vi.spyOn(window, "open").mockImplementation(() => null)
+  it("shows pro entitlements from signed-in user", () => {
+    useSessionMock.mockReturnValue({ data: { user: { id: "user-1" } }, isPending: false })
+    useEntitlementsMock.mockReturnValue({ data: PRO_ENTITLEMENTS, isLoading: false, isFromCache: false })
 
-    render(<UpgradeDialog open={true} onOpenChange={vi.fn()} source="foo &plan=yearly#x" />)
+    render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
 
-    const cta = screen.getByRole("button", { name: "billing.upgrade.cta" })
-    fireEvent.click(cta)
-
-    expect(openSpy).toHaveBeenCalledWith(
-      `${WEBSITE_URL}/pricing?source=foo+%26plan%3Dyearly%23x`,
-      "_blank",
-      "noopener,noreferrer",
-    )
+    // billingEnabled=true from PRO_ENTITLEMENTS, so we show the CTA
+    expect(screen.getByText("billing.upgrade.cta")).toBeInTheDocument()
   })
 })

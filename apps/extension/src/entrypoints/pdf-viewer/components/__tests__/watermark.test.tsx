@@ -25,6 +25,9 @@ const PRO_UNLIMITED: Entitlements = {
   features: ["pdf_translate", "pdf_translate_unlimited"],
   quota: {},
   expiresAt: "2099-01-01T00:00:00.000Z",
+  graceUntil: null,
+  billingEnabled: true,
+  billingProvider: "paddle",
 }
 
 const PRO_EXPORT_ONLY: Entitlements = {
@@ -32,6 +35,9 @@ const PRO_EXPORT_ONLY: Entitlements = {
   features: ["pdf_translate", "pdf_translate_export"],
   quota: {},
   expiresAt: "2099-01-01T00:00:00.000Z",
+  graceUntil: null,
+  billingEnabled: true,
+  billingProvider: "paddle",
 }
 
 const PRO_NO_FEATURES: Entitlements = {
@@ -42,6 +48,9 @@ const PRO_NO_FEATURES: Entitlements = {
   features: ["pdf_translate"],
   quota: {},
   expiresAt: "2099-01-01T00:00:00.000Z",
+  graceUntil: null,
+  billingEnabled: true,
+  billingProvider: "paddle",
 }
 
 function renderWatermark(params: {

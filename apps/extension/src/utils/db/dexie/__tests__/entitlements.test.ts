@@ -19,6 +19,9 @@ const proEntitlements: Entitlements = {
   features: ["pdf_translate"],
   quota: { ai_translate_monthly: { used: 10, limit: 5000 } },
   expiresAt: "2099-01-01T00:00:00.000Z",
+  graceUntil: null,
+  billingEnabled: true,
+  billingProvider: "paddle",
 }
 
 describe("writeCachedEntitlements", () => {

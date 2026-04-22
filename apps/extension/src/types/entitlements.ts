@@ -31,12 +31,20 @@ export type EntitlementTier = z.infer<typeof EntitlementTierSchema>
  * The full billing-state envelope consumed by the extension. Served by
  * `billing.getEntitlements` and cached offline in the `entitlements_cache`
  * Dexie table (see Task 2).
+ *
+ * v2 additions (2026-04-22):
+ * - `graceUntil`: ISO 8601 or null. Grace-period deadline after payment failure.
+ * - `billingEnabled`: Whether billing is enabled for this user (gray-release gate).
+ * - `billingProvider`: Active payment provider, or null for free/unsubscribed users.
  */
 export const EntitlementsSchema = z.object({
   tier: EntitlementTierSchema,
   features: z.array(FeatureKeySchema),
   quota: z.record(z.string(), QuotaBucketSchema),
   expiresAt: z.string().datetime().nullable(),
+  graceUntil: z.string().datetime().nullable(),
+  billingEnabled: z.boolean(),
+  billingProvider: z.enum(["paddle", "stripe"]).nullable(),
 })
 export type Entitlements = z.infer<typeof EntitlementsSchema>
 
@@ -79,4 +87,7 @@ export const FREE_ENTITLEMENTS: Entitlements = {
   features: [],
   quota: {},
   expiresAt: null,
+  graceUntil: null,
+  billingEnabled: false,
+  billingProvider: null,
 }
