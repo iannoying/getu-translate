@@ -16,7 +16,7 @@ popup:
   targetLang: 대상
   translate: 번역
   showOriginal: 원문 보기
-  translateCurrentPdf: Translate current PDF # TODO(i18n): translate in Task 7
+  translateCurrentPdf: 현재 PDF 번역
   enabledFloatingButton: 플로팅 버튼 활성화
   enabledSelectionToolbar: 선택 툴바 활성화
   alwaysTranslate: 이 사이트 항상 번역
@@ -277,38 +277,36 @@ options:
       label: 임계값 (밀리초)
       hint: 연속 스페이스바 누름 사이의 시간 간격 (100-1000밀리초)
       error: 값은 $1에서 $2 사이여야 합니다
-  # TODO(i18n): translate in Task 7
   pdfTranslation:
-    title: PDF Translation
+    title: PDF 번역
     enabled:
-      label: Enable PDF translation
-      description: Allow GetU to intercept .pdf URLs and open them in the bilingual viewer
+      label: PDF 번역 사용
+      description: GetU가 .pdf URL을 가로채 이중 언어 뷰어에서 열 수 있도록 허용합니다
     activationMode:
-      label: Activation behavior
-      always: Always translate
-      ask: Ask first time on each site
-      manual: Manual only (from popup)
+      label: 실행 방식
+      always: 항상 번역
+      ask: 사이트마다 처음 한 번 묻기
+      manual: 수동만 (팝업에서)
     blocklist:
-      label: Blocked domains
-      empty: No blocked domains yet
-      remove: Remove
+      label: 차단된 도메인
+      empty: 차단된 도메인 없음
+      remove: 제거
     fileProtocol:
-      label: Local file access
-      allowed: Enabled — local PDF files can be translated
-      disabled: Disabled — open chrome://extensions and enable "Allow access to file URLs"
-      copyUrl: Copy extensions URL
-    # TODO(i18n): translate in a follow-up locale PR
+      label: 로컬 파일 접근
+      allowed: 사용 가능 — 로컬 PDF 파일을 번역할 수 있습니다
+      disabled: 사용 불가 — chrome://extensions 를 열고 "파일 URL에 대한 액세스 허용"을 활성화하세요
+      copyUrl: 확장 프로그램 URL 복사
     usage:
-      title: Today's usage
-      description: Pages translated today; resets at midnight local time
-      unlimited: unlimited
+      title: 오늘 사용량
+      description: 오늘 번역한 페이지 수; 현지 시간 자정에 초기화됩니다
+      unlimited: 무제한
     cache:
-      title: Translation cache
-      description: Cached pages are reused when re-opening the same PDF; 30-day expiry
-      countOne: $1 page cached
-      countMany: $1 pages cached
-      clear: Clear cache
-      clearConfirm: Clear all cached PDF translations?
+      title: 번역 캐시
+      description: 동일한 PDF를 다시 열면 캐시된 페이지가 재사용됩니다; 30일 후 만료
+      countOne: $1 페이지 캐시됨
+      countMany: $1 페이지 캐시됨
+      clear: 캐시 지우기
+      clearConfirm: 캐시된 모든 PDF 번역을 지우시겠습니까?
   floatingButtonAndToolbar:
     title: 플로팅 버튼 및 툴바
     floatingButtonDemoImageAlt: 플로팅 버튼 데모
@@ -852,32 +850,30 @@ options:
     title: 자막 개선하기 🎁
   rateUs:
     title: 리뷰 남기기
-# TODO(i18n): translate in a follow-up locale PR
 pdfViewer:
   firstUseToast:
-    title: Translate this PDF with GetU?
-    description: We can render a bilingual version of this PDF so you can read source and translation side-by-side.
-    accept: Translate this PDF
-    skipOnce: Not this time
-    neverOnThisDomain: Never on this site
-  # TODO(i18n): translate in a follow-up locale PR
+    title: GetU로 이 PDF를 번역할까요?
+    description: 이 PDF의 이중 언어 버전을 생성해 원문과 번역을 나란히 읽을 수 있습니다.
+    accept: 이 PDF 번역
+    skipOnce: 이번에는 안 함
+    neverOnThisDomain: 이 사이트에서 다시 묻지 않음
   error:
-    missingSrc: Missing ?src= parameter
-    invalidUrl: Invalid PDF URL
-    unsupportedScheme: "Unsupported URL scheme: $1"
-    loadFailed: "Failed to load PDF: $1"
+    missingSrc: ?src= 매개변수가 없습니다
+    invalidUrl: 잘못된 PDF URL
+    unsupportedScheme: "지원하지 않는 URL 스킴: $1"
+    loadFailed: "PDF 로드 실패: $1"
   segmentContent:
-    errorTooltip: Translation failed
-    errorAriaLabel: "translation error: $1"
+    errorTooltip: 번역 실패
+    errorAriaLabel: "번역 오류: $1"
   watermark:
-    label: Translated by GetU — Upgrade to remove
-    ariaLabel: Translated by GetU. Upgrade to remove watermark.
+    label: GetU로 번역됨 — 업그레이드 시 제거 가능
+    ariaLabel: GetU로 번역되었습니다. 업그레이드 시 워터마크를 제거할 수 있습니다.
   export:
-    buttonLabelWithIcon: ⬇ Download bilingual PDF
-    buttonLabelBusy: Exporting…
-    ariaLabel: Download bilingual PDF
-    tooltipEnabled: Download bilingual PDF
-    tooltipDisabled: Pro feature — upgrade to download
+    buttonLabelWithIcon: ⬇ 이중 언어 PDF 다운로드
+    buttonLabelBusy: 내보내는 중…
+    ariaLabel: 이중 언어 PDF 다운로드
+    tooltipEnabled: 이중 언어 PDF 다운로드
+    tooltipDisabled: Pro 기능 — 업그레이드 시 다운로드 가능
 side:
   sourceLang: 원본 언어
   targetLang: 대상 언어
