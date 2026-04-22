@@ -15,6 +15,7 @@ import {
   incrementPdfPageUsage,
 } from "@/utils/db/dexie/pdf-translation-usage"
 import {
+  evictStaleConfigRows,
   getCachedPage,
   putCachedPage,
   touchCachedPage,
@@ -27,6 +28,7 @@ import { decideInitialPolicy } from "./translation/enqueue-policy"
 import { PageCacheCoordinator } from "./translation/page-cache-coordinator"
 import { parseSegmentKey } from "./translation/parse-segment-key"
 import { createPdfQuotaGate } from "./translation/pdf-quota-gate"
+import { runRetroEnqueue } from "./translation/retro-enqueue"
 import { TranslationScheduler } from "./translation/scheduler"
 import { translateSegment } from "./translation/translate-segment"
 import "pdfjs-dist/web/pdf_viewer.css"
@@ -147,6 +149,20 @@ async function boot() {
   const config = (await getLocalConfig()) ?? DEFAULT_CONFIG
   const targetLang = config.language.targetCode
   const providerId = config.translate.providerId
+
+  // M3 PR#C Task 7 follow-up: sweep cache rows whose stored
+  // (targetLang, providerId) tuple doesn't match the session's current
+  // config. `getCachedPage` already treats them as misses, but without this
+  // proactive cleanup those orphans accumulate whenever a user switches
+  // target language or translate provider. Runs before the first cache read
+  // so a re-opened PDF in the new config starts from a clean slate.
+  // Fire-and-forget on failure — a Dexie hiccup must not block boot.
+  try {
+    await evictStaleConfigRows(fileHash, targetLang, providerId)
+  }
+  catch (err) {
+    console.warn("[pdf-viewer] evictStaleConfigRows failed:", err)
+  }
 
   // Fresh file — reset the sticky quota-exhausted flag so a Free user whose
   // counter rolled over since their last session gets a clean chance today.
@@ -357,10 +373,19 @@ async function renderPdf(
   // PR #B3 Task 4: retroactive enqueue now goes through the coordinator so
   // pages that rendered while the policy was `"blocked"` still benefit from
   // cache-first lookup (and write-on-success) when the user Accepts.
+  // M3 PR#C Task 7 follow-up: the fan-out loop now lives in the pure
+  // `runRetroEnqueue` helper so it can be unit-tested without a real
+  // coordinator. The closure here just binds the refs / coordinator and
+  // forwards to the helper; see `./translation/retro-enqueue.ts` for the
+  // quota-exhausted short-circuit rationale.
   retroEnqueueRef.current = () => {
-    for (const [pageNumber, paragraphs] of knownParagraphsRef.current) {
-      void coordinator.startPage(pageNumber - 1, paragraphs)
-    }
+    runRetroEnqueue({
+      knownParagraphs: knownParagraphsRef.current,
+      isQuotaExhausted: () => quotaExhaustedRef.current,
+      startPage: (pageIndex, paragraphs) => {
+        void coordinator.startPage(pageIndex, paragraphs)
+      },
+    })
   }
   // Lazy-load pdfjs so the initial bundle stays small and so tests can
   // import `parseSrcParam` (and friends) without pulling in the worker.
