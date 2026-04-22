@@ -144,6 +144,25 @@ describe("pdf-translations cache", () => {
     expect(rows.has("f:1")).toBe(true)
   })
 
+  it("preserves row with lastAccessedAt === cutoff (strict > comparison)", async () => {
+    // createdAt=1000 → lastAccessedAt=1000 (putCachedPage stamps them equal).
+    // ttl=5000, now=6000 → cutoff = 6000 - 5000 = 1000; row at 1000 is EQUAL to cutoff,
+    // and Dexie's `.below(cutoff)` uses strict <, so the row must survive.
+    await putCachedPage({
+      id: "file-boundary:0",
+      fileHash: "file-boundary",
+      pageIndex: 0,
+      targetLang: "en",
+      providerId: "google-translate",
+      paragraphs: [],
+      createdAt: 1000,
+    })
+    const deleted = await evictExpired(5000, 6000)
+    expect(deleted).toBe(0)
+    const row = await getCachedPage("file-boundary", 0, "en", "google-translate")
+    expect(row).not.toBeNull()
+  })
+
   it("evictExpired preserves all rows when every lastAccessedAt is within the TTL", async () => {
     const now = 10_000
     rows.set("f:0", {
