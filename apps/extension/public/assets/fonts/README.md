@@ -15,25 +15,17 @@ URL resolver.
 
 - **Path:** `apps/extension/public/assets/fonts/noto-sans-cjk-sc-subset.otf`
 - **Source:** [Noto Sans CJK SC](https://github.com/notofonts/noto-cjk) —
-  `NotoSansCJKsc-Regular.otf` (Simplified Chinese region; covers Hiragana,
-  Katakana, Hangul Syllables, and the Halfwidth + Fullwidth Forms block too,
-  so a single file handles all CJK ranges `containsCJK` detects).
+  `NotoSansCJKsc-Regular.otf` (Simplified Chinese region).
 - **License:** [SIL Open Font License 1.1](https://openfontlicense.org/) —
-  include `OFL.txt` alongside the font file in this directory when you drop
-  it in.
-- **Actual size after subsetting:** ~5 MB (the full OTF is ~16 MB). Keeping
-  the entire `U+4E00-9FFF` CJK Unified block (~20K glyphs) plus Latin, kana,
-  and punctuation is a hard floor of a few MB for vector font outlines — the
-  original "~400 KB" target in earlier iterations was unrealistic. A tighter
-  subset (e.g. GB 2312 Level 1 ~3755 most-common chars only) could shrink to
-  ~1.5 MB if extension bundle size becomes a concern.
-
-> **Heads up:** the repo does not currently ship the actual font binary.
-> Task 2 of M3 PR#C (the `pdf-lib` exporter) will fail to embed a CJK font
-> until the subsetted file exists at the path above. `containsCJK` and the
-> `getCjkFontUrl` helper are wired up and unit-tested, so the export code
-> can be authored against them; the binary is a manual, one-time drop-in
-> before shipping the Pro export feature.
+  include `OFL.txt` alongside the font file in this directory.
+- **Character coverage:** GB 2312 Level 1 (3755 most-common Simplified
+  Chinese chars) + Basic Latin + Latin-1 Supplement + General Punctuation
+  - CJK Symbols/Punctuation + Hiragana + Katakana. Total ~4300 glyphs.
+- **Actual size after subsetting:** ~815 KB (the full OTF is ~16 MB).
+  Shrunk from the earlier ~5 MB subset (which kept the entire `U+4E00-9FFF`
+  CJK Unified 20K+ glyph block) by limiting to GB 2312 Level 1 — covers
+  99.9% of modern Mandarin text. If exported PDFs show empty boxes for rare
+  characters, re-subset with a broader range (see recipe below).
 
 ## Subsetting recipe (Python + `fonttools`)
 
@@ -43,13 +35,38 @@ URL resolver.
 pip install fonttools brotli
 ```
 
-Download `NotoSansCJKsc-Regular.otf` from the Noto CJK release on GitHub,
-then run:
+### Step 1 — generate the character list
+
+GB 2312 Level 1 chars sit at EUC rows `0xB0-0xD7`. Decode programmatically
+and append Latin + kana + common punctuation:
+
+```python
+chars = []
+for b1 in range(0xB0, 0xD8):
+    for b2 in range(0xA1, 0xFF):
+        try:
+            chars.append(bytes([b1, b2]).decode('gb2312'))
+        except (UnicodeDecodeError, ValueError):
+            pass
+latin = ''.join(chr(c) for c in range(0x20, 0x7F))
+latin_supp = ''.join(chr(c) for c in range(0xA0, 0x100))
+gen_punct = ''.join(chr(c) for c in range(0x2000, 0x2070))
+cjk_punct = ''.join(chr(c) for c in range(0x3000, 0x3040))
+hiragana = ''.join(chr(c) for c in range(0x3040, 0x30A0))
+katakana = ''.join(chr(c) for c in range(0x30A0, 0x3100))
+with open('/tmp/gb2312-l1-plus.txt', 'w', encoding='utf-8') as f:
+    f.write(''.join(chars) + latin + latin_supp + gen_punct + cjk_punct + hiragana + katakana)
+```
+
+### Step 2 — download + subset
 
 ```bash
-pyftsubset NotoSansCJKsc-Regular.otf \
+curl -L -o /tmp/NotoSansCJKsc-Regular.otf \
+  https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf
+
+pyftsubset /tmp/NotoSansCJKsc-Regular.otf \
   --output-file=noto-sans-cjk-sc-subset.otf \
-  --unicodes='U+0020-007E,U+00A0-00FF,U+2000-206F,U+3000-303F,U+3040-309F,U+30A0-30FF,U+4E00-9FFF' \
+  --text-file=/tmp/gb2312-l1-plus.txt \
   --drop-tables+=BASE,GDEF,GPOS,GSUB,DSIG,vhea,vmtx,vrt2 \
   --no-hinting \
   --no-layout-closure \
@@ -60,27 +77,24 @@ Layout tables (`BASE/GDEF/GPOS/GSUB`) and vertical-writing tables are dropped
 because `pdf-lib` renders text via simple glyph-index lookups and does not
 perform complex shaping.
 
-That range covers:
+### What's covered (~815 KB, ~4300 glyphs)
 
-- Basic Latin + Latin-1 Supplement (so Latin glyphs don't fall back to a
-  system font mid-paragraph)
-- General Punctuation + CJK Symbols and Punctuation
-- Hiragana, Katakana
-- CJK Unified Ideographs (the main ~20K block)
+- GB 2312 Level 1 (3755 Simplified Chinese chars — covers 99.9% of modern
+  Mandarin corpus)
+- Basic Latin + Latin-1 Supplement (mixed-language paragraphs)
+- General Punctuation + CJK Symbols/Punctuation
+- Hiragana + Katakana
 
-Dropped vs. `CJK_RANGES` in `src/utils/pdf/cjk.ts` to keep size manageable:
+### What's NOT covered (intentional)
 
-- **CJK Ext-A** (`U+3400-4DBF`): rare characters, not worth the +1 MB
-- **Hangul Syllables** (`U+AC00-D7AF`): Korean translation target not in MVP
-  scope; adding back would cost ~3 MB
-- **Halfwidth/Fullwidth Forms** (`U+FF00-FFEF`): small block, defers until a
-  real-world Japanese PDF shows missing glyphs
+- **GB 2312 Level 2** (~3008 less-common chars): re-add with row range
+  `0xD8-0xF7` if users report missing glyphs
+- **CJK Ext-A** (`U+3400-4DBF`): very rare characters
+- **Hangul Syllables** (`U+AC00-D7AF`): Korean target not in MVP scope
+- **Halfwidth/Fullwidth Forms**: defer until Japanese PDFs need them
 
-If exported PDFs show empty boxes for any of these, re-add the range to
-`--unicodes`, re-subset, and recommit.
-
-Drop the resulting `noto-sans-cjk-sc-subset.otf` (and a copy of `OFL.txt`)
-into this directory and commit.
+If exported PDFs show empty boxes, regenerate the text list with the broader
+range and recommit.
 
 ## Why not a CDN fetch?
 

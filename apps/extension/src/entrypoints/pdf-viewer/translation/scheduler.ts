@@ -29,9 +29,27 @@
  *   - We don't forward the signal into `translate()` — callers that want
  *     fetch-level cancellation should plumb it through themselves (e.g. the
  *     injected `translate` can close over the same signal).
+ *
+ * Retry rules
+ * -----------
+ *   - On retriable errors (429 / 503 / timeout / network), retry with
+ *     exponential back-off: baseDelayMs * 2^attempt (default 1s, 2s, 4s).
+ *   - Up to `maxAttempts` total attempts (default 3 = 1 initial + 2 retries).
+ *   - Non-retriable errors fail-fast after one attempt.
+ *   - `AbortSignal` fires during back-off → pending retries are cancelled,
+ *     no `setStatus` write for the aborted segment.
  */
 import type { Paragraph } from "../paragraph/types"
 import type { SegmentKey, SegmentStatus } from "./atoms"
+
+export interface SchedulerRetryOptions {
+  /** Max total attempts including the initial one. Default 3. */
+  maxAttempts?: number
+  /** Base back-off delay in ms; actual delay = base * 2^attempt. Default 1000. */
+  baseDelayMs?: number
+  /** Predicate deciding whether an error is worth retrying. Default: 429/503/timeout/network/fetch. */
+  isRetriable?: (err: unknown) => boolean
+}
 
 export interface SchedulerDeps {
   /** Translate a single paragraph's text. Injected for testability. */
@@ -42,6 +60,8 @@ export interface SchedulerDeps {
   concurrency?: number
   /** Optional external abort signal; when it fires we call `abort()`. */
   signal?: AbortSignal
+  /** Optional retry configuration. Defaults apply when omitted. */
+  retry?: SchedulerRetryOptions
 }
 
 type InternalState = "pending" | "translating" | "done" | "error"
@@ -52,12 +72,55 @@ interface QueuedJob {
 }
 
 const DEFAULT_CONCURRENCY = 6
+const DEFAULT_MAX_ATTEMPTS = 3
+const DEFAULT_BASE_DELAY_MS = 1000
+
+/** Default retriable predicate: recognise 429 / 503 / timeout / network / fetch failures. */
+function defaultIsRetriable(err: unknown): boolean {
+  if (err instanceof Error) {
+    const msg = err.message.toLowerCase()
+    if (msg.includes("429") || msg.includes("503"))
+      return true
+    if (msg.includes("timeout") || msg.includes("network"))
+      return true
+    if (msg.includes("fetch"))
+      return true
+  }
+  return false
+}
+
+/**
+ * Abort-aware sleep. Resolves after `ms` milliseconds or as soon as `signal`
+ * fires — whichever comes first. Never rejects; caller re-checks `signal.aborted`.
+ */
+function sleepWithAbort(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal.aborted) {
+      resolve()
+      return
+    }
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const onAbort = (): void => {
+      if (timer !== null)
+        clearTimeout(timer)
+      resolve()
+    }
+    timer = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort)
+      resolve()
+    }, ms)
+    signal.addEventListener("abort", onAbort, { once: true })
+  })
+}
 
 export class TranslationScheduler {
   private readonly translate: SchedulerDeps["translate"]
   private readonly setStatus: SchedulerDeps["setStatus"]
   private readonly concurrency: number
   private readonly controller: AbortController
+  private readonly maxAttempts: number
+  private readonly baseDelayMs: number
+  private readonly isRetriable: (err: unknown) => boolean
 
   private readonly state = new Map<SegmentKey, InternalState>()
   private readonly queue: QueuedJob[] = []
@@ -68,6 +131,11 @@ export class TranslationScheduler {
     this.setStatus = deps.setStatus
     this.concurrency = deps.concurrency ?? DEFAULT_CONCURRENCY
     this.controller = new AbortController()
+
+    const retry = deps.retry ?? {}
+    this.maxAttempts = retry.maxAttempts ?? DEFAULT_MAX_ATTEMPTS
+    this.baseDelayMs = retry.baseDelayMs ?? DEFAULT_BASE_DELAY_MS
+    this.isRetriable = retry.isRetriable ?? defaultIsRetriable
 
     if (deps.signal) {
       if (deps.signal.aborted) {
@@ -147,21 +215,36 @@ export class TranslationScheduler {
     this.state.set(key, "translating")
     this.setStatus(key, { kind: "translating" })
 
-    try {
-      const translation = await this.translate(text)
+    let lastErr: unknown
+    for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
       if (this.controller.signal.aborted)
         return
-      this.state.set(key, "done")
-      this.setStatus(key, { kind: "done", translation })
-    }
-    catch (err) {
-      if (this.controller.signal.aborted)
+
+      try {
+        const translation = await this.translate(text)
+        if (this.controller.signal.aborted)
+          return
+        this.state.set(key, "done")
+        this.setStatus(key, { kind: "done", translation })
         return
-      this.state.set(key, "error")
-      this.setStatus(key, {
-        kind: "error",
-        message: err instanceof Error ? err.message : String(err),
-      })
+      }
+      catch (err) {
+        lastErr = err
+        const hasMoreAttempts = attempt < this.maxAttempts - 1
+        if (!hasMoreAttempts || !this.isRetriable(err))
+          break
+
+        const delayMs = this.baseDelayMs * 2 ** attempt
+        await sleepWithAbort(delayMs, this.controller.signal)
+      }
     }
+
+    if (this.controller.signal.aborted)
+      return
+    this.state.set(key, "error")
+    this.setStatus(key, {
+      kind: "error",
+      message: lastErr instanceof Error ? lastErr.message : String(lastErr),
+    })
   }
 }

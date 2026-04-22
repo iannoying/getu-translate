@@ -385,6 +385,85 @@ describe("pageCacheCoordinator", () => {
     expect(h.onPageSuccess).not.toHaveBeenCalled()
   })
 
+  it("unloadPage: subsequent recordParagraphResult for that page is a no-op", async () => {
+    const h = makeHarness()
+    const paragraphs = [
+      makeParagraph(0, 0, "alpha"),
+      makeParagraph(0, 1, "beta"),
+    ]
+
+    await h.coordinator.startPage(0, paragraphs)
+    h.coordinator.recordParagraphResult(0, 0, { kind: "done", translation: "甲" })
+
+    // Evict page 0 (simulates LRU cap in main.ts).
+    h.coordinator.unloadPage(0)
+
+    // Late paragraph completion arrives after eviction — must not finalize.
+    h.coordinator.recordParagraphResult(0, 1, { kind: "done", translation: "乙" })
+    await flush()
+
+    expect(h.putCachedPage).not.toHaveBeenCalled()
+    expect(h.onPageSuccess).not.toHaveBeenCalled()
+  })
+
+  it("unloadPage: does not affect other pages' state", async () => {
+    const h = makeHarness()
+    const page0 = [makeParagraph(0, 0, "a0"), makeParagraph(0, 1, "a1")]
+    const page1 = [makeParagraph(1, 0, "b0"), makeParagraph(1, 1, "b1")]
+
+    await h.coordinator.startPage(0, page0)
+    await h.coordinator.startPage(1, page1)
+
+    // Evict page 0; page 1 must still finalize normally.
+    h.coordinator.unloadPage(0)
+
+    h.coordinator.recordParagraphResult(1, 0, { kind: "done", translation: "b0-tr" })
+    h.coordinator.recordParagraphResult(1, 1, { kind: "done", translation: "b1-tr" })
+    await flush()
+
+    expect(h.putCachedPage).toHaveBeenCalledOnce()
+    expect(h.onPageSuccess).toHaveBeenCalledOnce()
+    expect(h.onPageSuccess).toHaveBeenCalledWith(1)
+  })
+
+  it("unloadPage: unknown page is a safe no-op", () => {
+    const h = makeHarness()
+    expect(() => h.coordinator.unloadPage(99)).not.toThrow()
+  })
+
+  it("unloadPage then re-startPage: cache hit re-fans out done status", async () => {
+    // After eviction, a re-visit should re-hydrate from the cache cleanly.
+    const cached = new Map<string, PdfTranslationRow>([
+      [
+        "file1:0",
+        {
+          id: "file1:0",
+          fileHash: "file1",
+          pageIndex: 0,
+          targetLang: "zh-CN",
+          providerId: "openai",
+          paragraphs: [{ srcHash: Sha256Hex("hello"), translation: "你好" }],
+          createdAt: 1000,
+          lastAccessedAt: 1000,
+        },
+      ],
+    ])
+    const h = makeHarness({ cached })
+    const paragraphs = [makeParagraph(0, 0, "hello")]
+
+    await h.coordinator.startPage(0, paragraphs)
+    await flush()
+    expect(h.setSegmentStatus).toHaveBeenCalledOnce()
+
+    // Evict, then revisit — cache lookup happens again and fans out done.
+    h.coordinator.unloadPage(0)
+    await h.coordinator.startPage(0, paragraphs)
+    await flush()
+
+    expect(h.setSegmentStatus).toHaveBeenCalledTimes(2)
+    expect(h.enqueueSegment).not.toHaveBeenCalled()
+  })
+
   it("cache-lookup failure: logs + falls through to enqueue path", async () => {
     const h = makeHarness()
     h.getCachedPage.mockRejectedValueOnce(new Error("dexie offline"))
