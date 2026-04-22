@@ -4,6 +4,9 @@ import {
   FREE_ENTITLEMENTS,
   hasFeature,
   isPro,
+  consumeQuotaInputSchema,
+  consumeQuotaOutputSchema,
+  QUOTA_BUCKETS,
 } from "../billing"
 
 describe("@getu/contract billing", () => {
@@ -39,5 +42,35 @@ describe("@getu/contract billing", () => {
       expiresAt: future,
     })
     expect(isPro(proEntitlements)).toBe(true)
+  })
+})
+
+describe("billing.consumeQuota contract", () => {
+  it("input accepts valid shape", () => {
+    expect(() => consumeQuotaInputSchema.parse({
+      bucket: "ai_translate_monthly",
+      amount: 100,
+      request_id: "01929b2e-7a94-7c9e-9f3a-8b4c5d6e7f80",
+    })).not.toThrow()
+  })
+  it("input rejects amount=0", () => {
+    expect(() => consumeQuotaInputSchema.parse({
+      bucket: "ai_translate_monthly", amount: 0, request_id: "01929b2e-7a94-7c9e-9f3a-8b4c5d6e7f80",
+    })).toThrow()
+  })
+  it("input rejects unknown bucket", () => {
+    expect(() => consumeQuotaInputSchema.parse({
+      bucket: "gold_credits", amount: 1, request_id: "01929b2e-7a94-7c9e-9f3a-8b4c5d6e7f80",
+    } as any)).toThrow()
+  })
+  it("output shape", () => {
+    expect(() => consumeQuotaOutputSchema.parse({
+      bucket: "ai_translate_monthly", remaining: 99900, reset_at: "2026-05-01T00:00:00.000Z",
+    })).not.toThrow()
+  })
+  it("QUOTA_BUCKETS enumerates all contract-defined buckets", () => {
+    expect(QUOTA_BUCKETS).toEqual(expect.arrayContaining([
+      "input_translate_daily", "pdf_translate_daily", "vocab_count", "ai_translate_monthly",
+    ]))
   })
 })
