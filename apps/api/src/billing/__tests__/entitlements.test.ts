@@ -52,4 +52,16 @@ describe("loadEntitlements", () => {
     }]), "u1")
     expect(e.features).toEqual([])
   })
+
+  it("returns enterprise tier with null expiresAt as Pro (no expiry)", async () => {
+    const e = await loadEntitlements(fakeDb([{
+      userId: "u1",
+      tier: "enterprise",
+      features: JSON.stringify(["enterprise_glossary_share"]),
+      expiresAt: null,
+    }]), "u1")
+    expect(e.tier).toBe("enterprise")
+    expect(e.features).toContain("enterprise_glossary_share")
+    expect(e.expiresAt).toBeNull()
+  })
 })

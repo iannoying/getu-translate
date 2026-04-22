@@ -25,6 +25,7 @@ name = "getu-api"
 binding = "DB"
 database_name = "getu-translate"
 database_id = "903fa2ef-2aaa-4f20-b3a7-a2ef59a8cb70"
+migrations_dir = "../../packages/db/drizzle"
 
 [env.production.vars]
 AUTH_BASE_URL = "https://api.getutranslate.com"
