@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import { bilibiliHandler } from "../bilibili/handler"
 import { createPlatformRegistry } from "../registry"
 import { tedHandler } from "../ted/handler"
+import { xHandler } from "../x/handler"
 import { youtubeHandler } from "../youtube/handler"
 
 function makeHandler(kind: string, pattern: RegExp): PlatformHandler {
@@ -86,5 +87,19 @@ describe("platformRegistry", () => {
     expect(registry.dispatch("embed.ted.com")).toBe(tedHandler)
     expect(registry.dispatch("example.com")).toBeNull()
     expect(tedHandler.kind).toBe("ted")
+  })
+
+  it("dispatches both twitter.com and x.com to the x handler", () => {
+    const registry = createPlatformRegistry()
+    registry.register(xHandler)
+
+    expect(registry.dispatch("twitter.com")).toBe(xHandler)
+    expect(registry.dispatch("www.twitter.com")).toBe(xHandler)
+    expect(registry.dispatch("mobile.twitter.com")).toBe(xHandler)
+    expect(registry.dispatch("x.com")).toBe(xHandler)
+    expect(registry.dispatch("www.x.com")).toBe(xHandler)
+    expect(registry.dispatch("mobile.x.com")).toBe(xHandler)
+    expect(registry.dispatch("example.com")).toBeNull()
+    expect(xHandler.kind).toBe("x")
   })
 })
