@@ -96,6 +96,19 @@ describe("createCheckoutSession", () => {
     })).rejects.toMatchObject({ code: "PRECONDITION_FAILED" })
   })
 
+  it("throws INTERNAL_SERVER_ERROR when price id is not configured", async () => {
+    await expect(createCheckoutSession({
+      db: fakeDb(null), paddle: fakePaddle(),
+      env: { ...baseEnv, PADDLE_PRICE_PRO_MONTHLY: "" },
+      userId: "u1", userEmail: "u@x.com",
+      input: {
+        plan: "pro_monthly",
+        successUrl: "https://getutranslate.com/x",
+        cancelUrl: "https://getutranslate.com/y",
+      },
+    })).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" })
+  })
+
   it("allows checkout when existing pro row is expired", async () => {
     const row = {
       tier: "pro",
@@ -141,6 +154,31 @@ describe("createPortalSession", () => {
       customerId: "ctm_01",
       subscriptionIds: ["sub_01"],
     })
+  })
+
+  it("omits subscription_ids when provider_subscription_id is null", async () => {
+    const row = {
+      providerCustomerId: "ctm_01",
+      providerSubscriptionId: null,
+      billingProvider: "paddle",
+    }
+    const paddle = fakePaddle()
+    await createPortalSession({ db: fakeDb(row), paddle, env: baseEnv, userId: "u1" })
+    expect(paddle.createPortalSession).toHaveBeenCalledWith({
+      customerId: "ctm_01",
+      subscriptionIds: undefined,
+    })
+  })
+
+  it("throws PRECONDITION_FAILED when billing_provider is not paddle", async () => {
+    const row = {
+      providerCustomerId: "cus_stripe_01",
+      providerSubscriptionId: "sub_stripe_01",
+      billingProvider: "stripe",
+    }
+    await expect(createPortalSession({
+      db: fakeDb(row), paddle: fakePaddle(), env: baseEnv, userId: "u1",
+    })).rejects.toMatchObject({ code: "PRECONDITION_FAILED" })
   })
 
   it("throws PRECONDITION_FAILED when no provider_customer_id", async () => {

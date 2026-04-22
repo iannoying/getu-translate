@@ -40,6 +40,13 @@ export async function createCheckoutSession(deps: CheckoutDeps): Promise<{ url: 
   const priceId = input.plan === "pro_monthly"
     ? env.PADDLE_PRICE_PRO_MONTHLY
     : env.PADDLE_PRICE_PRO_YEARLY
+  // Guard against unset/empty secret — without this we'd pass "" to Paddle
+  // and surface a generic "Paddle API 400" instead of a clear config error.
+  if (!priceId) {
+    throw new ORPCError("INTERNAL_SERVER_ERROR", {
+      message: `Paddle price id not configured for plan ${input.plan}`,
+    })
+  }
 
   const { checkoutUrl } = await paddle.createTransaction({
     priceId,
@@ -62,6 +69,13 @@ export async function createPortalSession(deps: PortalDeps): Promise<{ url: stri
   const row = await db.select().from(userEntitlements).where(eq(userEntitlements.userId, userId)).get()
   if (!row?.providerCustomerId) {
     throw new ORPCError("PRECONDITION_FAILED", { message: "No billing customer on file" })
+  }
+  // Guard future multi-provider support: this path only knows how to talk to Paddle.
+  // A Stripe customer (once added) would hit a different client/endpoint.
+  if (row.billingProvider !== "paddle") {
+    throw new ORPCError("PRECONDITION_FAILED", {
+      message: "No Paddle subscription on file",
+    })
   }
   return paddle.createPortalSession({
     customerId: row.providerCustomerId,
