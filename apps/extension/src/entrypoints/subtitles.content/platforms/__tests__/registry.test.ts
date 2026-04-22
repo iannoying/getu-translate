@@ -1,0 +1,53 @@
+import type { PlatformHandler } from "../registry"
+import { describe, expect, it } from "vitest"
+import { createPlatformRegistry } from "../registry"
+
+function makeHandler(kind: string, pattern: RegExp): PlatformHandler {
+  return {
+    kind,
+    matches: hostname => pattern.test(hostname),
+    init: () => {},
+  }
+}
+
+describe("platformRegistry", () => {
+  it("round-trips registered handlers via list()", () => {
+    const registry = createPlatformRegistry()
+    const a = makeHandler("a", /a\.com$/)
+    const b = makeHandler("b", /b\.com$/)
+
+    registry.register(a)
+    registry.register(b)
+
+    expect(registry.list()).toEqual([a, b])
+  })
+
+  it("dispatch() finds the matching handler by hostname", () => {
+    const registry = createPlatformRegistry()
+    const yt = makeHandler("youtube", /youtube\.com$/)
+    const bili = makeHandler("bilibili", /bilibili\.com$/)
+    registry.register(yt)
+    registry.register(bili)
+
+    expect(registry.dispatch("www.youtube.com")).toBe(yt)
+    expect(registry.dispatch("www.bilibili.com")).toBe(bili)
+  })
+
+  it("dispatch() returns null when no handler matches", () => {
+    const registry = createPlatformRegistry()
+    registry.register(makeHandler("youtube", /youtube\.com$/))
+
+    expect(registry.dispatch("example.com")).toBeNull()
+  })
+
+  it("first registered handler wins when multiple match", () => {
+    const registry = createPlatformRegistry()
+    const first = makeHandler("first", /example\.com$/)
+    const second = makeHandler("second", /example\.com$/)
+
+    registry.register(first)
+    registry.register(second)
+
+    expect(registry.dispatch("www.example.com")).toBe(first)
+  })
+})
