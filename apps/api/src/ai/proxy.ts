@@ -102,9 +102,13 @@ async function chargeAfterStream(
     const usage = await usageP
     const units = usage == null ? 1 : normalizeTokens(model, usage)
     if (units < 1) return
-    await consumeQuota(db, userId, "ai_translate_monthly", units, requestId)
-    // NOTE: consumeQuota does not currently write upstream_model / input_tokens / output_tokens.
-    // Those columns stay null in Phase 3 — deferred as future analytics enhancement.
+    await consumeQuota(
+      db, userId, "ai_translate_monthly", units, requestId,
+      undefined,
+      model,
+      usage?.input,
+      usage?.output,
+    )
   } catch (err) {
     console.warn("[ai-proxy] charge failed", { userId, model, requestId, err: String(err) })
   }

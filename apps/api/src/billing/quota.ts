@@ -44,6 +44,9 @@ export async function consumeQuota(
   amount: number,
   requestId: string,
   now: Date = new Date(),
+  upstreamModel?: string,
+  inputTokens?: number,
+  outputTokens?: number,
 ): Promise<ConsumeQuotaOutput> {
   // 1. Idempotency: has (userId, requestId) been seen?
   const existing = await db
@@ -137,7 +140,7 @@ export async function consumeQuota(
   // Drizzle wires this directly to the native D1 client.batch() (d1/session.js:51).
   const id = crypto.randomUUID()
   await db.batch([
-    db.insert(usageLog).values({ id, userId, bucket, amount, requestId, createdAt: now }),
+    db.insert(usageLog).values({ id, userId, bucket, amount, requestId, upstreamModel, inputTokens, outputTokens, createdAt: now }),
     db
       .insert(quotaPeriod)
       .values({ userId, bucket, periodKey: pk, used: amount, updatedAt: now })
