@@ -298,6 +298,18 @@ options:
       allowed: Enabled — local PDF files can be translated
       disabled: Disabled — open chrome://extensions and enable "Allow access to file URLs"
       copyUrl: Copy extensions URL
+    # TODO(i18n): translate in a follow-up locale PR
+    usage:
+      title: Today's usage
+      description: Pages translated today; resets at midnight local time
+      unlimited: unlimited
+    cache:
+      title: Translation cache
+      description: Cached pages are reused when re-opening the same PDF; 30-day expiry
+      countOne: $1 page cached
+      countMany: $1 pages cached
+      clear: Clear cache
+      clearConfirm: Clear all cached PDF translations?
   floatingButtonAndToolbar:
     title: 悬浮按钮和工具栏
     floatingButtonDemoImageAlt: 悬浮按钮演示
@@ -963,6 +975,24 @@ pdfViewer:
     accept: Translate this PDF
     skipOnce: Not this time
     neverOnThisDomain: Never on this site
+  # TODO(i18n): translate in a follow-up locale PR
+  error:
+    missingSrc: Missing ?src= parameter
+    invalidUrl: Invalid PDF URL
+    unsupportedScheme: "Unsupported URL scheme: $1"
+    loadFailed: "Failed to load PDF: $1"
+  segmentContent:
+    errorTooltip: Translation failed
+    errorAriaLabel: "translation error: $1"
+  watermark:
+    label: Translated by GetU — Upgrade to remove
+    ariaLabel: Translated by GetU. Upgrade to remove watermark.
+  export:
+    buttonLabelWithIcon: ⬇ Download bilingual PDF
+    buttonLabelBusy: Exporting…
+    ariaLabel: Download bilingual PDF
+    tooltipEnabled: Download bilingual PDF
+    tooltipDisabled: Pro feature — upgrade to download
 side:
   sourceLang: 来源语言
   targetLang: 目标语言

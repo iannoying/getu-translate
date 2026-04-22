@@ -84,7 +84,9 @@ describe("watermark", () => {
     renderWatermark({ entitlements: FREE_ENTITLEMENTS, hasAnyTranslated: true })
     const btn = screen.getByTestId("pdf-watermark")
     expect(btn).toBeInTheDocument()
-    expect(btn.textContent).toMatch(/Translated by GetU.*Upgrade to remove/)
+    // Global vitest setup mock returns the i18n key verbatim.
+    expect(btn.textContent).toBe("pdfViewer.watermark.label")
+    expect(btn.getAttribute("aria-label")).toBe("pdfViewer.watermark.ariaLabel")
   })
 
   it("opens the UpgradeDialog with source=pdf-translation-watermark on click", () => {
