@@ -46,3 +46,17 @@ body {
   right: 16px;
   z-index: 10;
 }
+
+/* Fixed-position mount for the Free-tier watermark (M3 PR#C Task 4).
+ * Bottom-right so it doesn't collide with the top-right export button;
+ * z-index one below the export button so Pro chrome stays clickable if
+ * entitlements flip mid-session. The watermark component itself owns
+ * its visual styling (opacity, colours) — this rule just anchors the
+ * mount node; the button inside inherits fixed-positioning from its
+ * inline style. */
+#watermark-root {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 9;
+}
