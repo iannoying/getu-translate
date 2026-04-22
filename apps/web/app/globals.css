@@ -1,0 +1,331 @@
+:root {
+  color-scheme: light;
+  --ink: #18233a;
+  --ink-soft: #46536c;
+  --paper: #f7f3ea;
+  --surface: #fffdf8;
+  --line: #ded6c8;
+  --accent: #0d6b64;
+  --accent-ink: #073d39;
+  --gold: #c98a22;
+  --shadow: 0 24px 80px rgb(24 35 58 / 12%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background:
+    linear-gradient(90deg, rgb(24 35 58 / 4%) 1px, transparent 1px),
+    linear-gradient(180deg, rgb(24 35 58 / 4%) 1px, transparent 1px),
+    var(--paper);
+  background-size: 28px 28px;
+  color: var(--ink);
+  font-family: Avenir Next, Avenir, ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.6;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.site-shell {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.site-header,
+.site-footer {
+  align-items: center;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: 1120px;
+}
+
+.site-header {
+  border-bottom: 1px solid var(--line);
+  padding: 0 0 18px;
+}
+
+.brand {
+  align-items: center;
+  display: inline-flex;
+  font-weight: 760;
+  gap: 10px;
+  letter-spacing: 0;
+}
+
+.brand-mark {
+  align-items: center;
+  background: var(--accent);
+  border-radius: 8px;
+  color: white;
+  display: inline-flex;
+  font-family: Georgia, serif;
+  font-size: 20px;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.top-nav,
+.site-footer nav {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.top-nav a,
+.site-footer a {
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.top-nav a:hover,
+.site-footer a:hover {
+  color: var(--accent);
+}
+
+.page-hero,
+.home-hero,
+.pricing-grid,
+.policy-body,
+.feature-band {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 1120px;
+}
+
+.home-hero {
+  align-items: end;
+  display: grid;
+  gap: 42px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  padding: 86px 0 52px;
+}
+
+.home-hero h1,
+.page-hero h1 {
+  font-family: Georgia, ui-serif, serif;
+  font-size: clamp(44px, 7vw, 86px);
+  font-weight: 520;
+  letter-spacing: 0;
+  line-height: 0.98;
+  margin: 0;
+  max-width: 900px;
+}
+
+.home-hero p,
+.hero-copy {
+  color: var(--ink-soft);
+  font-size: 19px;
+  margin: 24px 0 0;
+  max-width: 690px;
+}
+
+.eyebrow {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  margin: 0 0 18px;
+  text-transform: uppercase;
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 34px;
+}
+
+.button {
+  align-items: center;
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  display: inline-flex;
+  font-weight: 760;
+  justify-content: center;
+  min-height: 46px;
+  padding: 10px 18px;
+}
+
+.button.primary {
+  background: var(--ink);
+  color: white;
+}
+
+.button.secondary {
+  background: rgb(255 253 248 / 72%);
+  color: var(--ink);
+}
+
+.product-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+.product-panel h2 {
+  font-size: 16px;
+  margin: 0 0 18px;
+  text-transform: uppercase;
+}
+
+.signal-list,
+.feature-list,
+.policy-body ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.signal-list li,
+.feature-list li,
+.policy-body li {
+  margin: 10px 0;
+}
+
+.feature-band {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 44px 0 70px;
+}
+
+.feature-band h2 {
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+
+.feature-band p {
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.page-hero {
+  padding: 72px 0 38px;
+}
+
+.pricing-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-bottom: 28px;
+}
+
+.price-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 26px;
+}
+
+.price-card.highlight {
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+.price-card h2 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.price {
+  font-family: Georgia, ui-serif, serif;
+  font-size: 44px;
+  line-height: 1;
+  margin: 18px 0 4px;
+}
+
+.price-note,
+.muted,
+.site-footer p {
+  color: var(--ink-soft);
+}
+
+.billing-note {
+  background: rgb(13 107 100 / 8%);
+  border: 1px solid rgb(13 107 100 / 22%);
+  border-radius: 8px;
+  margin: 10px auto 70px;
+  max-width: 1120px;
+  padding: 18px 20px;
+}
+
+.policy-body {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 70px;
+  padding: 34px;
+}
+
+.policy-body section + section {
+  border-top: 1px solid var(--line);
+  margin-top: 28px;
+  padding-top: 28px;
+}
+
+.policy-body h2 {
+  font-size: 22px;
+  line-height: 1.2;
+  margin: 0 0 12px;
+}
+
+.policy-body p {
+  color: var(--ink-soft);
+  margin: 10px 0;
+}
+
+.policy-body a {
+  color: var(--accent-ink);
+  font-weight: 750;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  padding: 22px 0 8px;
+}
+
+.site-footer p {
+  margin: 4px 0 0;
+}
+
+@media (max-width: 760px) {
+  .site-shell {
+    padding: 18px;
+  }
+
+  .site-header,
+  .site-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .home-hero,
+  .pricing-grid,
+  .feature-band {
+    grid-template-columns: 1fr;
+  }
+
+  .home-hero {
+    padding-top: 52px;
+  }
+
+  .policy-body {
+    padding: 24px;
+  }
+}
