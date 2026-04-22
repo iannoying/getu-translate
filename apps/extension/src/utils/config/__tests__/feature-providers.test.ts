@@ -263,7 +263,7 @@ describe("feature providers", () => {
 
       expect(result).toEqual({
         mode: "llm",
-        providerId: "getu-pro-default",
+        providerId: "openai-default",
       })
     })
 

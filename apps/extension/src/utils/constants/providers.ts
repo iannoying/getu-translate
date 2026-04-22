@@ -609,7 +609,7 @@ export const DEFAULT_PROVIDER_CONFIG = {
     id: "getu-pro-default",
     name: PROVIDER_ITEMS["getu-pro"].name,
     description: i18n.t("options.apiProviders.providers.description.getuPro"),
-    enabled: true,
+    enabled: false,
     provider: "getu-pro",
     model: DEFAULT_LLM_PROVIDER_MODELS["getu-pro"],
   },

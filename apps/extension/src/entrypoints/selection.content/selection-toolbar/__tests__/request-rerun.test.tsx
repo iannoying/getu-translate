@@ -368,13 +368,13 @@ function createStructuredObjectSnapshot(output: Record<string, unknown>): Backgr
 
 function findAlternateTranslateProviderId(config: Config, currentProviderId: string) {
   return config.providersConfig.find(provider =>
-    provider.id !== currentProviderId && isTranslateProviderConfig(provider),
+    provider.id !== currentProviderId && provider.enabled && isTranslateProviderConfig(provider),
   )?.id
 }
 
 function findAlternateLLMProviderId(config: Config, currentProviderId: string) {
   return config.providersConfig.find(provider =>
-    provider.id !== currentProviderId && isLLMProviderConfig(provider),
+    provider.id !== currentProviderId && provider.enabled && isLLMProviderConfig(provider),
   )?.id
 }
 
