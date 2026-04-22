@@ -89,14 +89,26 @@ export async function consumeQuota(
   const tier = resolveTier(ent, now)
   const lim = QUOTA_LIMITS[tier][bucket]
 
-  // 3. Free tier forbidden from ai_translate_monthly (limit=0 semantic → FORBIDDEN)
-  if (tier === "free" && bucket === "ai_translate_monthly") {
+  // 3. Any bucket with limit=0 for this tier is forbidden, not just "over quota".
+  // This future-proofs against new zero-limit buckets (e.g. future Pro-only features).
+  if (lim === 0) {
     throw new ORPCError("FORBIDDEN", {
-      message: "Free tier cannot access ai_translate_monthly",
+      message: `Tier '${tier}' cannot access bucket '${bucket}'`,
     })
   }
 
   // 4. Capacity check
+  // NOTE: optimistic capacity check — not atomic with the write. Two concurrent
+  // consumeQuota calls with different request_ids may both observe used=0,
+  // both pass this guard, and both commit, overshooting `lim` by up to
+  // `concurrency * amount`. Accepted trade-off for Phase 3:
+  //   - AI-proxy usage is post-hoc accounting; charges happen AFTER the LLM
+  //     work is done, so blocking serialization on the critical path would
+  //     hurt latency for dubious benefit.
+  //   - Per-user concurrency is low (1-5 active translations typical); overshoot
+  //     bounded by model_cap × concurrency, not catastrophic.
+  //   - Zero-overshoot enforcement would require D1 Durable Objects or KV CAS,
+  //     which are Phase 4+ scope per the plan's Risk Register.
   const pk = periodKey(bucket, now)
   const period = await db
     .select()
@@ -116,7 +128,13 @@ export async function consumeQuota(
     })
   }
 
-  // 5. Atomic write: insert usage_log + upsert quota_period
+  // 5. Atomic write: insert usage_log + upsert quota_period.
+  // D1 db.batch runs all statements in a single transaction — either all
+  // commit or all roll back. If the usageLog insert throws a UNIQUE violation
+  // (concurrent replay with the same request_id), the quotaPeriod upsert is
+  // also reverted, preventing ghost quota consumption.
+  // See: https://developers.cloudflare.com/d1/worker-api/d1-database/#batch
+  // Drizzle wires this directly to the native D1 client.batch() (d1/session.js:51).
   const id = crypto.randomUUID()
   await db.batch([
     db.insert(usageLog).values({ id, userId, bucket, amount, requestId, createdAt: now }),
