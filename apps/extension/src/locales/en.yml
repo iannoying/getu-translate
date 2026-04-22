@@ -178,6 +178,7 @@ options:
         alibaba: Alibaba Cloud's Qwen model series with advanced reasoning and multilingual capabilities
         moonshotai: Moonshot AI's Kimi model series with strong reasoning and long-context capabilities
         huggingface: Hugging Face Inference API providing access to thousands of open-source models
+        getuPro: AI translations powered by your GetU Pro subscription.
     apiKey:
       showAPIKey: Show API Key
     howToConfigure: How to configure?

@@ -12,9 +12,12 @@ import { Button } from "@/components/ui/base-ui/button"
 import { Dialog, DialogTrigger } from "@/components/ui/base-ui/dialog"
 import { Switch } from "@/components/ui/base-ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/base-ui/tooltip"
+import { useEntitlements } from "@/hooks/use-entitlements"
 import { isAPIProviderConfig } from "@/types/config/provider"
+import { isPro } from "@/types/entitlements"
 import { configAtom, configFieldsAtomMap } from "@/utils/atoms/config"
 import { providerConfigAtom } from "@/utils/atoms/provider"
+import { authClient } from "@/utils/auth/auth-client"
 import { getAPIProvidersConfig } from "@/utils/config/helpers"
 import { FEATURE_KEYS, FEATURE_PROVIDER_DEFS, getFeatureLabelI18nKey } from "@/utils/constants/feature-providers"
 import { API_PROVIDER_ITEMS } from "@/utils/constants/providers"
@@ -45,6 +48,17 @@ function ProviderCardList() {
   const [providersConfig, setProvidersConfig] = useAtom(configFieldsAtomMap.providersConfig)
   const apiProvidersConfig = getAPIProvidersConfig(providersConfig)
   const [selectedProviderId, setSelectedProviderId] = useAtom(selectedProviderIdAtom)
+
+  const session = authClient.useSession()
+  const userId = session?.data?.user?.id ?? null
+  const { data: entitlements } = useEntitlements(userId)
+  const userIsPro = isPro(entitlements)
+
+  const visibleApiProvidersConfig = apiProvidersConfig.filter((p) => {
+    if (p.provider === "getu-pro" && !userIsPro)
+      return false
+    return true
+  })
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const didLockInitialSelectionRef = useRef(false)
 
@@ -104,7 +118,7 @@ function ProviderCardList() {
       </Dialog>
       <EntityListRail>
         <SortableList
-          list={apiProvidersConfig}
+          list={visibleApiProvidersConfig}
           setList={handleReorder}
           className="flex flex-col gap-4 pt-2"
           renderItem={providerConfig => (

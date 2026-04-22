@@ -25,6 +25,7 @@ import { createOllama } from "ollama-ai-provider-v2"
 import { createMinimax } from "vercel-minimax-ai-provider"
 import { isCustomLLMProvider } from "@/types/config/provider"
 import { compactObject } from "@/types/utils"
+import { getProApiBaseUrl, getProJwt } from "../ai/getu-pro-jwt"
 import { getLLMProvidersConfig, getProviderConfigById } from "../config/helpers"
 import { CONFIG_STORAGE_KEY } from "../constants/config"
 import { resolveModelId } from "./model-id"
@@ -57,6 +58,7 @@ const CREATE_AI_MAPPER = {
   "alibaba": createAlibaba,
   "moonshotai": createMoonshotAI,
   "huggingface": createHuggingFace,
+  "getu-pro": createOpenAICompatible,
 } as const
 
 const CUSTOM_HEADER_MAP: Partial<Record<keyof typeof CREATE_AI_MAPPER, Record<string, string>>> = {
@@ -74,6 +76,23 @@ async function getLanguageModelById(providerId: string) {
   if (!providerConfig) {
     throw new Error(`Provider ${providerId} not found`)
   }
+
+  // ── Pro virtual provider path ────────────────────────────────────
+  if (providerConfig.provider === "getu-pro") {
+    const apiKey = await getProJwt()
+    const baseURL = getProApiBaseUrl()
+    const provider = createOpenAICompatible({
+      name: "getu-pro",
+      baseURL,
+      apiKey,
+      supportsStructuredOutputs: true,
+    })
+    const modelId = resolveModelId(providerConfig.model)
+    if (!modelId)
+      throw new Error("Model is undefined")
+    return provider.languageModel(modelId)
+  }
+  // ── end getu-pro branch ────────────────────────────────────────
 
   const customHeaders = CUSTOM_HEADER_MAP[providerConfig.provider]
   const connectionOptions = compactObject(providerConfig.connectionOptions ?? {})
