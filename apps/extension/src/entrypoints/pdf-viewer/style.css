@@ -16,3 +16,22 @@ body {
   inset: 0;
   overflow: auto;
 }
+
+/* Overlay layer — sibling of pdf.js .textLayer, renders [...] placeholders
+ * below each paragraph (PR #B1 scaffolding). Real translation content comes
+ * in PR #B2. Pointer events are disabled so the textLayer underneath stays
+ * selectable. */
+.getu-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.getu-slot {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 2px 0;
+}

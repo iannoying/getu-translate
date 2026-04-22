@@ -70,6 +70,147 @@ async function renderPdf(src: string) {
   const pdfDoc = await loadingTask.promise
   viewer.setDocument(pdfDoc)
   linkService.setDocument(pdfDoc)
+
+  // Per-page React roots for the overlay layer. Keyed by page number (1-based
+  // to match pdf.js conventions). We keep roots mounted for the lifetime of
+  // the viewer: pdf.js emits `textlayerrendered` on every zoom / re-layout,
+  // and re-invoking `root.render(...)` with fresh props is cheaper than
+  // tearing down + re-mounting a React root. On page destruction pdf.js drops
+  // the overlay `<div>` from the DOM, which orphans the root — acceptable for
+  // a bounded-memory viewer tab; can be tightened in Task 4 / Task 5 if
+  // needed.
+  //
+  // TODO(B1-Task4): overlayRoots entries are not pruned when pdf.js destroys
+  // pages. For large documents (500+ pages) this retains a small leak
+  // (React Root + HTMLElement refs per page). Real cleanup needs a pdfjs
+  // eventBus event for page destruction; pdfjs-dist 4.x exposes
+  // `pagechanging` / `pagesinit` but not a clean per-page-destroyed hook.
+  // Revisit if memory becomes a concern in long-session testing on big PDFs.
+  const overlayRoots = new Map<number, {
+    root: import("react-dom/client").Root
+    container: HTMLElement
+  }>()
+
+  // Per-page monotonic sequence number used to defeat async races. Rapid
+  // zoom fires `textlayerrendered` multiple times before the first
+  // `getPage` / `getTextContent` await chain resolves; without this guard
+  // the first-resolved (not latest-dispatched) render wins, which can paint
+  // stale paragraphs at the wrong scale.
+  const pendingSeq = new Map<number, number>()
+
+  eventBus.on("textlayerrendered", (event: {
+    pageNumber: number
+    source?: unknown
+  }) => {
+    // The handler needs to read the PDF's text content (async) and render
+    // React (which is fine to do synchronously). Spawn the async work in an
+    // IIFE so pdf.js's event dispatch isn't awaiting us.
+    void mountOverlayForPage(event.pageNumber, event.source)
+  })
+
+  async function mountOverlayForPage(pageNumber: number, source: unknown) {
+    // Claim the latest sequence number for this page *before* any await, so
+    // later invocations always see a higher seq and can supersede us.
+    const seq = (pendingSeq.get(pageNumber) ?? 0) + 1
+    pendingSeq.set(pageNumber, seq)
+
+    try {
+      // pdf.js gives us the PDFPageView on `event.source`. It has `.div` (page
+      // container) and `.viewport` (current PageViewport with the active scale).
+      const pageView = source as {
+        div?: HTMLElement
+        viewport?: { scale?: number }
+      } | undefined
+      const pageContainer = pageView?.div
+      if (!pageContainer)
+        return
+      const textLayer = pageContainer.querySelector(".textLayer") as HTMLElement | null
+      if (!textLayer)
+        return
+
+      // Lazy imports keep the non-translation code paths (blocklisted docs,
+      // unsupported URLs) off these modules entirely.
+      const [reactDomClient, React, { aggregate }, { OverlayLayer }] = await Promise.all([
+        import("react-dom/client"),
+        import("react"),
+        import("./paragraph/aggregate"),
+        import("./overlay/layer"),
+      ])
+
+      const page = await pdfDoc.getPage(pageNumber)
+      const content = await page.getTextContent()
+
+      // Superseded by a newer textlayerrendered invocation (e.g. mid-zoom).
+      // Drop this render so we don't paint stale coordinates.
+      if (pendingSeq.get(pageNumber) !== seq)
+        return
+
+      // pdfjs-dist 4.x `TextContent.items` is `Array<TextItem | TextMarkedContent>`.
+      // `TextMarkedContent` lacks `str` / `transform` and must be filtered out
+      // before handing to our pure `aggregate()` function, which assumes
+      // `TextItem` shape.
+      const textItems = content.items.filter(
+        (item): item is Extract<typeof item, { str: string, transform: [number, number, number, number, number, number] }> =>
+          typeof (item as { str?: unknown }).str === "string"
+          && Array.isArray((item as { transform?: unknown }).transform),
+      )
+
+      const pageIndex = pageNumber - 1
+      const paragraphs = aggregate(
+        // Structural cast to our redeclared `TextItem` (same field shape).
+        textItems as unknown as Parameters<typeof aggregate>[0],
+        { pageIndex },
+      )
+
+      // Mount overlay container (sibling of .textLayer) the first time we see
+      // this page; reuse + re-render on subsequent textlayerrendered events.
+      let entry = overlayRoots.get(pageNumber)
+      if (!entry) {
+        const overlayEl = document.createElement("div")
+        overlayEl.className = "getu-overlay"
+        overlayEl.dataset.pageIndex = String(pageIndex)
+        // Absolute-positioned cover of the page; pointer events are disabled
+        // so the textLayer underneath stays selectable.
+        overlayEl.style.position = "absolute"
+        overlayEl.style.inset = "0"
+        overlayEl.style.pointerEvents = "none"
+        pageContainer.appendChild(overlayEl)
+        const root = reactDomClient.createRoot(overlayEl)
+        entry = { root, container: overlayEl }
+        overlayRoots.set(pageNumber, entry)
+      }
+      else if (!entry.container.isConnected) {
+        // pdf.js recycled the page container (e.g. user scrolled far, page was
+        // destroyed + re-rendered). Re-attach our overlay to the new container.
+        pageContainer.appendChild(entry.container)
+      }
+
+      // TODO(B1-Task4): replace this naive scale multiply with a full
+      // viewport-transform projection (y-flip + rotation). For PR #B1 it is
+      // enough to show placeholders at approximately the right horizontal
+      // position and roughly-proportional vertical offset.
+      const pageScale = pageView?.viewport?.scale ?? 1
+
+      entry.root.render(
+        React.createElement(OverlayLayer, {
+          paragraphs,
+          pageIndex,
+          pageScale,
+        }),
+      )
+    }
+    catch (err) {
+      // Without this catch, `void mountOverlayForPage(...)` at the event-bus
+      // call site would swallow rejections from `getPage` /
+      // `getTextContent` / dynamic imports. Surface them so they're
+      // diagnosable while still letting later textlayerrendered events
+      // retry.
+      console.error(
+        `[pdf-viewer] overlay mount failed for page ${pageNumber}:`,
+        err,
+      )
+    }
+  }
 }
 
 /**
