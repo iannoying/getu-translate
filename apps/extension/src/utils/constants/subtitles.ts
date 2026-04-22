@@ -36,6 +36,15 @@ export const BILIBILI_SPA_NAVIGATED_EVENT = "bilibili:spa-navigated"
 export const BILIBILI_NATIVE_SUBTITLES_CLASS = ".bpx-player-subtitle-panel-text"
 export const BILIBILI_PLAYER_API_URL = "https://api.bilibili.com/x/player/v2"
 export const BILIBILI_VIEW_API_URL = "https://api.bilibili.com/x/web-interface/view"
+
+// TED specific
+// TED talk URLs look like /talks/{slug}; exclude /talks/ listings and TED Ed (/ed/).
+export const TED_TALK_URL_PATTERN = /^\/talks\/[\w-]+\/?(?:\?|$)/i
+export const TED_NATIVE_SUBTITLES_CLASS = ".ted-captions, [class*=\"captions\"]"
+export const TED_TRANSCRIPT_API_BASE = "https://www.ted.com/talks"
+// Fallback end-time duration (ms) for TED's final cue since transcripts only
+// include start times.
+export const TED_FINAL_CUE_DURATION_MS = 4000
 export const PLAYER_DATA_REQUEST_TYPE = "READ_FROG_GET_PLAYER_DATA"
 export const PLAYER_DATA_RESPONSE_TYPE = "READ_FROG_PLAYER_DATA"
 export const WAIT_TIMEDTEXT_REQUEST_TYPE = "READ_FROG_WAIT_TIMEDTEXT"

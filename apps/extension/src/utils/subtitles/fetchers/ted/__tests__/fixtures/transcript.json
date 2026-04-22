@@ -1,0 +1,26 @@
+{
+  "paragraphs": [
+    {
+      "speaker": "Simon Sinek",
+      "cues": [
+        { "time": 1000, "text": "How do you explain it when things don't go as we assume?" },
+        { "time": 5200, "text": "Or better, how do you explain" },
+        { "time": 7100, "text": "when others are able to achieve things that seem to defy all of the assumptions?" }
+      ]
+    },
+    {
+      "speaker": "Simon Sinek",
+      "cues": [
+        { "time": 12000, "text": "For example:" },
+        { "time": 13500, "text": "Why is Apple so innovative?" },
+        { "time": 16200, "text": "Year after year, after year, they're more innovative than all their competition." }
+      ]
+    },
+    {
+      "speaker": "Simon Sinek",
+      "cues": [
+        { "time": 22800, "text": "And yet, they're just a computer company." }
+      ]
+    }
+  ]
+}
