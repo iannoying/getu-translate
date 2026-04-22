@@ -2,8 +2,11 @@ import type { Paragraph } from "../paragraph/types"
 /**
  * Single overlay slot — a positioned placeholder rendered below one paragraph.
  *
- * PR #B1 scaffolding: content is the literal string `[...]`. PR #B2 will swap
- * the content for translation text, possibly via a render-prop / children.
+ * PR #B1 scaffolding rendered the literal string `[...]` unconditionally. PR
+ * #B2 (Task 1) adds an optional `children` prop so callers can inject real
+ * translation text (typically read from `segmentStatusAtomFamily`). When no
+ * children are provided the placeholder is still rendered so the slot remains
+ * visible during the pending/translating phases.
  *
  * Positioning contract
  * --------------------
@@ -33,6 +36,12 @@ export interface SlotProps {
   }
   /** Minimum vertical space reserved for this slot (CSS px). Defaults to 24px. */
   minHeight?: number
+  /**
+   * Content to render inside the slot. When omitted (or `null`/`undefined`),
+   * the slot falls back to the `[...]` placeholder so the segment remains
+   * visible while its translation is pending.
+   */
+  children?: React.ReactNode
 }
 
 /**
@@ -42,7 +51,12 @@ export interface SlotProps {
  * slots by paragraph key when writing translation text back via atoms /
  * mutation observers.
  */
-export function Slot({ paragraph, position, minHeight = DEFAULT_MIN_SLOT_HEIGHT_PX }: SlotProps) {
+export function Slot({
+  paragraph,
+  position,
+  minHeight = DEFAULT_MIN_SLOT_HEIGHT_PX,
+  children,
+}: SlotProps) {
   return (
     <div
       className="getu-slot"
@@ -58,7 +72,7 @@ export function Slot({ paragraph, position, minHeight = DEFAULT_MIN_SLOT_HEIGHT_
         pointerEvents: "none",
       }}
     >
-      [...]
+      {children ?? "[...]"}
     </div>
   )
 }
