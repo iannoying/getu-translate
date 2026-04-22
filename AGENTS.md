@@ -44,6 +44,17 @@ Distributed under GNU GPLv3 with an additional commercial license grant to FEELI
 
 ## For AI Agents
 
+### Session Memory (READ FIRST)
+
+Before doing anything non-trivial in this repo, read `docs/agents/memory/MEMORY.md` and the files it indexes. Those capture lessons that are not obvious from the code:
+
+- **Review policy** (when to invoke Codex cross-review vs only Claude code-reviewer)
+- **@read-frog/\* fork strategy** (upstream monorepo is private; we vendor from npm dist)
+- **Cloudflare deploy lessons** (proxy bypass, `--env production`, `NEXT_PUBLIC_*` baked at build, better-auth basePath gotcha, custom-domain-UI-only, etc.)
+- **Check pre-existing extension code first** — Phase 2 repeatedly discovered that "new" tasks were already 90% implemented from M0 prep work.
+
+These files travel with the repo; keep them updated as you discover new durable facts.
+
 ### Working In This Directory
 
 - **Package manager is pnpm.** Always run `pnpm install`, `pnpm build`, `pnpm test`, etc. Never `npm` or `yarn`.
