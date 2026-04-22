@@ -1,6 +1,6 @@
 import type { Paragraph } from "../../paragraph/types"
 import type { SegmentKey, SegmentStatus } from "../atoms"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { TranslationScheduler } from "../scheduler"
 
 // --- helpers ---------------------------------------------------------------
@@ -82,8 +82,10 @@ describe("translationScheduler", () => {
 
   it("captures translate failures as error status with the message", async () => {
     const sink = makeStatusSink()
+    // Use a non-retriable message (no 429/503/timeout/network/fetch) so the
+    // default retry predicate fails-fast after a single attempt.
     const translate = vi.fn(async () => {
-      throw new Error("network down")
+      throw new Error("bad request")
     })
     const scheduler = new TranslationScheduler({
       translate,
@@ -93,7 +95,8 @@ describe("translationScheduler", () => {
     scheduler.enqueue("file1", makeParagraph("p-0-0", "boom"))
     await flush()
 
-    expect(sink.latest.get("file1:p-0-0")).toEqual({ kind: "error", message: "network down" })
+    expect(translate).toHaveBeenCalledTimes(1)
+    expect(sink.latest.get("file1:p-0-0")).toEqual({ kind: "error", message: "bad request" })
   })
 
   it("coerces non-Error rejections into a string message", async () => {
@@ -351,6 +354,161 @@ describe("translationScheduler", () => {
 
     expect(translate).not.toHaveBeenCalled()
     expect(scheduler.size()).toBe(0)
+  })
+
+  describe("retry with exponential back-off", () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    /** Advance fake timers while also flushing microtasks between ticks. */
+    async function tickAndFlush(ms: number): Promise<void> {
+      await vi.advanceTimersByTimeAsync(ms)
+      // Extra microtask drain for any post-timer promise chains.
+      for (let i = 0; i < 5; i++) await Promise.resolve()
+    }
+
+    it("retries a retriable error and succeeds on the second attempt", async () => {
+      const sink = makeStatusSink()
+      let call = 0
+      const translate = vi.fn(async (text: string) => {
+        call += 1
+        if (call === 1)
+          throw new Error("HTTP 429 Too Many Requests")
+        return `[zh] ${text}`
+      })
+
+      const scheduler = new TranslationScheduler({
+        translate,
+        setStatus: sink.setStatus,
+      })
+
+      scheduler.enqueue("file1", makeParagraph("p-0-0", "hello"))
+      await tickAndFlush(0)
+
+      // First attempt already rejected; scheduler is sleeping for 1s back-off.
+      expect(translate).toHaveBeenCalledTimes(1)
+      expect(sink.latest.get("file1:p-0-0")).toEqual({ kind: "translating" })
+
+      // Advance past the 1s back-off so the retry kicks in.
+      await tickAndFlush(1000)
+
+      expect(translate).toHaveBeenCalledTimes(2)
+      expect(sink.latest.get("file1:p-0-0")).toEqual({ kind: "done", translation: "[zh] hello" })
+    })
+
+    it("exhausts all retries and records error when all attempts fail with retriable errors", async () => {
+      const sink = makeStatusSink()
+      const translate = vi.fn(async () => {
+        throw new Error("HTTP 503 Service Unavailable")
+      })
+
+      const scheduler = new TranslationScheduler({
+        translate,
+        setStatus: sink.setStatus,
+      })
+
+      scheduler.enqueue("file1", makeParagraph("p-0-0", "hello"))
+      await tickAndFlush(0)
+      expect(translate).toHaveBeenCalledTimes(1)
+
+      // First back-off: 1s.
+      await tickAndFlush(1000)
+      expect(translate).toHaveBeenCalledTimes(2)
+
+      // Second back-off: 2s.
+      await tickAndFlush(2000)
+      expect(translate).toHaveBeenCalledTimes(3)
+
+      // No more attempts after maxAttempts=3; final state is error.
+      expect(sink.latest.get("file1:p-0-0")).toEqual({
+        kind: "error",
+        message: "HTTP 503 Service Unavailable",
+      })
+    })
+
+    it("does not retry non-retriable errors (e.g. 400)", async () => {
+      const sink = makeStatusSink()
+      const translate = vi.fn(async () => {
+        throw new Error("HTTP 400 Bad Request")
+      })
+
+      const scheduler = new TranslationScheduler({
+        translate,
+        setStatus: sink.setStatus,
+      })
+
+      scheduler.enqueue("file1", makeParagraph("p-0-0", "hello"))
+      await tickAndFlush(0)
+
+      // Single attempt; scheduler does not sleep because the error is not retriable.
+      expect(translate).toHaveBeenCalledTimes(1)
+      expect(sink.latest.get("file1:p-0-0")).toEqual({
+        kind: "error",
+        message: "HTTP 400 Bad Request",
+      })
+
+      // Advance well past any potential back-off; no further attempts.
+      await tickAndFlush(10_000)
+      expect(translate).toHaveBeenCalledTimes(1)
+    })
+
+    it("abort during back-off sleep cancels pending retries and suppresses setStatus", async () => {
+      const sink = makeStatusSink()
+      const translate = vi.fn(async () => {
+        throw new Error("network timeout")
+      })
+
+      const scheduler = new TranslationScheduler({
+        translate,
+        setStatus: sink.setStatus,
+      })
+
+      scheduler.enqueue("file1", makeParagraph("p-0-0", "hello"))
+      await tickAndFlush(0)
+
+      // First attempt failed; scheduler is now sleeping.
+      expect(translate).toHaveBeenCalledTimes(1)
+      const statusCountBeforeAbort = sink.log.length
+      // Only `translating` has been emitted so far — no `error`.
+      expect(sink.latest.get("file1:p-0-0")).toEqual({ kind: "translating" })
+
+      // Abort mid-sleep.
+      scheduler.abort()
+      await tickAndFlush(10_000)
+
+      // No retry happened.
+      expect(translate).toHaveBeenCalledTimes(1)
+      // No additional setStatus calls (no `error` written) because abort suppresses them.
+      expect(sink.log).toHaveLength(statusCountBeforeAbort)
+      expect(sink.latest.get("file1:p-0-0")).toEqual({ kind: "translating" })
+    })
+
+    it("honours custom maxAttempts=1 to disable retries entirely", async () => {
+      const sink = makeStatusSink()
+      const translate = vi.fn(async () => {
+        throw new Error("HTTP 429 rate limited")
+      })
+
+      const scheduler = new TranslationScheduler({
+        translate,
+        setStatus: sink.setStatus,
+        retry: { maxAttempts: 1 },
+      })
+
+      scheduler.enqueue("file1", makeParagraph("p-0-0", "hello"))
+      await tickAndFlush(0)
+
+      expect(translate).toHaveBeenCalledTimes(1)
+      expect(sink.latest.get("file1:p-0-0")).toEqual({
+        kind: "error",
+        message: "HTTP 429 rate limited",
+      })
+    })
   })
 
   it("size() tracks pending + in-flight accurately across a drain", async () => {
