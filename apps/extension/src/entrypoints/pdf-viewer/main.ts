@@ -1,8 +1,21 @@
+import { createStore } from "jotai"
+import { addDomainToBlocklistAtom } from "@/utils/atoms/pdf-translation"
 import { getLocalConfig } from "@/utils/config/storage"
 import { DEFAULT_CONFIG } from "@/utils/constants/config"
 import { parseSrcParam } from "./parse-src-param"
 import "pdfjs-dist/web/pdf_viewer.css"
 import "./style.css"
+
+/**
+ * Module-scoped Jotai store shared by every React root this entrypoint mounts
+ * (per-page overlay roots + the first-use toast root). Using one store means
+ * the translation scheduler (PR #B2 Task 3) and any React subscribers observe
+ * the same atom values across page-level roots, and writes from plain
+ * callbacks (e.g. the toast's "Never on this site" handler) can go through
+ * `pdfViewerStore.set(atom, value)` instead of reading / writing storage
+ * directly.
+ */
+export const pdfViewerStore = createStore()
 
 async function boot() {
   const src = parseSrcParam(location.search)
@@ -135,12 +148,14 @@ async function renderPdf(src: string) {
       const [
         reactDomClient,
         React,
+        { Provider: JotaiProvider },
         { aggregate },
         { OverlayLayer },
         { computePageExtension, DEFAULT_MIN_SLOT_HEIGHT_PX },
       ] = await Promise.all([
         import("react-dom/client"),
         import("react"),
+        import("jotai"),
         import("./paragraph/aggregate"),
         import("./overlay/layer"),
         import("./overlay/push-down-layout"),
@@ -209,12 +224,16 @@ async function renderPdf(src: string) {
       const viewport = { transform: rawTransform }
 
       entry.root.render(
-        React.createElement(OverlayLayer, {
-          paragraphs,
-          pageIndex,
-          viewport,
-          minSlotHeight: DEFAULT_MIN_SLOT_HEIGHT_PX,
-        }),
+        React.createElement(
+          JotaiProvider,
+          { store: pdfViewerStore },
+          React.createElement(OverlayLayer, {
+            paragraphs,
+            pageIndex,
+            viewport,
+            minSlotHeight: DEFAULT_MIN_SLOT_HEIGHT_PX,
+          }),
+        ),
       )
 
       // Reserve vertical space below the pdf.js `.page` container so every
@@ -290,46 +309,14 @@ async function maybeRenderFirstUseToast(src: string) {
   if (!mountNode)
     return
 
-  const [{ createRoot }, React, { FirstUseToast }, { storageAdapter }, { configSchema }, { CONFIG_STORAGE_KEY }] = await Promise.all([
+  const [{ createRoot }, React, { Provider: JotaiProvider }, { FirstUseToast }] = await Promise.all([
     import("react-dom/client"),
     import("react"),
+    import("jotai"),
     import("./components/first-use-toast"),
-    import("@/utils/atoms/storage-adapter"),
-    import("@/types/config/config"),
-    import("@/utils/constants/config"),
   ])
 
   const root = createRoot(mountNode)
-
-  const addDomainToBlocklist = async () => {
-    // NOTE: We write through storageAdapter directly rather than using the
-    // addDomainToBlocklistAtom from utils/atoms/pdf-translation. Rationale:
-    // the pdf-viewer entrypoint currently has no Jotai Provider / Store, so
-    // atoms cannot be used here without pulling in the full atom runtime just
-    // for one write. The storage key + schema are identical, so the persisted
-    // result is indistinguishable across paths.
-    // TODO(M3-PR-B): if a Jotai Provider is added to the viewer (e.g. for the
-    // translation overlay), replace this with `set(addDomainToBlocklistAtom, domain)`.
-    const current = (await storageAdapter.get(
-      CONFIG_STORAGE_KEY,
-      DEFAULT_CONFIG,
-      configSchema,
-    )) ?? DEFAULT_CONFIG
-    const existing = current.pdfTranslation.blocklistDomains
-    if (existing.some(d => d.trim().toLowerCase() === domain))
-      return
-    const next = {
-      ...current,
-      pdfTranslation: {
-        ...current.pdfTranslation,
-        blocklistDomains: [...existing, domain],
-      },
-    }
-    await storageAdapter.set(CONFIG_STORAGE_KEY, next, configSchema)
-    await storageAdapter.setMeta(CONFIG_STORAGE_KEY, {
-      lastModifiedAt: Date.now(),
-    })
-  }
 
   const unmount = () => {
     // Defer unmount to avoid tearing down during React's own event dispatch.
@@ -337,34 +324,41 @@ async function maybeRenderFirstUseToast(src: string) {
   }
 
   root.render(
-    React.createElement(FirstUseToast, {
-      onAccept: () => {
-        // TODO(M3-PR-B): trigger the bilingual translation pipeline here.
-        // PR #A only dismisses the toast — the viewer continues to render
-        // the PDF using native pdf.js without translation overlay.
-        unmount()
-      },
-      onSkipOnce: () => {
-        unmount()
-      },
-      onNever: async () => {
-        try {
-          await addDomainToBlocklist()
-          // Reload so the background redirect re-evaluates against the fresh
-          // blocklist and returns the user to native PDFium handling.
-          // Note: no explicit `unmount()` — the page reload tears the document
-          // down anyway, and the setTimeout(0) that unmount schedules would
-          // not fire before navigation.
-          location.reload()
-        }
-        catch (err) {
-          console.error(
-            "[pdf-viewer] failed to persist blocklist; not reloading",
-            err,
-          )
-        }
-      },
-    }),
+    React.createElement(
+      JotaiProvider,
+      { store: pdfViewerStore },
+      React.createElement(FirstUseToast, {
+        onAccept: () => {
+          // TODO(M3-PR-B): trigger the bilingual translation pipeline here.
+          // PR #A only dismisses the toast — the viewer continues to render
+          // the PDF using native pdf.js without translation overlay.
+          unmount()
+        },
+        onSkipOnce: () => {
+          unmount()
+        },
+        onNever: async () => {
+          try {
+            // Route through the shared Jotai store so the write goes via
+            // `addDomainToBlocklistAtom` (which dedupes + normalises +
+            // deep-merges through `configFieldsAtomMap.pdfTranslation`).
+            await pdfViewerStore.set(addDomainToBlocklistAtom, domain)
+            // Reload so the background redirect re-evaluates against the fresh
+            // blocklist and returns the user to native PDFium handling.
+            // Note: no explicit `unmount()` — the page reload tears the document
+            // down anyway, and the setTimeout(0) that unmount schedules would
+            // not fire before navigation.
+            location.reload()
+          }
+          catch (err) {
+            console.error(
+              "[pdf-viewer] failed to persist blocklist; not reloading",
+              err,
+            )
+          }
+        },
+      }),
+    ),
   )
 }
 
