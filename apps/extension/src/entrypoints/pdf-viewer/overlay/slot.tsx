@@ -17,6 +17,7 @@ import type { Paragraph } from "../paragraph/types"
  * interactive elements inside it can re-enable pointer-events locally.
  */
 import * as React from "react"
+import { DEFAULT_MIN_SLOT_HEIGHT_PX } from "./push-down-layout"
 
 export interface SlotProps {
   /** The paragraph this slot is anchored to. Only `key` + `boundingBox` are used today. */
@@ -34,8 +35,6 @@ export interface SlotProps {
   minHeight?: number
 }
 
-const DEFAULT_MIN_HEIGHT_PX = 24
-
 /**
  * A single overlay slot. Renders a placeholder `[...]` glyph for PR #B1.
  *
@@ -43,7 +42,7 @@ const DEFAULT_MIN_HEIGHT_PX = 24
  * slots by paragraph key when writing translation text back via atoms /
  * mutation observers.
  */
-export function Slot({ paragraph, position, minHeight = DEFAULT_MIN_HEIGHT_PX }: SlotProps) {
+export function Slot({ paragraph, position, minHeight = DEFAULT_MIN_SLOT_HEIGHT_PX }: SlotProps) {
   return (
     <div
       className="getu-slot"

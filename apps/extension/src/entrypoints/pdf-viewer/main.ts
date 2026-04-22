@@ -132,11 +132,18 @@ async function renderPdf(src: string) {
 
       // Lazy imports keep the non-translation code paths (blocklisted docs,
       // unsupported URLs) off these modules entirely.
-      const [reactDomClient, React, { aggregate }, { OverlayLayer }] = await Promise.all([
+      const [
+        reactDomClient,
+        React,
+        { aggregate },
+        { OverlayLayer },
+        { computePageExtension, DEFAULT_MIN_SLOT_HEIGHT_PX },
+      ] = await Promise.all([
         import("react-dom/client"),
         import("react"),
         import("./paragraph/aggregate"),
         import("./overlay/layer"),
+        import("./overlay/push-down-layout"),
       ])
 
       const page = await pdfDoc.getPage(pageNumber)
@@ -206,8 +213,25 @@ async function renderPdf(src: string) {
           paragraphs,
           pageIndex,
           viewport,
+          minSlotHeight: DEFAULT_MIN_SLOT_HEIGHT_PX,
         }),
       )
+
+      // Reserve vertical space below the pdf.js `.page` container so every
+      // overlay slot has room without clipping into the next page. We write
+      // this as `paddingBottom` because pdf.js's scroll / page-indicator
+      // logic uses `getBoundingClientRect()` — which honours padding — so
+      // navigation, scrollbar geometry, and the current-page readout all
+      // stay consistent without us poking at pdf.js internals.
+      //
+      // PR #B1 linear model: `paragraphCount * minSlotHeight`. PR #B2 will
+      // swap this for per-slot measured heights once real translation text
+      // lands in each slot.
+      const extensionPx = computePageExtension(
+        paragraphs,
+        DEFAULT_MIN_SLOT_HEIGHT_PX,
+      )
+      pageContainer.style.paddingBottom = `${extensionPx}px`
     }
     catch (err) {
       // Without this catch, `void mountOverlayForPage(...)` at the event-bus
