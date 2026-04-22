@@ -41,4 +41,11 @@ describe("checkRateLimit", () => {
     const ok = await checkRateLimit(db as any, "u1")
     expect(ok).toBe(false)
   })
+
+  it("allows when count is exactly one below the limit", async () => {
+    const db = makeDb(RATE_LIMIT_PER_MINUTE - 1)
+    const ok = await checkRateLimit(db as any, "u1")
+    expect(ok).toBe(true)
+    expect(db.inserts).toHaveLength(1)
+  })
 })

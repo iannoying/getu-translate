@@ -6,6 +6,7 @@ vi.mock("../jwt", () => ({
 }))
 vi.mock("../rate-limit", () => ({
   checkRateLimit: vi.fn(async () => true),
+  RATE_LIMIT_PER_MINUTE: 300,
 }))
 vi.mock("../../billing/quota", () => ({
   consumeQuota: vi.fn(async () => ({

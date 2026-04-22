@@ -2,7 +2,7 @@ import { isProModel, normalizeTokens, type ProModel } from "@getu/contract"
 import { createDb } from "@getu/db"
 import { consumeQuota } from "../billing/quota"
 import { verifyAiJwt } from "./jwt"
-import { checkRateLimit } from "./rate-limit"
+import { checkRateLimit, RATE_LIMIT_PER_MINUTE } from "./rate-limit"
 import { extractUsageFromSSE } from "./usage-parser"
 import type { WorkerEnv } from "../env"
 
@@ -26,7 +26,7 @@ export async function handleChatCompletions(
   // Rate limit check — costs 1 small D1 read + 1 write per request
   const db = createDb(env.DB)
   const allowed = await checkRateLimit(db, userId)
-  if (!allowed) return json({ error: "rate limit exceeded: 300 req/min" }, 429)
+  if (!allowed) return json({ error: `rate limit exceeded: ${RATE_LIMIT_PER_MINUTE} req/min` }, 429)
 
   // 2. Parse + validate model
   const body = (await req.json().catch(() => null)) as {
