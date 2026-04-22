@@ -9,6 +9,55 @@ import {
   QUOTA_BUCKETS,
 } from "../billing"
 
+describe("EntitlementsSchema v2", () => {
+  it("parses object with graceUntil, billingEnabled, billingProvider", () => {
+    expect(() =>
+      EntitlementsSchema.parse({
+        tier: "pro",
+        features: [],
+        quota: {},
+        expiresAt: null,
+        graceUntil: "2026-05-01T00:00:00.000Z",
+        billingEnabled: true,
+        billingProvider: "paddle",
+      }),
+    ).not.toThrow()
+  })
+
+  it("parses graceUntil as null", () => {
+    expect(() =>
+      EntitlementsSchema.parse({
+        tier: "free",
+        features: [],
+        quota: {},
+        expiresAt: null,
+        graceUntil: null,
+        billingEnabled: false,
+        billingProvider: null,
+      }),
+    ).not.toThrow()
+  })
+
+  it("FREE_ENTITLEMENTS has graceUntil: null, billingEnabled: false, billingProvider: null", () => {
+    expect(FREE_ENTITLEMENTS.graceUntil).toBe(null)
+    expect(FREE_ENTITLEMENTS.billingEnabled).toBe(false)
+    expect(FREE_ENTITLEMENTS.billingProvider).toBe(null)
+  })
+
+  it("rejects object missing billingEnabled", () => {
+    expect(() =>
+      EntitlementsSchema.parse({
+        tier: "free",
+        features: [],
+        quota: {},
+        expiresAt: null,
+        graceUntil: null,
+        billingProvider: null,
+      }),
+    ).toThrow()
+  })
+})
+
 describe("@getu/contract billing", () => {
   it("FREE_ENTITLEMENTS parses", () => {
     expect(() => EntitlementsSchema.parse(FREE_ENTITLEMENTS)).not.toThrow()
@@ -40,6 +89,9 @@ describe("@getu/contract billing", () => {
       features: ["pdf_translate"],
       quota: {},
       expiresAt: future,
+      graceUntil: null,
+      billingEnabled: true,
+      billingProvider: "paddle",
     })
     expect(isPro(proEntitlements)).toBe(true)
   })

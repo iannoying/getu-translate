@@ -80,9 +80,20 @@ export {
   consumeQuotaInputSchema,
   consumeQuotaOutputSchema,
   QUOTA_BUCKETS,
+  createCheckoutSessionInputSchema,
+  createCheckoutSessionOutputSchema,
+  createPortalSessionOutputSchema,
 } from "./billing.js"
 
-export type { Entitlements, ConsumeQuotaInput, ConsumeQuotaOutput, QuotaBucket } from "./billing.js"
+export type {
+  Entitlements,
+  ConsumeQuotaInput,
+  ConsumeQuotaOutput,
+  QuotaBucket,
+  CreateCheckoutSessionInput,
+  CreateCheckoutSessionOutput,
+  CreatePortalSessionOutput,
+} from "./billing.js"
 
 export { AI_MODEL_COEFFICIENTS, PRO_MODEL_WHITELIST, isProModel, normalizeTokens } from "./ai-models.js"
 export type { ProModel } from "./ai-models.js"

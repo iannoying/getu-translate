@@ -24,6 +24,9 @@ export const EntitlementsSchema = z.object({
   features: z.array(FeatureKey),
   quota: z.record(z.string(), QuotaBucketSchema),
   expiresAt: z.string().datetime().nullable(),
+  graceUntil: z.string().datetime().nullable(),
+  billingEnabled: z.boolean(),
+  billingProvider: z.enum(["paddle", "stripe"]).nullable(),
 })
 export type Entitlements = z.infer<typeof EntitlementsSchema>
 
@@ -32,6 +35,9 @@ export const FREE_ENTITLEMENTS: Entitlements = {
   features: [],
   quota: {},
   expiresAt: null,
+  graceUntil: null,
+  billingEnabled: false,
+  billingProvider: null,
 }
 
 export function hasFeature(e: Entitlements, f: FeatureKey): boolean {
@@ -71,8 +77,39 @@ export const consumeQuotaOutputSchema = z.object({
 })
 export type ConsumeQuotaOutput = z.infer<typeof consumeQuotaOutputSchema>
 
+// ---- checkout / portal schemas ----
+
+const redirectUrlSchema = z.string().refine(
+  (s) =>
+    s.startsWith("https://getutranslate.com/") ||
+    s.startsWith("https://www.getutranslate.com/") ||
+    s.startsWith("chrome-extension://"),
+  { message: "url must be getutranslate.com or chrome-extension://" },
+)
+
+export const createCheckoutSessionInputSchema = z
+  .object({
+    plan: z.enum(["pro_monthly", "pro_yearly"]),
+    successUrl: redirectUrlSchema,
+    cancelUrl: redirectUrlSchema,
+  })
+  .strict()
+export type CreateCheckoutSessionInput = z.infer<typeof createCheckoutSessionInputSchema>
+
+export const createCheckoutSessionOutputSchema = z.object({ url: z.string().url() })
+export type CreateCheckoutSessionOutput = z.infer<typeof createCheckoutSessionOutputSchema>
+
+export const createPortalSessionOutputSchema = z.object({ url: z.string().url() })
+export type CreatePortalSessionOutput = z.infer<typeof createPortalSessionOutputSchema>
+
 /** oRPC contract — server implements, client consumes */
 export const billingContract = oc.router({
   getEntitlements: oc.input(z.object({}).strict()).output(EntitlementsSchema),
   consumeQuota: oc.input(consumeQuotaInputSchema).output(consumeQuotaOutputSchema),
+  createCheckoutSession: oc
+    .input(createCheckoutSessionInputSchema)
+    .output(createCheckoutSessionOutputSchema),
+  createPortalSession: oc
+    .input(z.object({}).strict())
+    .output(createPortalSessionOutputSchema),
 })

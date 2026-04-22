@@ -1,10 +1,10 @@
-# `billing.*` oRPC 契约 (v1)
+# `billing.*` oRPC 契约 (v2)
 
-> **Audience:** Read Frog 后端团队（`read-frog-monorepo` / `@read-frog/api-contract`）
-> **Consumer:** 浏览器扩展仓 `mengxi-ream/read-frog`（本文件所在仓的 fork）
-> **Status:** Draft — 实施前以本文档为准；实施过程中若发现不合理，以 PR 修订本文件为准。
-> **Owner (extension side):** @iannoying / 本文档随 M0 PR 合入
-> **Last updated:** 2026-04-20
+> **Audience:** GetU Translate 后端团队（`getu-translate` monorepo）
+> **Consumer:** 浏览器扩展 `apps/extension`（WXT）及 `apps/web`（Next.js）
+> **Status:** Active — Phase 4 Paddle-native subscriptions
+> **Owner:** 后端团队
+> **Last updated:** 2026-04-22
 
 ---
 
@@ -14,13 +14,14 @@
 2. **失败安全**：任何 billing 接口故障必须降级到 **Free tier**，不允许"降级到 Pro"。
 3. **幂等**：`consumeQuota` 因网络重试可能被调用多次 —— 支持 `request_id` 幂等键。
 4. **可观测**：所有 billing 接口接入后端标准日志 + PostHog `billing_*` 事件。
+5. **支付商抽象**：所有字段用 `billing_provider` / `provider_customer_id` / `provider_subscription_id`，不绑定具体支付商，便于将来添加 Stripe 支持。
 
 ---
 
 ## 2. 认证与会话
 
 - 所有 `billing.*` 接口 **要求已登录**（better-auth session cookie）。
-- 扩展端通过 `src/utils/auth/auth-client.ts` 的 `authClient` 维护 session；所有 oRPC 请求带 `credentials: "include"` + `x-orpc-source: extension` header（见 `src/utils/orpc/client.ts:9-14`）。
+- 扩展端通过 `authClient` 维护 session；所有 oRPC 请求带 `credentials: "include"` + `x-orpc-source: extension` header。
 - 未登录调用任意 `billing.*` → 后端返回 oRPC 错误码 `UNAUTHORIZED` (HTTP 401)。扩展端应 catch 并回退到 `FREE_ENTITLEMENTS`。
 
 ---
@@ -29,15 +30,17 @@
 
 ### 3.1 `Entitlements`
 
-与扩展仓 `src/types/entitlements.ts` 中的 `EntitlementsSchema` **逐字节一致**。后端序列化时必须产出与下面 zod schema 能 parse 的 JSON。
+与 `packages/contract/src/billing.ts` 中的 `EntitlementsSchema` **逐字节一致**。后端序列化时必须产出与下面 zod schema 能 parse 的 JSON。
 
 ```ts
 const FeatureKey = z.enum([
-  'pdf_translate',                  // PDF 双语翻译 + 下载
+  'pdf_translate',                  // PDF 双语翻译
+  'pdf_translate_unlimited',        // PDF 翻译无限页数
+  'pdf_translate_export',           // PDF 导出
   'input_translate_unlimited',      // 输入框翻译无限次
   'vocab_unlimited',                // 生词本无限条
   'vocab_cloud_sync',               // 生词本云同步
-  'ai_translate_pool',              // 共享 AI 翻译配额池（OpenAI/Claude 走后端 key）
+  'ai_translate_pool',              // 共享 AI 翻译配额池
   'subtitle_platforms_extended',    // Netflix/B站/X 等非 YouTube 字幕
   'enterprise_glossary_share',      // 企业版共享术语表
 ])
@@ -52,6 +55,9 @@ const EntitlementsSchema = z.object({
   features: z.array(FeatureKey),
   quota: z.record(z.string(), QuotaBucketSchema),
   expiresAt: z.string().datetime().nullable(),
+  graceUntil: z.string().datetime().nullable(),   // v2 新增
+  billingEnabled: z.boolean(),                    // v2 新增
+  billingProvider: z.enum(['paddle', 'stripe']).nullable(), // v2 新增
 })
 ```
 
@@ -61,10 +67,13 @@ const EntitlementsSchema = z.object({
 - `features`：当前层级**已生效**的 feature list。`free` 下通常为空数组。
 - `quota`：配额桶字典，key 见 §3.2。每个桶返回本账单周期的 `used` / `limit`。
 - `expiresAt`：ISO 8601。若 `Date.parse(expiresAt) < now`，扩展端视为过期，降级为 Free。
+- `graceUntil`：ISO 8601 或 null。支付失败后的宽限期截止时间；在此期间保留 Pro 权益并展示 banner。宽限期内 `tier` 仍为 `pro`，`expiresAt` 不变。
+- `billingEnabled`：是否已对该用户开启计费功能（内测/灰度控制）。`false` 时 `createCheckoutSession` 返回 412。
+- `billingProvider`：当前订阅所属支付商（`"paddle"` | `"stripe"` | `null`）。Free 用户或未订阅时为 `null`。
 
 **禁止**：在同一响应内返回 `tier: 'pro'` 但 `features` 全空 —— 这会让扩展无法判断后端是"未实装"还是"确实没权益"。
 
-### 3.2 `QuotaBucket` keys（初版）
+### 3.2 `QuotaBucket` keys
 
 | Key                     | 单位  | Free 上限 | Pro 上限    | 补充                         |
 | ----------------------- | ----- | --------- | ----------- | ---------------------------- |
@@ -73,7 +82,7 @@ const EntitlementsSchema = z.object({
 | `vocab_count`           | 条    | 100       | null        | 生命周期累计                 |
 | `ai_translate_monthly`  | 次/月 | 0         | 50_000      | 自然月 UTC 重置，仅 Pro 可用 |
 
-> **`null` 或字段缺失** 视为"无限制"。扩展端 `hasFeature / quota` 检查需同时允许这两种表达。
+> **`null` 或字段缺失** 视为"无限制"。
 
 ### 3.3 `RequestId`
 
@@ -120,12 +129,6 @@ const EntitlementsSchema = z.object({
 | Idempotent | **必须**（按 `request_id`）                                               |
 | Rate limit | 300 req / min / user                                                      |
 
-**输入校验：**
-
-- `bucket` 必须在 §3.2 枚举内
-- `amount >= 1`
-- `request_id` 形如 UUID v4
-
 **错误：**
 | oRPC code | HTTP | 语义 |
 |-----------|------|------|
@@ -139,17 +142,11 @@ const EntitlementsSchema = z.object({
 - 同 `(userId, request_id)` 第 2 次及以后调用，**不再扣减**，返回与第 1 次完全一致的响应（包括错误）。
 - TTL 24h。
 
-**扩展端行为：**
-
-- 成功 → 更新本地 atom 中的 `quota.<bucket>`
-- `QUOTA_EXCEEDED` → 弹 `<UpgradeDialog>`
-- 网络错误 → **不** retry（已 consumed 风险），直接报错给用户
-
 ---
 
 ### 4.3 `billing.createCheckoutSession`
 
-生成 Stripe Checkout 会话。扩展打开返回的 `url` 在新标签完成支付。
+生成 Paddle Checkout 会话。扩展打开返回的 `url` 在新标签完成支付。
 
 | 项         | 值                                                                               |
 | ---------- | -------------------------------------------------------------------------------- |
@@ -161,20 +158,24 @@ const EntitlementsSchema = z.object({
 
 **输入约束：**
 
-- `successUrl` / `cancelUrl` 必须是 `https://readfrog.app/*` 或 `chrome-extension://*`，避免 open-redirect。后端白名单校验。
+- `successUrl` / `cancelUrl` 必须匹配以下前缀之一，避免 open-redirect：
+  - `https://getutranslate.com/`
+  - `https://www.getutranslate.com/`
+  - `chrome-extension://`
 
 **错误：**
 | oRPC code | HTTP | 语义 |
 |-----------|------|------|
-| `UNAUTHORIZED` | 401 | |
+| `UNAUTHORIZED` | 401 | 未登录 |
 | `BAD_REQUEST` | 400 | plan/URL 不合法 |
+| `PRECONDITION_FAILED` | 412 | `billingEnabled=false` 该用户尚未开放计费功能 |
 | `PRECONDITION_FAILED` | 412 | 用户已持有活跃 Pro 订阅（改走 `createPortalSession`） |
 
 ---
 
 ### 4.4 `billing.createPortalSession`
 
-生成 Stripe Customer Portal 链接，已订阅用户去管理/取消。
+生成 Paddle Customer Portal 链接，已订阅用户去管理/取消。
 
 | 项         | 值                  |
 | ---------- | ------------------- |
@@ -184,28 +185,65 @@ const EntitlementsSchema = z.object({
 | Rate limit | 10 req / min / user |
 
 **错误：**
-
-- `UNAUTHORIZED` / `PRECONDITION_FAILED`（未订阅用户调用）
+| oRPC code | HTTP | 语义 |
+|-----------|------|------|
+| `UNAUTHORIZED` | 401 | 未登录 |
+| `PRECONDITION_FAILED` | 412 | 该用户无 `provider_customer_id`（从未订阅过） |
 
 ---
 
-## 5. Stripe Webhook（后端内部，扩展不参与）
+## 5. Paddle Webhook（后端内部，扩展不参与）
 
-后端需在 `/api/stripe/webhook` 处理以下事件，并在处理成功后写 `user_entitlements` 表。每条事件**必须按 `event.id` 幂等**（TTL 30 天）。
+### 5.1 端点
 
-| Stripe 事件                     | 行为                                                                                                    |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `checkout.session.completed`    | 创建/激活订阅 → 写入 `tier=pro`, `features`, `expiresAt`                                                |
-| `customer.subscription.updated` | 续费、plan 变更 → 更新 `expiresAt` / `features`                                                         |
-| `customer.subscription.deleted` | 立即到期 → `tier=free`, 清空 Pro `features`                                                             |
-| `invoice.payment_failed`        | **7 天宽限期**：保留 `tier=pro` 但加 flag `in_grace_period`（扩展端可用 `quota` 或单独字段展示 banner） |
-| `invoice.payment_succeeded`     | 清除宽限期 flag                                                                                         |
+```
+POST /api/billing/webhook/paddle
+```
 
-**签名校验**：所有 webhook 必须用 `STRIPE_WEBHOOK_SECRET` 验证 `Stripe-Signature` header。校验失败直接 400，不重试、不落库。
+路径使用 `/billing/webhook/` 前缀，预留将来添加 `/api/billing/webhook/stripe`，共用同一套 `apply.ts` 内部逻辑。
 
-**关键变量**
+### 5.2 签名校验
 
-- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`：仅后端持有，严禁出现在扩展 build。本扩展的 `check-api-key-env` Vite 插件会拦截 `WXT_*_API_KEY` 泄漏，但最终 review 必须人肉确认。
+Paddle 在请求头附带：
+
+```
+Paddle-Signature: ts=<unix_timestamp>;h1=<hmac-sha256>
+```
+
+校验方法：以 `PADDLE_WEBHOOK_SECRET` 为密钥，对字符串 `"<ts>:<raw_body>"` 做 HMAC-SHA256，对比 `h1` 字段。校验失败直接返回 400，不重试、不落库。
+
+### 5.3 幂等
+
+所有 webhook 事件**必须按 `event.event_id` 幂等**，使用 `billing_webhook_events` 表：
+
+```sql
+CREATE TABLE billing_webhook_events (
+  event_id   TEXT PRIMARY KEY,
+  received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  -- TTL 30 天由 cron 或 partitioning 清理
+);
+```
+
+处理前先 `INSERT OR IGNORE`；若已存在则直接返回 200（不重新处理）。
+
+### 5.4 事件映射表
+
+| Paddle 事件                          | 内部行为                                                                     | `user_entitlements` 写入列                                     |
+| ------------------------------------ | ---------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `subscription.activated`             | 首次激活订阅                                                                 | `tier=pro`, `features`, `expires_at`, `billing_provider=paddle`, `provider_subscription_id`, `provider_customer_id` |
+| `subscription.created`               | 订阅创建（通常与 activated 同时触发）                                        | 同上                                                           |
+| `subscription.updated`               | 续费、plan 变更、宽限期清除                                                  | `expires_at`, `features`, `grace_until=null`（清宽限期时）     |
+| `subscription.canceled`              | 用户取消；在当前计费周期末生效                                               | 保留 `tier=pro` 至 `expires_at`，到期后由 cron 降级            |
+| `subscription.past_due`              | 支付失败，进入宽限期                                                         | `grace_until = NOW() + 7 days`                                 |
+| `subscription.paused`                | 订阅暂停                                                                     | `tier=free`, 清空 Pro `features`, `grace_until=null`           |
+| `transaction.completed`              | 一次性支付成功（或订阅首次付款）                                             | 同 `subscription.activated`                                    |
+| `transaction.payment_failed`         | 支付失败（重试中）                                                           | `grace_until = NOW() + 7 days`（若尚未设置）                   |
+
+> **注：** 将来添加 Stripe 支持时，在 `/api/billing/webhook/stripe` 注册新处理器，共用同一套 `apply.ts` 写 `user_entitlements` 的逻辑，只需适配事件名映射。
+
+### 5.5 关键环境变量
+
+- `PADDLE_SECRET_KEY` / `PADDLE_WEBHOOK_SECRET`：仅后端持有，严禁出现在扩展 build。
 
 ---
 
@@ -221,7 +259,7 @@ const EntitlementsSchema = z.object({
   "user_id": "u_xxx",
   "tier": "pro",
   "latency_ms": 42,
-  "outcome": "success" | "quota_exceeded" | "error",
+  "outcome": "success | quota_exceeded | error",
   "request_id": "uuid-or-null"
 }
 ```
@@ -230,22 +268,27 @@ const EntitlementsSchema = z.object({
 
 - `billing_quota_consumed` props: `bucket`, `amount`, `remaining`, `tier`
 - `billing_quota_exceeded` props: `bucket`, `tier`
-- `billing_checkout_started` props: `plan`
-- `billing_checkout_completed` props: `plan`, `cents`
-- `billing_subscription_cancelled` props: `tier_before`
-
-扩展端与后端**可能双方都上报**（确保至少一端有）；用 `$insert_id = request_id` 做去重。
+- `billing_checkout_started` props: `plan`, `provider`
+- `billing_checkout_completed` props: `plan`, `cents`, `provider`
+- `billing_subscription_cancelled` props: `tier_before`, `provider`
 
 ---
 
 ## 7. 版本演进
 
-- 本契约标为 v1。扩展端 `src/types/entitlements.ts` 在任何破坏性变更时同步 bump。
-- 增加新 `FeatureKey` / `QuotaBucket` key 为**非破坏性**，后端可先上线。扩展端老版本会忽略未知字段。
-- 移除 `FeatureKey` / 改字段类型为**破坏性**，需：
-  1. 契约 v2 草稿 PR
+- **增加新 `FeatureKey` / `QuotaBucket` key** 为**非破坏性**，后端可先上线。扩展端老版本会忽略未知字段。
+- **移除 `FeatureKey` / 改字段类型** 为**破坏性**，需：
+  1. 契约 vN 草稿 PR
   2. 扩展仓 PR 同步 schema
   3. 后端灰度切换
+
+### v2 变更摘要（2026-04-22）
+
+- `EntitlementsSchema` 新增三个字段：`graceUntil`、`billingEnabled`、`billingProvider`
+- `billingContract` 新增两个 procedure：`createCheckoutSession`、`createPortalSession`
+- `createCheckoutSession` URL 白名单限制改为 `getutranslate.com` + `chrome-extension://`（原 `readfrog.app`）
+- Webhook 端点从 `/api/stripe/webhook` 改为 `/api/billing/webhook/paddle`（支付商前缀隔离）
+- 所有字段名用 `billing_provider` / `provider_customer_id` / `provider_subscription_id`，不再用 `stripe_*`
 
 ---
 
@@ -253,20 +296,21 @@ const EntitlementsSchema = z.object({
 
 后端实现完以下可供扩展联调：
 
-- [ ] `billing.getEntitlements` 返回 Free/Pro 两种账号
+- [ ] `billing.getEntitlements` 返回 Free/Pro 两种账号（含 v2 字段）
 - [ ] `billing.consumeQuota` 幂等（同 request_id 调两次返回一致）
 - [ ] `billing.consumeQuota` Free 账号调 Pro 桶返回 403
-- [ ] `billing.createCheckoutSession` 返回有效 Stripe URL
-- [ ] webhook `checkout.session.completed` 之后 30s 内 `getEntitlements` 反映为 Pro
-- [ ] webhook `customer.subscription.deleted` 后反映为 Free
-- [ ] webhook `invoice.payment_failed` 进入 7 天宽限
-
-扩展端 M0 Task 1–6 完成后即可跑通联调。
+- [ ] `billing.createCheckoutSession` 返回有效 Paddle Checkout URL
+- [ ] `billing.createCheckoutSession` billingEnabled=false 返回 412
+- [ ] `billing.createPortalSession` 无 provider_customer_id 返回 412
+- [ ] webhook `subscription.activated` 之后 30s 内 `getEntitlements` 反映为 Pro
+- [ ] webhook `subscription.canceled` 后反映为 Free
+- [ ] webhook `subscription.past_due` 后 `graceUntil` 有值
 
 ---
 
 ## 9. 变更记录
 
-| 日期       | 版本     | 说明 | 作者                    |
-| ---------- | -------- | ---- | ----------------------- |
-| 2026-04-20 | v1 draft | 初稿 | @iannoying (via Claude) |
+| 日期       | 版本     | 说明                                                       | 作者                    |
+| ---------- | -------- | ---------------------------------------------------------- | ----------------------- |
+| 2026-04-20 | v1 draft | 初稿（Stripe-native）                                      | @iannoying (via Claude) |
+| 2026-04-22 | v2       | Paddle-native rewrite；EntitlementsSchema +3 字段；+2 procedure | Phase 4 T0 (via Claude) |
