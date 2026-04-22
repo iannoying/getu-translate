@@ -20,7 +20,7 @@ URL resolver.
   include `OFL.txt` alongside the font file in this directory.
 - **Character coverage:** GB 2312 Level 1 (3755 most-common Simplified
   Chinese chars) + Basic Latin + Latin-1 Supplement + General Punctuation
-  + CJK Symbols/Punctuation + Hiragana + Katakana. Total ~4300 glyphs.
+  - CJK Symbols/Punctuation + Hiragana + Katakana. Total ~4300 glyphs.
 - **Actual size after subsetting:** ~815 KB (the full OTF is ~16 MB).
   Shrunk from the earlier ~5 MB subset (which kept the entire `U+4E00-9FFF`
   CJK Unified 20K+ glyph block) by limiting to GB 2312 Level 1 — covers
