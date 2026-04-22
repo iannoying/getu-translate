@@ -47,11 +47,13 @@ describe("normalizePaddleEvent", () => {
     expect((out as any).subscriptionId).toBe("sub_01")
   })
 
-  it("subscription.past_due → payment_past_due with +7d grace", () => {
+  it("subscription.past_due → payment_past_due with +7d grace anchored on occurred_at", () => {
+    // grace is anchored to occurred_at (event time), NOT current_billing_period.ends_at,
+    // because past_due often fires after the billing period has already ended.
     const out = normalizePaddleEvent(base({ event_type: "subscription.past_due" }))
     expect(out.kind).toBe("payment_past_due")
     expect((out as any).graceUntil).toBe(
-      new Date("2026-06-01T00:00:00.000Z").getTime() + 7 * 86400_000
+      new Date("2026-05-01T00:00:00.000Z").getTime() + 7 * 86400_000
     )
   })
 

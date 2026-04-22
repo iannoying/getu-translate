@@ -20,21 +20,26 @@ async function runWebhook(
   const eventId = evt?.event_id
   if (!eventId) return c.json({ error: "missing_event_id" }, 400)
 
+  // Atomic idempotency: INSERT OR IGNORE → returning.
+  // If 0 rows returned, this event_id already existed — another request
+  // (or a prior processing attempt) owns it. Short-circuit to avoid
+  // concurrent apply. Safer than read-then-check which has a TOCTOU window.
+  let inserted
   try {
-    await db.insert(schema.billingWebhookEvents).values({
+    inserted = await db.insert(schema.billingWebhookEvents).values({
       eventId,
       provider: "paddle",
       eventType: evt.event_type ?? "unknown",
       payloadJson: raw,
       status: "received",
-    }).onConflictDoNothing()
+    }).onConflictDoNothing().returning({ eventId: schema.billingWebhookEvents.eventId })
   } catch (err) {
     console.error("[paddle-webhook] insert event failed", err)
+    return c.json({ error: "insert_failed" }, 500)
   }
-
-  const existing = await db.select().from(schema.billingWebhookEvents)
-    .where(eq(schema.billingWebhookEvents.eventId, eventId)).get()
-  if (existing?.status === "processed") return c.json({ ok: true, duplicate: true })
+  if (!inserted || inserted.length === 0) {
+    return c.json({ ok: true, duplicate: true })
+  }
 
   try {
     const normalized = normalizePaddleEvent(evt)
