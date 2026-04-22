@@ -168,8 +168,7 @@ const EntitlementsSchema = z.object({
 |-----------|------|------|
 | `UNAUTHORIZED` | 401 | 未登录 |
 | `BAD_REQUEST` | 400 | plan/URL 不合法 |
-| `PRECONDITION_FAILED` | 412 | `billingEnabled=false` 该用户尚未开放计费功能 |
-| `PRECONDITION_FAILED` | 412 | 用户已持有活跃 Pro 订阅（改走 `createPortalSession`） |
+| `PRECONDITION_FAILED` | 412 | Billing is disabled (`BILLING_ENABLED=false`) OR user already has an active Pro subscription |
 
 ---
 

@@ -70,6 +70,9 @@ describe("@getu/contract billing", () => {
         features: [],
         quota: {},
         expiresAt: null,
+        graceUntil: null,
+        billingEnabled: false,
+        billingProvider: null,
       }),
     ).toThrow()
   })

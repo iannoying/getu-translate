@@ -79,6 +79,11 @@ export type ConsumeQuotaOutput = z.infer<typeof consumeQuotaOutputSchema>
 
 // ---- checkout / portal schemas ----
 
+// TODO(phase4-hardening): Pin `chrome-extension://` prefix to the specific
+// Chrome Web Store extension ID once published. Currently accepts any
+// extension origin — open-redirect guard is only by protocol prefix. Safe
+// for Phase 4 (no published store build yet) but must tighten before
+// general availability.
 const redirectUrlSchema = z.string().refine(
   (s) =>
     s.startsWith("https://getutranslate.com/") ||
