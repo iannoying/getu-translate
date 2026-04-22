@@ -12,6 +12,8 @@ export interface WorkerEnv {
   BIANXIE_API_KEY: string
   BIANXIE_BASE_URL: string
   AI_JWT_SECRET: string
+  // Phase 4: billing feature flag ("true" | "false")
+  BILLING_ENABLED: string
 }
 
 export const SecretsSchema = z.object({

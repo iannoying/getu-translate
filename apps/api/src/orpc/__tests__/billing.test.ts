@@ -20,7 +20,7 @@ vi.mock("../../billing/quota", () => ({
 }))
 
 function ctx(session: Ctx["session"]): Ctx {
-  return { env: { DB: {} as any } as Ctx["env"], auth: {} as Ctx["auth"], session }
+  return { env: { DB: {} as any, BILLING_ENABLED: "false" } as Ctx["env"], auth: {} as Ctx["auth"], session }
 }
 
 beforeEach(() => vi.clearAllMocks())
@@ -40,7 +40,7 @@ describe("billing.getEntitlements", () => {
       context: ctx({ user: { id: "u42" }, session: { id: "s1" } } as any),
     })
     await client.billing.getEntitlements({})
-    expect(loadEntitlements).toHaveBeenCalledWith(expect.anything(), "u42")
+    expect(loadEntitlements).toHaveBeenCalledWith(expect.anything(), "u42", false)
   })
 
   it("rejects anonymous", async () => {
