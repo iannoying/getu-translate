@@ -15,6 +15,7 @@ function UpgradeSuccess() {
       return
 
     let attempts = 0
+    let closeTimer: ReturnType<typeof setTimeout> | undefined
     const t = setInterval(async () => {
       attempts++
       try {
@@ -22,8 +23,8 @@ function UpgradeSuccess() {
         if (ent.tier === "pro") {
           setStatus("done")
           clearInterval(t)
-          const closeTimer = setTimeout(() => window.close(), 3000)
-          return closeTimer
+          closeTimer = setTimeout(() => window.close(), 3000)
+          return
         }
       }
       catch {
@@ -35,7 +36,11 @@ function UpgradeSuccess() {
       }
     }, 3000)
 
-    return () => clearInterval(t)
+    return () => {
+      clearInterval(t)
+      if (closeTimer !== undefined)
+        clearTimeout(closeTimer)
+    }
   }, [cancelled])
 
   if (status === "cancelled") {
