@@ -7,67 +7,13 @@ const REQUEST_ID = "01929b2e-test-7c9e-9f3a-8b4c5d6e7f80"
 
 /**
  * Build a minimal fake drizzle-like DB.
- *
- * `rows` maps table symbol → row or undefined.
+ * `selectReturns` is a list of rows returned in call order (0-indexed).
  * The fake supports the query pattern used by consumeQuota:
  *   db.select().from(table).where(...).get()
- *   db.insert(table).values(...) — returns a chainable stub
  *   db.insert(table).values(...).onConflictDoUpdate(...) — chainable stub
  *   db.batch([...]) — vi.fn resolving to undefined
  */
-function makeFakeDb(opts: {
-  usageLogRow?: Record<string, unknown>
-  quotaPeriodRow?: Record<string, unknown>
-  userEntitlementRow?: Record<string, unknown>
-}) {
-  const batchFn = vi.fn(async () => undefined)
-
-  // We track which table is being queried by cycling through calls in order.
-  // consumeQuota always calls in a predictable order so we key by (from) table symbol.
-  // Using a simple approach: per-table canned row.
-
-  function selectFrom(table: unknown) {
-    // Identify table by comparing to known schema references
-    const row =
-      table === "usageLog"
-        ? opts.usageLogRow
-        : table === "quotaPeriod"
-          ? opts.quotaPeriodRow
-          : table === "userEntitlements"
-            ? opts.userEntitlementRow
-            : undefined
-
-    return {
-      where: () => ({ get: async () => row }),
-    }
-  }
-
-  const db = {
-    select: () => ({
-      from: (table: unknown) => selectFrom(table),
-    }),
-    insert: (_table: unknown) => ({
-      values: (_vals: unknown) => ({
-        onConflictDoUpdate: (_opts: unknown) => "insertStmt",
-        // for plain insert without onConflictDoUpdate
-        toString: () => "insertStmt",
-      }),
-      // Expose as a statement directly too
-    }),
-    batch: batchFn,
-  } as any
-
-  return { db, batchFn }
-}
-
-// Build a fake DB where the table identity is resolved from the schema
-// The real code does: db.select().from(schema.usageLog)...
-// We need to intercept based on which schema object is passed.
-// Let's use a smarter fake: track call order.
-function makeFakeDbByOrder(opts: {
-  // selects returned in call order (0-indexed)
-  selectReturns: Array<Record<string, unknown> | undefined>
-}) {
+function makeFakeDbByOrder(selectReturns: Array<Record<string, unknown> | undefined>) {
   const batchFn = vi.fn(async () => undefined)
   let callIdx = 0
 
@@ -76,7 +22,7 @@ function makeFakeDbByOrder(opts: {
       from: (_table: unknown) => ({
         where: (_cond: unknown) => ({
           get: async () => {
-            const row = opts.selectReturns[callIdx++]
+            const row = selectReturns[callIdx++]
             return row
           },
         }),
@@ -90,6 +36,9 @@ function makeFakeDbByOrder(opts: {
     batch: batchFn,
   } as any
 
+  // Expose batch directly so tests can assert on db.batch
+  db.batch = batchFn
+
   return { db, batchFn }
 }
 
@@ -100,13 +49,11 @@ describe("consumeQuota", () => {
       //   0: usageLog.get() → undefined (no duplicate)
       //   1: userEntitlements.get() → pro row
       //   2: quotaPeriod.get() → undefined (first use)
-      const { db, batchFn } = makeFakeDbByOrder({
-        selectReturns: [
-          undefined, // usageLog — no existing row
-          { tier: "pro", expiresAt: new Date("2099-01-01"), features: "[]" }, // userEntitlements
-          undefined, // quotaPeriod — no prior period row
-        ],
-      })
+      const { db, batchFn } = makeFakeDbByOrder([
+        undefined, // usageLog — no existing row
+        { tier: "pro", expiresAt: new Date("2099-01-01"), features: "[]" }, // userEntitlements
+        undefined, // quotaPeriod — no prior period row
+      ])
 
       const result = await consumeQuota(db, USER_ID, "ai_translate_monthly", 100, REQUEST_ID, NOW)
 
@@ -117,13 +64,11 @@ describe("consumeQuota", () => {
     })
 
     it("accounts for existing period usage", async () => {
-      const { db, batchFn } = makeFakeDbByOrder({
-        selectReturns: [
-          undefined, // usageLog — no duplicate
-          { tier: "pro", expiresAt: new Date("2099-01-01"), features: "[]" },
-          { used: 50_000, bucket: "ai_translate_monthly", periodKey: "2026-04" },
-        ],
-      })
+      const { db, batchFn } = makeFakeDbByOrder([
+        undefined, // usageLog — no duplicate
+        { tier: "pro", expiresAt: new Date("2099-01-01"), features: "[]" },
+        { used: 50_000, bucket: "ai_translate_monthly", periodKey: "2026-04" },
+      ])
 
       const result = await consumeQuota(db, USER_ID, "ai_translate_monthly", 1_000, REQUEST_ID, NOW)
 
@@ -134,13 +79,11 @@ describe("consumeQuota", () => {
 
   describe("QUOTA_EXCEEDED", () => {
     it("throws QUOTA_EXCEEDED when amount would exceed limit", async () => {
-      const { db, batchFn } = makeFakeDbByOrder({
-        selectReturns: [
-          undefined,
-          { tier: "pro", expiresAt: new Date("2099-01-01"), features: "[]" },
-          { used: 99_999, bucket: "ai_translate_monthly", periodKey: "2026-04" },
-        ],
-      })
+      const { db, batchFn } = makeFakeDbByOrder([
+        undefined,
+        { tier: "pro", expiresAt: new Date("2099-01-01"), features: "[]" },
+        { used: 99_999, bucket: "ai_translate_monthly", periodKey: "2026-04" },
+      ])
 
       await expect(
         consumeQuota(db, USER_ID, "ai_translate_monthly", 2, REQUEST_ID, NOW),
@@ -152,12 +95,10 @@ describe("consumeQuota", () => {
 
   describe("FORBIDDEN — free tier on ai_translate_monthly", () => {
     it("throws FORBIDDEN before capacity check", async () => {
-      const { db, batchFn } = makeFakeDbByOrder({
-        selectReturns: [
-          undefined, // usageLog — no duplicate
-          undefined, // userEntitlements — no row → defaults to free
-        ],
-      })
+      const { db, batchFn } = makeFakeDbByOrder([
+        undefined, // usageLog — no duplicate
+        undefined, // userEntitlements — no row → defaults to free
+      ])
 
       await expect(
         consumeQuota(db, USER_ID, "ai_translate_monthly", 1, REQUEST_ID, NOW),
@@ -173,13 +114,11 @@ describe("consumeQuota", () => {
       //   0: usageLog.get() → existing row
       //   1: quotaPeriod.get()
       //   2: userEntitlements.get()
-      const { db, batchFn } = makeFakeDbByOrder({
-        selectReturns: [
-          { id: "prev-id", userId: USER_ID, requestId: REQUEST_ID }, // usageLog existing
-          { used: 100, bucket: "ai_translate_monthly", periodKey: "2026-04" }, // quotaPeriod
-          { tier: "pro", expiresAt: new Date("2099-01-01"), features: "[]" }, // userEntitlements
-        ],
-      })
+      const { db, batchFn } = makeFakeDbByOrder([
+        { id: "prev-id", userId: USER_ID, requestId: REQUEST_ID }, // usageLog existing
+        { used: 100, bucket: "ai_translate_monthly", periodKey: "2026-04" }, // quotaPeriod
+        { tier: "pro", expiresAt: new Date("2099-01-01"), features: "[]" }, // userEntitlements
+      ])
 
       const result = await consumeQuota(db, USER_ID, "ai_translate_monthly", 100, REQUEST_ID, NOW)
 
@@ -192,13 +131,11 @@ describe("consumeQuota", () => {
 
   describe("daily bucket", () => {
     it("returns daily reset_at for input_translate_daily", async () => {
-      const { db } = makeFakeDbByOrder({
-        selectReturns: [
-          undefined, // usageLog
-          { tier: "pro", expiresAt: new Date("2099-01-01"), features: "[]" },
-          undefined, // quotaPeriod
-        ],
-      })
+      const { db } = makeFakeDbByOrder([
+        undefined, // usageLog
+        { tier: "pro", expiresAt: new Date("2099-01-01"), features: "[]" },
+        undefined, // quotaPeriod
+      ])
 
       const result = await consumeQuota(db, USER_ID, "input_translate_daily", 5, REQUEST_ID, NOW)
 
@@ -210,13 +147,11 @@ describe("consumeQuota", () => {
 
   describe("lifetime bucket — vocab_count", () => {
     it("returns null reset_at for vocab_count", async () => {
-      const { db } = makeFakeDbByOrder({
-        selectReturns: [
-          undefined,
-          { tier: "pro", expiresAt: new Date("2099-01-01"), features: "[]" },
-          undefined,
-        ],
-      })
+      const { db } = makeFakeDbByOrder([
+        undefined,
+        { tier: "pro", expiresAt: new Date("2099-01-01"), features: "[]" },
+        undefined,
+      ])
 
       const result = await consumeQuota(db, USER_ID, "vocab_count", 1, REQUEST_ID, NOW)
 
@@ -228,13 +163,11 @@ describe("consumeQuota", () => {
 
   describe("free tier daily bucket", () => {
     it("returns remaining within free limit for input_translate_daily", async () => {
-      const { db, batchFn } = makeFakeDbByOrder({
-        selectReturns: [
-          undefined,
-          undefined, // userEntitlements → defaults to free
-          undefined, // quotaPeriod → first use
-        ],
-      })
+      const { db, batchFn } = makeFakeDbByOrder([
+        undefined,
+        undefined, // userEntitlements → defaults to free
+        undefined, // quotaPeriod → first use
+      ])
 
       const result = await consumeQuota(db, USER_ID, "input_translate_daily", 10, "req-free-1", NOW)
 
@@ -244,19 +177,32 @@ describe("consumeQuota", () => {
     })
 
     it("throws QUOTA_EXCEEDED when free daily limit is hit", async () => {
-      const { db, batchFn } = makeFakeDbByOrder({
-        selectReturns: [
-          undefined,
-          undefined, // free tier
-          { used: 45, bucket: "input_translate_daily", periodKey: "2026-04-22" },
-        ],
-      })
+      const { db, batchFn } = makeFakeDbByOrder([
+        undefined,
+        undefined, // free tier
+        { used: 45, bucket: "input_translate_daily", periodKey: "2026-04-22" },
+      ])
 
       await expect(
         consumeQuota(db, USER_ID, "input_translate_daily", 10, "req-free-2", NOW),
       ).rejects.toMatchObject({ code: "QUOTA_EXCEEDED" })
 
       expect(batchFn).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("enterprise tier", () => {
+    it("enterprise tier with expiresAt=null is not downgraded", async () => {
+      const { db, batchFn } = makeFakeDbByOrder([
+        undefined,                                   // idempotency miss
+        { tier: "enterprise", expiresAt: null },     // entitlements — no expiry
+        undefined,                                   // quotaPeriod row missing
+      ])
+
+      const res = await consumeQuota(db, USER_ID, "ai_translate_monthly", 5_000, "req-ent", NOW)
+
+      expect(res.remaining).toBeNull() // enterprise ai_translate_monthly = unlimited
+      expect(batchFn).toHaveBeenCalledTimes(1)
     })
   })
 })
