@@ -35,6 +35,7 @@ coverage/
 .turbo/
 .nx/
 .claude/worktrees/
+.claude/scheduled_tasks.lock
 .omc/
 
 tsconfig.local.json
