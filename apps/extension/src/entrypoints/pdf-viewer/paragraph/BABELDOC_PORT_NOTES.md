@@ -59,14 +59,14 @@ while pdf.js already gives us line-ish units.
 
 ## Rules dropped (deferred)
 
-| BabelDOC rule                                               | Why dropped for PR #B1                                               |
-| ----------------------------------------------------------- | -------------------------------------------------------------------- |
-| YOLO layout preprocessing (`_preprocess_formula_layouts`)   | No layout oracle in browser.                                         |
-| `merge_alternating_line_number_paragraphs` (A-L-A merge)    | Requires layout-aware line-number detection; deferred.               |
-| `fix_overlapping_paragraphs` (midpoint box adjustment)      | pdf.js textLayer does not produce overlapping spans in typical PDFs. |
-| `is_cid_paragraph` / `check_cid_paragraph` (CID error gate) | Diagnostic-only for translation stage; not needed at overlay time.   |
-| `calculate_iou_for_boxes` + `is_bbox_contain_in_vertical`   | Used by the overlap fixer above; also deferred.                      |
-| Character-level collision histogram line splitter           | pdf.js already emits at line granularity.                            |
+| BabelDOC rule                                                        | Why dropped for PR #B1                                                                                                                            |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| YOLO layout preprocessing (`_preprocess_formula_layouts`)            | No layout oracle in browser.                                                                                                                      |
+| `merge_alternating_line_number_paragraphs` (A-L-A merge)             | Requires layout-aware line-number detection; deferred.                                                                                            |
+| `fix_overlapping_paragraphs` (midpoint box adjustment)               | pdf.js textLayer does not produce overlapping spans in typical PDFs.                                                                              |
+| `is_cid_paragraph` / `check_cid_paragraph` (CID error gate)          | Diagnostic-only for translation stage; not needed at overlay time.                                                                                |
+| `calculate_iou_for_boxes` + `is_bbox_contain_in_vertical`            | Used by the overlap fixer above; also deferred.                                                                                                   |
+| Character-level collision histogram line splitter                    | pdf.js already emits at line granularity.                                                                                                         |
 | `SHORT_LINE_SPLIT_FACTOR` (split when prev line width < 0.5× median) | Dropped for PR #B1 — deferred; needs median-width computation; mostly affects last-line detection which is orthogonal to the B1 scaffolding goal. |
 
 ## Known limitations flagged in `aggregate.ts`
