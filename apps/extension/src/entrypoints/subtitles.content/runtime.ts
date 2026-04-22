@@ -1,9 +1,11 @@
+import { bilibiliHandler } from "./platforms/bilibili/handler"
 import { createPlatformRegistry } from "./platforms/registry"
 import { youtubeHandler } from "./platforms/youtube/handler"
 
 const registry = createPlatformRegistry()
 registry.register(youtubeHandler)
-// Future PRs register bilibiliHandler, tedHandler, xHandler here
+registry.register(bilibiliHandler)
+// Future PRs register tedHandler, xHandler here
 
 let hasBootstrappedSubtitlesRuntime = false
 
