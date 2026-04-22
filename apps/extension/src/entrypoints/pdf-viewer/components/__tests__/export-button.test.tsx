@@ -87,7 +87,7 @@ describe("exportButton", () => {
     const btn = screen.getByTestId("pdf-export-button")
     expect(btn).toBeDisabled()
     expect(btn.getAttribute("data-export-enabled")).toBe("false")
-    expect(btn).toHaveAttribute("title", "Pro feature — upgrade to download")
+    expect(btn).toHaveAttribute("title", "pdfViewer.export.tooltipDisabled")
   })
 
   it("renders disabled for a Pro user without the pdf_translate_export feature", () => {
@@ -102,7 +102,7 @@ describe("exportButton", () => {
     const btn = screen.getByTestId("pdf-export-button")
     expect(btn).not.toBeDisabled()
     expect(btn.getAttribute("data-export-enabled")).toBe("true")
-    expect(btn).toHaveAttribute("title", "Download bilingual PDF")
+    expect(btn).toHaveAttribute("title", "pdfViewer.export.tooltipEnabled")
   })
 
   it("no-ops when a Free user clicks (exporter not called)", async () => {
@@ -155,7 +155,7 @@ describe("exportButton", () => {
       expect(btn).toHaveAttribute("aria-busy", "true")
     })
     expect(btn).toBeDisabled()
-    expect(btn.textContent).toMatch(/exporting/i)
+    expect(btn.textContent).toBe("pdfViewer.export.buttonLabelBusy")
 
     resolveExport!(new Blob(["x"], { type: "application/pdf" }))
 

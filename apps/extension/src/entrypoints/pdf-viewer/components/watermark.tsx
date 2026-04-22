@@ -23,6 +23,7 @@
  * one below the export button (`z-index: 10`) so the button stays clickable
  * above the watermark on narrow viewports.
  */
+import { i18n } from "#imports"
 import { useAtomValue, useSetAtom } from "jotai"
 import { hasFeature, isPro } from "@/types/entitlements"
 import { entitlementsAtom } from "@/utils/atoms/entitlements"
@@ -48,7 +49,7 @@ export function Watermark() {
     <button
       type="button"
       data-testid="pdf-watermark"
-      aria-label="Translated by GetU. Upgrade to remove watermark."
+      aria-label={i18n.t("pdfViewer.watermark.ariaLabel")}
       onClick={() => setDialogState({ open: true, source: "pdf-translation-watermark" })}
       style={{
         position: "fixed",
@@ -66,7 +67,7 @@ export function Watermark() {
         fontFamily: "inherit",
       }}
     >
-      Translated by GetU — Upgrade to remove
+      {i18n.t("pdfViewer.watermark.label")}
     </button>
   )
 }

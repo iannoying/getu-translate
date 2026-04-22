@@ -2,6 +2,7 @@ import type { Paragraph } from "./paragraph/types"
 import type { SegmentKey } from "./translation/atoms"
 import type { EnqueuePolicy } from "./translation/enqueue-policy"
 import type { PdfQuotaGate } from "./translation/pdf-quota-gate"
+import { i18n } from "#imports"
 import { FREE_PDF_PAGES_PER_DAY } from "@getu/definitions"
 import { createStore } from "jotai"
 import { hasFeature, isPro } from "@/types/entitlements"
@@ -128,7 +129,7 @@ const retroEnqueueRef: { current: () => void } = {
 async function boot() {
   const src = parseSrcParam(location.search)
   if (!src) {
-    document.body.textContent = "Missing ?src= parameter"
+    document.body.textContent = i18n.t("pdfViewer.error.missingSrc")
     return
   }
 
@@ -396,11 +397,11 @@ async function renderPdf(
     parsedSrc = new URL(src)
   }
   catch {
-    document.body.textContent = "Invalid PDF URL"
+    document.body.textContent = i18n.t("pdfViewer.error.invalidUrl")
     return
   }
   if (!["http:", "https:", "file:"].includes(parsedSrc.protocol)) {
-    document.body.textContent = `Unsupported URL scheme: ${parsedSrc.protocol}`
+    document.body.textContent = i18n.t("pdfViewer.error.unsupportedScheme", [parsedSrc.protocol])
     return
   }
 
@@ -842,5 +843,8 @@ async function mountWatermark() {
 }
 
 boot().catch((err) => {
-  document.body.textContent = `Failed to load PDF: ${err instanceof Error ? err.message : String(err)}`
+  document.body.textContent = i18n.t(
+    "pdfViewer.error.loadFailed",
+    [err instanceof Error ? err.message : String(err)],
+  )
 })

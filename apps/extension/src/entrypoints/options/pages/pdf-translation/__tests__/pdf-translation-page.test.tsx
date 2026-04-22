@@ -115,14 +115,18 @@ describe("pdfTranslationPage", () => {
 
   it("renders the today's usage section", () => {
     renderWithProviders(<PdfTranslationPage />)
-    expect(screen.getByText("Today's usage")).toBeInTheDocument()
+    expect(
+      screen.getByText("options.pdfTranslation.usage.title"),
+    ).toBeInTheDocument()
   })
 
   it("renders the cache section with a clear button", () => {
     renderWithProviders(<PdfTranslationPage />)
-    expect(screen.getByText("Translation cache")).toBeInTheDocument()
     expect(
-      screen.getByRole("button", { name: "Clear cache" }),
+      screen.getByText("options.pdfTranslation.cache.title"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "options.pdfTranslation.cache.clear" }),
     ).toBeInTheDocument()
   })
 })

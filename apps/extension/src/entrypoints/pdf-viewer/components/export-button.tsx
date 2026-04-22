@@ -13,9 +13,9 @@
  *   - On click (Free): no-op for Task 3. The Task 4 watermark owns the
  *     full upsell flow (UpgradeDialog) so we avoid duplicating it here.
  *
- * i18n: labels are English literals for Task 3; Task 6 converts them to
- * `i18n.t(...)` keys across 8 locales.
+ * i18n: labels are sourced from `pdfViewer.export.*` keys (M3 PR#C Task 6).
  */
+import { i18n } from "#imports"
 import { useAtomValue } from "jotai"
 import { useState } from "react"
 import { hasFeature, isPro } from "@/types/entitlements"
@@ -54,8 +54,7 @@ export function ExportButton(props: ExportButtonProps) {
     }
     catch (err) {
       // Keep this non-fatal — the viewer stays usable after a failed export.
-      // Surfacing a user-visible error is deferred to Task 6 (i18n) + a later
-      // toast/snackbar PR.
+      // Surfacing a user-visible error is deferred to a later toast/snackbar PR.
       console.error("[pdf-viewer] export failed:", err)
     }
     finally {
@@ -64,8 +63,8 @@ export function ExportButton(props: ExportButtonProps) {
   }
 
   const title = canExport
-    ? "Download bilingual PDF"
-    : "Pro feature — upgrade to download"
+    ? i18n.t("pdfViewer.export.tooltipEnabled")
+    : i18n.t("pdfViewer.export.tooltipDisabled")
 
   return (
     <button
@@ -73,7 +72,7 @@ export function ExportButton(props: ExportButtonProps) {
       data-testid="pdf-export-button"
       data-export-enabled={canExport ? "true" : "false"}
       disabled={!canExport || busy}
-      aria-label="Download bilingual PDF"
+      aria-label={i18n.t("pdfViewer.export.ariaLabel")}
       aria-busy={busy ? "true" : "false"}
       title={title}
       onClick={handleClick}
@@ -89,7 +88,7 @@ export function ExportButton(props: ExportButtonProps) {
         opacity: canExport ? 1 : 0.7,
       }}
     >
-      {busy ? "Exporting…" : "⬇ Download bilingual PDF"}
+      {busy ? i18n.t("pdfViewer.export.buttonLabelBusy") : i18n.t("pdfViewer.export.buttonLabelWithIcon")}
     </button>
   )
 }

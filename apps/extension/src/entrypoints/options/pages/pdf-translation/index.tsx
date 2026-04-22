@@ -265,13 +265,15 @@ function PdfTranslationUsage() {
     }
   }, [])
 
-  const limitText = isUnlimited ? "unlimited" : String(FREE_PDF_PAGES_PER_DAY)
+  const limitText = isUnlimited
+    ? i18n.t("options.pdfTranslation.usage.unlimited")
+    : String(FREE_PDF_PAGES_PER_DAY)
 
   return (
     <ConfigCard
       id="pdf-translation-usage"
-      title="Today's usage"
-      description="Pages translated today; resets at midnight local time"
+      title={i18n.t("options.pdfTranslation.usage.title")}
+      description={i18n.t("options.pdfTranslation.usage.description")}
     >
       <div className="text-sm font-mono">
         {used}
@@ -311,10 +313,9 @@ function PdfTranslationCache() {
 
   const handleClear = async () => {
     // Use native `confirm` rather than a custom dialog — this matches the
-    // weight of the action (single-click destructive, localisable text
-    // currently English-only; i18n conversion lives in Task 6).
+    // weight of the action (single-click destructive).
     // eslint-disable-next-line no-alert
-    if (!globalThis.confirm("Clear all cached PDF translations?"))
+    if (!globalThis.confirm(i18n.t("options.pdfTranslation.cache.clearConfirm")))
       return
     try {
       await clearPdfTranslations()
@@ -324,21 +325,18 @@ function PdfTranslationCache() {
     }
   }
 
+  const countText = count === 1
+    ? i18n.t("options.pdfTranslation.cache.countOne", [String(count)])
+    : i18n.t("options.pdfTranslation.cache.countMany", [String(count)])
+
   return (
     <ConfigCard
       id="pdf-translation-cache"
-      title="Translation cache"
-      description="Cached pages are reused when re-opening the same PDF; 30-day expiry"
+      title={i18n.t("options.pdfTranslation.cache.title")}
+      description={i18n.t("options.pdfTranslation.cache.description")}
     >
       <div className="flex items-center justify-between gap-3">
-        <div className="text-sm">
-          {count}
-          {" "}
-          page
-          {count === 1 ? "" : "s"}
-          {" "}
-          cached
-        </div>
+        <div className="text-sm">{countText}</div>
         <Button
           type="button"
           size="sm"
@@ -346,7 +344,7 @@ function PdfTranslationCache() {
           onClick={handleClear}
           disabled={count === 0}
         >
-          Clear cache
+          {i18n.t("options.pdfTranslation.cache.clear")}
         </Button>
       </div>
     </ConfigCard>
