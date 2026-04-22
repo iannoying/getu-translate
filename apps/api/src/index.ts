@@ -6,6 +6,7 @@ import type { WorkerEnv } from "./env"
 import { router } from "./orpc"
 import { handleChatCompletions } from "./ai/proxy"
 import { signAiJwt, AI_JWT_TTL_SECONDS } from "./ai/jwt"
+import { handlePaddleWebhook } from "./billing/webhook-handler"
 
 const app = new Hono<{ Bindings: WorkerEnv }>()
 
@@ -65,5 +66,7 @@ app.post("/ai/v1/token", async (c) => {
 app.post("/ai/v1/chat/completions", async (c) => {
   return handleChatCompletions(c.req.raw, c.env, c.executionCtx)
 })
+
+app.post("/api/billing/webhook/paddle", handlePaddleWebhook)
 
 export default app
