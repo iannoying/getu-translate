@@ -160,4 +160,42 @@ describe("handleChatCompletions", () => {
       "req-42",
     )
   })
+
+  it("non-streaming branch: reads upstream as text and schedules charge", async () => {
+    const { verifyAiJwt } = await import("../jwt")
+    const { consumeQuota } = await import("../../billing/quota")
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    const upstreamBody = JSON.stringify({
+      choices: [{ message: { role: "assistant", content: "Hi" } }],
+      usage: { prompt_tokens: 50, completion_tokens: 10 },
+    })
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(upstreamBody, {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+      ),
+    )
+    const ctx = fakeCtx()
+    const req = new Request("https://x/ai/v1/chat/completions", {
+      method: "POST",
+      headers: { authorization: "Bearer ok", "x-request-id": "req-ns" },
+      body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: "hi" }] }),
+      // no stream: true
+    })
+    const r = await handleChatCompletions(req, env, ctx as any)
+    expect(r.status).toBe(200)
+    await ctx.drain()
+    // gpt-4o-mini: 50*1 + 10*4 = 90 units
+    expect(consumeQuota).toHaveBeenCalledWith(
+      expect.anything(),
+      "u1",
+      "ai_translate_monthly",
+      90,
+      "req-ns",
+    )
+  })
 })
