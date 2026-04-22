@@ -1,6 +1,7 @@
 import type { PlatformHandler } from "../registry"
 import { describe, expect, it } from "vitest"
 import { createPlatformRegistry } from "../registry"
+import { youtubeHandler } from "../youtube/handler"
 
 function makeHandler(kind: string, pattern: RegExp): PlatformHandler {
   return {
@@ -49,5 +50,16 @@ describe("platformRegistry", () => {
     registry.register(second)
 
     expect(registry.dispatch("www.example.com")).toBe(first)
+  })
+
+  it("dispatches www.youtube.com to the youtube handler", () => {
+    const registry = createPlatformRegistry()
+    registry.register(youtubeHandler)
+
+    expect(registry.dispatch("www.youtube.com")).toBe(youtubeHandler)
+    expect(registry.dispatch("youtube.com")).toBe(youtubeHandler)
+    expect(registry.dispatch("m.youtube.com")).toBe(youtubeHandler)
+    expect(registry.dispatch("example.com")).toBeNull()
+    expect(youtubeHandler.kind).toBe("youtube")
   })
 })
