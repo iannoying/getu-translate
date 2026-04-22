@@ -24,10 +24,12 @@ export const userEntitlements = sqliteTable("user_entitlements", {
 /**
  * Raw quota consumption log. Append-only. Idempotent via (userId, requestId).
  * Retained 30 days (cleaned by a future cron; not in Phase 3 scope).
+ * userId is nullable + SET NULL (not CASCADE) to preserve the billing audit trail
+ * even if a user account is deleted.
  */
 export const usageLog = sqliteTable("usage_log", {
   id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
   bucket: text("bucket").notNull(),
   amount: integer("amount").notNull(),
   requestId: text("request_id").notNull(),
@@ -52,6 +54,8 @@ export const quotaPeriod = sqliteTable("quota_period", {
   bucket: text("bucket").notNull(),
   periodKey: text("period_key").notNull(),
   used: integer("used").notNull().default(0),
+  // NOTE: SQLite has no ON UPDATE trigger. UPSERT callers MUST set updatedAt
+  // in the `.set({ ... })` clause explicitly, or this column will freeze at insertion time.
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().default(unixMsDefault),
 }, t => ({
   pk: uniqueIndex("quota_period_pk").on(t.userId, t.bucket, t.periodKey),

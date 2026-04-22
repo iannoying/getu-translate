@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "149c95f6-2454-4067-b33b-779e2c4977f1",
+  "id": "17c16dd3-7954-42cb-bafb-49f6166f40f4",
   "prevId": "bbf24d2e-8d11-441e-ac08-88327d074826",
   "tables": {
     "account": {
@@ -420,7 +420,7 @@
           "name": "user_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "bucket": {
@@ -504,7 +504,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },

@@ -10,7 +10,7 @@ CREATE TABLE `quota_period` (
 CREATE UNIQUE INDEX `quota_period_pk` ON `quota_period` (`user_id`,`bucket`,`period_key`);--> statement-breakpoint
 CREATE TABLE `usage_log` (
 	`id` text PRIMARY KEY NOT NULL,
-	`user_id` text NOT NULL,
+	`user_id` text,
 	`bucket` text NOT NULL,
 	`amount` integer NOT NULL,
 	`request_id` text NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE `usage_log` (
 	`input_tokens` integer,
 	`output_tokens` integer,
 	`created_at` integer DEFAULT (CAST(unixepoch('now','subsec') * 1000 AS INTEGER)) NOT NULL,
-	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `usage_log_user_request_uidx` ON `usage_log` (`user_id`,`request_id`);--> statement-breakpoint
