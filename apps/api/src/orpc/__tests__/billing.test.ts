@@ -11,6 +11,13 @@ vi.mock("@getu/db", async (orig) => {
 vi.mock("../../billing/entitlements", () => ({
   loadEntitlements: vi.fn(async () => FREE_ENTITLEMENTS),
 }))
+vi.mock("../../billing/quota", () => ({
+  consumeQuota: vi.fn(async () => ({
+    bucket: "ai_translate_monthly",
+    remaining: 99_900,
+    reset_at: "2026-05-01T00:00:00.000Z",
+  })),
+}))
 
 function ctx(session: Ctx["session"]): Ctx {
   return { env: { DB: {} as any } as Ctx["env"], auth: {} as Ctx["auth"], session }
@@ -39,5 +46,75 @@ describe("billing.getEntitlements", () => {
   it("rejects anonymous", async () => {
     const client = createRouterClient(router, { context: ctx(null) })
     await expect(client.billing.getEntitlements({})).rejects.toThrow()
+  })
+})
+
+describe("billing.consumeQuota", () => {
+  const validInput = {
+    bucket: "ai_translate_monthly" as const,
+    amount: 100,
+    request_id: "01929b2e-test-7c9e-9f3a-8b4c5d6e7f80",
+  }
+
+  it("rejects anonymous", async () => {
+    const client = createRouterClient(router, { context: ctx(null) })
+    await expect(client.billing.consumeQuota(validInput)).rejects.toThrow()
+  })
+
+  it("rejects invalid bucket", async () => {
+    const client = createRouterClient(router, {
+      context: ctx({ user: { id: "u1" }, session: { id: "s1" } } as any),
+    })
+    await expect(
+      client.billing.consumeQuota({
+        bucket: "invalid_bucket" as any,
+        amount: 1,
+        request_id: "01929b2e-test-7c9e-9f3a-bad-bucket",
+      }),
+    ).rejects.toThrow()
+  })
+
+  it("rejects amount=0 (must be positive)", async () => {
+    const client = createRouterClient(router, {
+      context: ctx({ user: { id: "u1" }, session: { id: "s1" } } as any),
+    })
+    await expect(
+      client.billing.consumeQuota({ ...validInput, amount: 0 }),
+    ).rejects.toThrow()
+  })
+
+  it("proxies result from consumeQuota impl", async () => {
+    const { consumeQuota } = await import("../../billing/quota")
+    const client = createRouterClient(router, {
+      context: ctx({ user: { id: "u1" }, session: { id: "s1" } } as any),
+    })
+    const result = await client.billing.consumeQuota(validInput)
+    expect(result).toEqual({
+      bucket: "ai_translate_monthly",
+      remaining: 99_900,
+      reset_at: "2026-05-01T00:00:00.000Z",
+    })
+    expect(consumeQuota).toHaveBeenCalledWith(
+      expect.anything(), // db
+      "u1",
+      "ai_translate_monthly",
+      100,
+      "01929b2e-test-7c9e-9f3a-8b4c5d6e7f80",
+    )
+  })
+
+  it("passes session.user.id to consumeQuota impl", async () => {
+    const { consumeQuota } = await import("../../billing/quota")
+    const client = createRouterClient(router, {
+      context: ctx({ user: { id: "u99" }, session: { id: "s1" } } as any),
+    })
+    await client.billing.consumeQuota(validInput)
+    expect(consumeQuota).toHaveBeenCalledWith(
+      expect.anything(),
+      "u99",
+      expect.any(String),
+      expect.any(Number),
+      expect.any(String),
+    )
   })
 })

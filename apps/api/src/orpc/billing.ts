@@ -1,5 +1,7 @@
 import { createDb } from "@getu/db"
+import { consumeQuotaInputSchema, consumeQuotaOutputSchema } from "@getu/contract"
 import { loadEntitlements } from "../billing/entitlements"
+import { consumeQuota as consumeQuotaImpl } from "../billing/quota"
 import { authed } from "./context"
 
 export const billingRouter = {
@@ -7,4 +9,17 @@ export const billingRouter = {
     const db = createDb(context.env.DB)
     return loadEntitlements(db, context.session.user.id)
   }),
+  consumeQuota: authed
+    .input(consumeQuotaInputSchema)
+    .output(consumeQuotaOutputSchema)
+    .handler(async ({ context, input }) => {
+      const db = createDb(context.env.DB)
+      return consumeQuotaImpl(
+        db,
+        context.session.user.id,
+        input.bucket,
+        input.amount,
+        input.request_id,
+      )
+    }),
 }
