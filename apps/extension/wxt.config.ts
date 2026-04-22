@@ -34,6 +34,10 @@ export default defineConfig({
     ],
     host_permissions: [
       "*://*/*", // Required for scripting.executeScript in any frame
+      // Subtitles adapters also rely on explicit entries when `host_permissions`
+      // is ever tightened. Keep these in sync with subtitles.content `matches`.
+      "*://*.bilibili.com/*",
+      "*://api.bilibili.com/*",
     ],
     // Allow images/SVGs referenced by content-script UI <img> tags to be loaded from
     // moz-extension:// URLs on regular pages. Firefox enforces this more strictly.
