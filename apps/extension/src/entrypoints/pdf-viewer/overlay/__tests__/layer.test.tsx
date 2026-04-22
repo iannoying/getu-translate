@@ -1,4 +1,5 @@
 import type { Paragraph } from "../../paragraph/types"
+import type { ViewportLike } from "../position-sync"
 // @vitest-environment jsdom
 import { render } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
@@ -15,6 +16,12 @@ function makeFakeParagraph(overrides: Partial<Paragraph> = {}): Paragraph {
   }
 }
 
+/**
+ * Identity viewport — CSS px == PDF units. Lets us author bounding boxes
+ * directly in CSS pixels for clarity.
+ */
+const IDENTITY: ViewportLike = { transform: [1, 0, 0, 1, 0, 0] }
+
 describe("overlayLayer", () => {
   it("renders one slot per paragraph with data-segment-key", () => {
     const paragraphs = [
@@ -23,7 +30,7 @@ describe("overlayLayer", () => {
       makeFakeParagraph({ key: "p-0-2" }),
     ]
     const { container } = render(
-      <OverlayLayer paragraphs={paragraphs} pageIndex={0} />,
+      <OverlayLayer paragraphs={paragraphs} pageIndex={0} viewport={IDENTITY} />,
     )
     const slots = container.querySelectorAll("[data-segment-key]")
     expect(slots).toHaveLength(3)
@@ -38,13 +45,13 @@ describe("overlayLayer", () => {
       boundingBox: { x: 72, y: 100, width: 440, height: 40 },
     })
     const { container } = render(
-      <OverlayLayer paragraphs={[paragraph]} pageIndex={0} />,
+      <OverlayLayer paragraphs={[paragraph]} pageIndex={0} viewport={IDENTITY} />,
     )
     const slot = container.querySelector(".getu-slot") as HTMLElement
     expect(slot).not.toBeNull()
     expect(slot.style.position).toBe("absolute")
     expect(slot.style.left).toBe("72px")
-    // top = y + height = 100 + 40 = 140 (PDF units, pageScale default = 1)
+    // Identity viewport: CSS box == PDF box. top = y + height = 100 + 40 = 140.
     expect(slot.style.top).toBe("140px")
     expect(slot.style.width).toBe("440px")
   })
@@ -54,6 +61,7 @@ describe("overlayLayer", () => {
       <OverlayLayer
         paragraphs={[makeFakeParagraph(), makeFakeParagraph({ key: "p-0-1" })]}
         pageIndex={0}
+        viewport={IDENTITY}
       />,
     )
     const slots = container.querySelectorAll(".getu-slot")
@@ -65,30 +73,41 @@ describe("overlayLayer", () => {
 
   it("annotates the inner wrapper with data-page-index", () => {
     const { container } = render(
-      <OverlayLayer paragraphs={[]} pageIndex={7} />,
+      <OverlayLayer paragraphs={[]} pageIndex={7} viewport={IDENTITY} />,
     )
     const inner = container.querySelector(".getu-overlay-inner") as HTMLElement
     expect(inner).not.toBeNull()
     expect(inner.getAttribute("data-page-index")).toBe("7")
   })
 
-  it("scales position by pageScale for zoomed viewports", () => {
+  it("projects positions through a 2x zoomed y-flip viewport", () => {
+    // scale=2, y-flip about H_css=2000 (so H_pdf=1000).
+    // Paragraph at PDF (x=50, y=100, w=200, h=20). CSS-space box:
+    //   y_top_css    = 2000 - (100+20)*2 = 1760
+    //   y_bottom_css = 2000 - 100*2      = 1800
+    //   height       = 40, width = 400, x = 100
+    // Slot sits at CSS-box bottom: top = 1760 + 40 = 1800.
+    const viewport: ViewportLike = { transform: [2, 0, 0, -2, 0, 2000] }
     const paragraph = makeFakeParagraph({
       key: "p-0-0",
       boundingBox: { x: 50, y: 100, width: 200, height: 20 },
     })
     const { container } = render(
-      <OverlayLayer paragraphs={[paragraph]} pageIndex={0} pageScale={2} />,
+      <OverlayLayer
+        paragraphs={[paragraph]}
+        pageIndex={0}
+        viewport={viewport}
+      />,
     )
     const slot = container.querySelector(".getu-slot") as HTMLElement
-    expect(slot.style.left).toBe("100px") // 50 * 2
-    expect(slot.style.top).toBe("240px") // (100 + 20) * 2
-    expect(slot.style.width).toBe("400px") // 200 * 2
+    expect(slot.style.left).toBe("100px")
+    expect(slot.style.top).toBe("1800px")
+    expect(slot.style.width).toBe("400px")
   })
 
   it("renders nothing (but still mounts a wrapper) for an empty paragraph list", () => {
     const { container } = render(
-      <OverlayLayer paragraphs={[]} pageIndex={0} />,
+      <OverlayLayer paragraphs={[]} pageIndex={0} viewport={IDENTITY} />,
     )
     expect(container.querySelectorAll(".getu-slot")).toHaveLength(0)
     expect(container.querySelector(".getu-overlay-inner")).not.toBeNull()
@@ -96,7 +115,7 @@ describe("overlayLayer", () => {
 })
 
 describe("computeSlotPosition", () => {
-  it("places the slot at the paragraph's bottom-left with paragraph width", () => {
+  it("places the slot at the paragraph's bottom-left under the identity viewport", () => {
     const paragraph: Paragraph = {
       key: "p-1-2",
       text: "x",
@@ -104,14 +123,22 @@ describe("computeSlotPosition", () => {
       boundingBox: { x: 10, y: 200, width: 300, height: 50 },
       items: [],
     }
-    expect(computeSlotPosition(paragraph, 1)).toEqual({
+    expect(computeSlotPosition(paragraph, IDENTITY)).toEqual({
       left: 10,
       top: 250,
       width: 300,
     })
   })
 
-  it("applies the pageScale multiplier uniformly", () => {
+  it("flips y and scales correctly under a zoomed y-flip viewport", () => {
+    // Viewport: scale=1.5, y-flip about H_css=1500 (H_pdf=1000).
+    // Paragraph box PDF (x=10, y=200, w=300, h=50) → CSS:
+    //   x_css   = 10 * 1.5 = 15
+    //   y_top   = 1500 - (200+50)*1.5 = 1125
+    //   width   = 450
+    //   height  = 75
+    //   slot top = 1125 + 75 = 1200
+    const viewport: ViewportLike = { transform: [1.5, 0, 0, -1.5, 0, 1500] }
     const paragraph: Paragraph = {
       key: "p-1-2",
       text: "x",
@@ -119,9 +146,9 @@ describe("computeSlotPosition", () => {
       boundingBox: { x: 10, y: 200, width: 300, height: 50 },
       items: [],
     }
-    expect(computeSlotPosition(paragraph, 1.5)).toEqual({
+    expect(computeSlotPosition(paragraph, viewport)).toEqual({
       left: 15,
-      top: 375,
+      top: 1200,
       width: 450,
     })
   })

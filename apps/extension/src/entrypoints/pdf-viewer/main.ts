@@ -77,15 +77,14 @@ async function renderPdf(src: string) {
   // and re-invoking `root.render(...)` with fresh props is cheaper than
   // tearing down + re-mounting a React root. On page destruction pdf.js drops
   // the overlay `<div>` from the DOM, which orphans the root — acceptable for
-  // a bounded-memory viewer tab; can be tightened in Task 4 / Task 5 if
-  // needed.
+  // a bounded-memory viewer tab; can be tightened in a later task if needed.
   //
-  // TODO(B1-Task4): overlayRoots entries are not pruned when pdf.js destroys
-  // pages. For large documents (500+ pages) this retains a small leak
-  // (React Root + HTMLElement refs per page). Real cleanup needs a pdfjs
-  // eventBus event for page destruction; pdfjs-dist 4.x exposes
-  // `pagechanging` / `pagesinit` but not a clean per-page-destroyed hook.
-  // Revisit if memory becomes a concern in long-session testing on big PDFs.
+  // Note: overlayRoots entries are not pruned when pdf.js destroys pages.
+  // For large documents (500+ pages) this retains a small leak (React Root
+  // + HTMLElement refs per page). Real cleanup needs a pdfjs eventBus event
+  // for page destruction; pdfjs-dist 4.x exposes `pagechanging` / `pagesinit`
+  // but not a clean per-page-destroyed hook. Revisit if memory becomes a
+  // concern in long-session testing on big PDFs.
   const overlayRoots = new Map<number, {
     root: import("react-dom/client").Root
     container: HTMLElement
@@ -116,10 +115,13 @@ async function renderPdf(src: string) {
 
     try {
       // pdf.js gives us the PDFPageView on `event.source`. It has `.div` (page
-      // container) and `.viewport` (current PageViewport with the active scale).
+      // container) and `.viewport` (current PageViewport with the active
+      // scale + rotation + y-flip, exposed as a 6-element `transform` matrix).
       const pageView = source as {
         div?: HTMLElement
-        viewport?: { scale?: number }
+        viewport?: {
+          transform?: [number, number, number, number, number, number]
+        }
       } | undefined
       const pageContainer = pageView?.div
       if (!pageContainer)
@@ -185,17 +187,25 @@ async function renderPdf(src: string) {
         pageContainer.appendChild(entry.container)
       }
 
-      // TODO(B1-Task4): replace this naive scale multiply with a full
-      // viewport-transform projection (y-flip + rotation). For PR #B1 it is
-      // enough to show placeholders at approximately the right horizontal
-      // position and roughly-proportional vertical offset.
-      const pageScale = pageView?.viewport?.scale ?? 1
+      // Pass the live `PDFPageView.viewport` through so the overlay can apply
+      // the current PDF→CSS transform (scale + y-flip + rotation). The viewport
+      // prop is required on `OverlayLayer`; if pdf.js hasn't materialised one
+      // (shouldn't happen on a real textlayerrendered event), skip the render
+      // rather than paint slots at the wrong coordinates with a fallback.
+      const rawTransform = pageView?.viewport?.transform
+      if (!rawTransform) {
+        console.warn(
+          `[pdf-viewer] missing viewport.transform for page ${pageNumber}; skipping overlay render`,
+        )
+        return
+      }
+      const viewport = { transform: rawTransform }
 
       entry.root.render(
         React.createElement(OverlayLayer, {
           paragraphs,
           pageIndex,
-          pageScale,
+          viewport,
         }),
       )
     }
