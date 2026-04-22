@@ -445,6 +445,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@getu/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
+      '@orpc/client':
+        specifier: ^1.13.14
+        version: 1.13.14(@opentelemetry/api@1.9.1)
       better-auth:
         specifier: ^1.6.3
         version: 1.6.3(@cloudflare/workers-types@4.20260421.1)(@opentelemetry/api@1.9.1)(better-sqlite3@12.9.0)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260421.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.9.0)(kysely@0.28.14))(mongodb@7.1.0)(next@15.5.15(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.4)

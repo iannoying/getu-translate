@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { PageHero, SiteShell } from "../components"
+import { UpgradeButton } from "./UpgradeButton"
 
 export const metadata = {
   title: "Pricing | GetU Translate",
@@ -37,6 +38,9 @@ export default function PricePage() {
             <li>Priority access to new AI reading features</li>
             <li>Email support for billing and account issues</li>
           </ul>
+          <div className="cta-row">
+            <UpgradeButton plan="pro_monthly" />
+          </div>
         </article>
       </section>
 
