@@ -2,7 +2,10 @@
  * Usage:
  *   HTTP_PROXY="" pnpm --filter @getu/api exec tsx scripts/grant-pro.ts --email=user@example.com --days=365
  *
- * Manually grants Pro tier to a user by email. Phase 4 replaces with Stripe webhook.
+ * Manually grants Pro tier to a user by email. Phase 4 replaces this path
+ * with the Paddle webhook handler (/api/billing/webhook/paddle). Admin grants
+ * intentionally leave billing_provider and provider_customer_id NULL — they
+ * are not real subscriptions, just internal/beta access.
  * Runs via `wrangler d1 execute` — needs HTTP_PROXY="" per project_cf_deploy_lessons.md.
  */
 import { spawnSync } from "node:child_process"
