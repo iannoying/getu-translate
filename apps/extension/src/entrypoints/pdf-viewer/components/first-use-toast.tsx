@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/base-ui/button"
 export interface FirstUseToastProps {
   /**
    * Called when the user clicks "Translate this PDF".
-   * PR #A stops here — PR #B will wire the actual translation trigger.
+   * `main.ts` wires this to flip the translation enqueue policy from
+   * `"blocked"` to `"enabled"` and retroactively schedule every known
+   * paragraph on already-rendered pages (PR #B2 Task 5).
    */
   onAccept: () => void
   /** Called when the user clicks "Not this time" — closes toast, no persistence. */
@@ -25,7 +27,7 @@ export interface FirstUseToastProps {
  * Rendered when `pdfTranslation.activationMode === "ask"` AND the domain is
  * not already in `blocklistDomains`. The toast offers three choices:
  *
- *   - Translate this PDF     — close toast. PR #B will hook in real translation here.
+ *   - Translate this PDF     — close toast, enable the translation scheduler for this file.
  *   - Not this time          — close toast, no persistence (session-only).
  *   - Never on this site     — persist domain to blocklist, then reload.
  *
@@ -55,9 +57,9 @@ export function FirstUseToast({
   const neverLabel = i18n.t("pdfViewer.firstUseToast.neverOnThisDomain")
 
   const handleTranslate = () => {
-    // TODO(M3-PR-B): trigger the actual translation pipeline here.
-    // For PR #A we only close the toast — the viewer stays on the native
-    // pdf.js render until PR #B hooks in the bilingual layer.
+    // Hide the toast UI immediately; the injected `onAccept` handler (wired
+    // in `main.ts`) flips the translation enqueue policy to `"enabled"` and
+    // retroactively schedules translation for every page already rendered.
     setOpen(false)
     onAccept()
   }
