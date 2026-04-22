@@ -1,21 +1,31 @@
 import type { Paragraph } from "./paragraph/types"
 import type { SegmentKey } from "./translation/atoms"
 import type { EnqueuePolicy } from "./translation/enqueue-policy"
+import type { PdfQuotaGate } from "./translation/pdf-quota-gate"
+import { FREE_PDF_PAGES_PER_DAY } from "@getu/definitions"
 import { createStore } from "jotai"
+import { hasFeature, isPro } from "@/types/entitlements"
+import { entitlementsAtom } from "@/utils/atoms/entitlements"
 import { addDomainToBlocklistAtom } from "@/utils/atoms/pdf-translation"
 import { getLocalConfig } from "@/utils/config/storage"
 import { DEFAULT_CONFIG } from "@/utils/constants/config"
+import {
+  getPdfPageUsage,
+  incrementPdfPageUsage,
+} from "@/utils/db/dexie/pdf-translation-usage"
 import {
   getCachedPage,
   putCachedPage,
   touchCachedPage,
 } from "@/utils/db/dexie/pdf-translations"
 import { fingerprintForSrc } from "@/utils/pdf/fingerprint"
+import { showPdfUpgradeDialogAtom } from "./atoms"
 import { parseSrcParam } from "./parse-src-param"
 import { segmentStatusAtomFamily } from "./translation/atoms"
 import { decideInitialPolicy } from "./translation/enqueue-policy"
 import { PageCacheCoordinator } from "./translation/page-cache-coordinator"
 import { parseSegmentKey } from "./translation/parse-segment-key"
+import { createPdfQuotaGate } from "./translation/pdf-quota-gate"
 import { TranslationScheduler } from "./translation/scheduler"
 import { translateSegment } from "./translation/translate-segment"
 import "pdfjs-dist/web/pdf_viewer.css"
@@ -49,6 +59,29 @@ export const schedulerRef: { current: TranslationScheduler | null } = {
  */
 export const coordinatorRef: { current: PageCacheCoordinator | null } = {
   current: null,
+}
+
+/**
+ * Mutable reference to the current file's quota gate (PR #B3 Task 5). Pure
+ * imperative wrapper around entitlements + Dexie page counter; consulted by
+ * `mountOverlayForPage` before enqueuing a new page and incremented on every
+ * fresh-page success from the coordinator. Exported for tests.
+ */
+export const quotaGateRef: { current: PdfQuotaGate | null } = {
+  current: null,
+}
+
+/**
+ * Sticky "free-tier exhausted" flag for the current file (PR #B3 Task 5).
+ * Flipped to `true` once the coordinator reports a fresh-page success that
+ * lands the user at or over `FREE_PDF_PAGES_PER_DAY`. While `true`:
+ *   - `mountOverlayForPage` skips enqueuing additional fresh pages.
+ *   - The UpgradeDialog stays openable (user can dismiss + reopen).
+ * Reset to `false` on every new `boot()` — a fresh file open gives Free users
+ * another chance if their counter has since rolled over.
+ */
+export const quotaExhaustedRef: { current: boolean } = {
+  current: false,
 }
 
 /**
@@ -112,6 +145,31 @@ async function boot() {
   const targetLang = config.language.targetCode
   const providerId = config.translate.providerId
 
+  // Fresh file — reset the sticky quota-exhausted flag so a Free user whose
+  // counter rolled over since their last session gets a clean chance today.
+  quotaExhaustedRef.current = false
+
+  // Per-file quota gate (PR #B3 Task 5). The gate is pure + imperative: it
+  // reads Pro status from the shared entitlements atom, reads / increments
+  // today's page counter from Dexie, and caps Free users at
+  // `FREE_PDF_PAGES_PER_DAY`. Its `canTranslatePage` is consulted before
+  // enqueuing a new page; `recordPageSuccess` is called from the
+  // coordinator's `onPageSuccess` hook (fresh-only — cache hits bypass).
+  //
+  // `isPro` reads the entitlements atom synchronously. When the viewer boots
+  // offline or before the M0 billing query has resolved, the atom still
+  // holds `FREE_ENTITLEMENTS`, so the gate fails closed (Free cap applies).
+  const quotaGate = createPdfQuotaGate({
+    isPro: () => {
+      const entitlements = pdfViewerStore.get(entitlementsAtom)
+      return isPro(entitlements) && hasFeature(entitlements, "pdf_translate_unlimited")
+    },
+    getUsage: () => getPdfPageUsage(),
+    increment: () => incrementPdfPageUsage(),
+    limit: FREE_PDF_PAGES_PER_DAY,
+  })
+  quotaGateRef.current = quotaGate
+
   // Scheduler and coordinator are mutually referential: the coordinator's
   // miss path enqueues through the scheduler, and the scheduler's setStatus
   // tee notifies the coordinator on every paragraph transition. Declare the
@@ -141,8 +199,23 @@ async function boot() {
   schedulerRef.current = scheduler
 
   // One coordinator per file — bridges the paragraph-granular scheduler with
-  // the page-granular cache. `onPageSuccess` is the hook point for PR #B3
-  // Task 5 (quota increment); left unwired here for B3 Task 4.
+  // the page-granular cache. `onPageSuccess` fires exactly once per freshly-
+  // translated page (never for cache hits), which is the correct hook point
+  // for the Free-tier quota counter (PR #B3 Task 5).
+  //
+  // Fresh-page completion flow:
+  //   1. Coordinator calls `onPageSuccess(pageIndex)`.
+  //   2. Gate increments the Dexie counter + returns the new count.
+  //   3. If the new count hits `FREE_PDF_PAGES_PER_DAY` AND the user is Free,
+  //      the scheduler aborts (no more fresh translations this session) and
+  //      the UpgradeDialog atom flips on. The coordinator's tracking for
+  //      already-started pages stays intact so late paragraph completions
+  //      finish their cache writes — the abort only suppresses new jobs.
+  //   4. `quotaExhaustedRef.current = true` so `mountOverlayForPage` on
+  //      subsequent pages short-circuits before enqueuing.
+  //
+  // Pro users hit step 2 (counter increments for telemetry parity) but step 3
+  // is a no-op because the gate reports `isPro() === true`.
   const coordinator = new PageCacheCoordinator({
     fileHash,
     targetLang,
@@ -155,6 +228,37 @@ async function boot() {
     getCachedPage,
     putCachedPage,
     touchCachedPage,
+    onPageSuccess: (pageIndex) => {
+      // Fire-and-forget: the counter write is best-effort and must not block
+      // the UI. Failures are logged but don't reverse the on-screen success.
+      void (async () => {
+        try {
+          const newCount = await quotaGate.recordPageSuccess()
+          // Re-check Pro status on the result boundary — a mid-session plan
+          // change is rare but the atom read is cheap and defends against
+          // billing flaps.
+          const entitlements = pdfViewerStore.get(entitlementsAtom)
+          const pro = isPro(entitlements) && hasFeature(entitlements, "pdf_translate_unlimited")
+          if (!pro && newCount >= FREE_PDF_PAGES_PER_DAY && !quotaExhaustedRef.current) {
+            quotaExhaustedRef.current = true
+            // Abort the scheduler so any still-pending fresh pages don't fire
+            // their provider calls. Paragraphs that are already in-flight will
+            // have their status writes suppressed (scheduler contract).
+            scheduler.abort()
+            // Flip the dialog visibility atom. A dedicated React root mounted
+            // on `#upgrade-dialog-root` subscribes and renders the shared
+            // UpgradeDialog component.
+            pdfViewerStore.set(showPdfUpgradeDialogAtom, true)
+          }
+        }
+        catch (err) {
+          console.warn(
+            `[pdf-viewer] quota recordPageSuccess failed for page ${pageIndex}`,
+            err,
+          )
+        }
+      })()
+    },
   })
   coordinatorHandle = coordinator
   coordinatorRef.current = coordinator
@@ -166,8 +270,16 @@ async function boot() {
     console.error("[pdf-viewer] first-use toast setup failed:", err)
   })
 
+  // Mount the UpgradeDialog root (PR #B3 Task 5). The dialog is invisible
+  // until the quota-exhaustion flow flips `showPdfUpgradeDialogAtom` on.
+  // Fire-and-forget — dialog mount failures must never break PDF render.
+  const upgradeDialogPromise = mountUpgradeDialog().catch((err) => {
+    console.error("[pdf-viewer] upgrade dialog mount failed:", err)
+  })
+
   await renderPdf(src, { fileHash, coordinator })
   await toastPromise
+  await upgradeDialogPromise
 }
 
 async function renderPdf(
@@ -438,7 +550,18 @@ async function renderPdf(
       //               and retroactively starts pages via `retroEnqueueRef`.
       //   `"manual"` → policy stays `"blocked"`; popup button path handles
       //                activation (out of scope for B2).
-      if (enqueuePolicyRef.current === "enabled") {
+      //
+      // Quota short-circuit (PR #B3 Task 5): once the Free-tier counter has
+      // hit the cap this session, skip `startPage` entirely for new pages.
+      // Cache-hit pages would also be gated here, which is acceptable — if
+      // a Free user is over the limit we reserve their already-translated
+      // pages from cache via the re-scroll flow (they'll hit this branch
+      // but the coordinator's cache lookup inside `startPage` would serve
+      // them for free). We let the coordinator decide: it does the cache
+      // check, and cache hits never call `onPageSuccess` so they never
+      // consume quota. So the only case we skip here is when the gate
+      // already exhausted — cheap predicate, no extra Dexie read.
+      if (enqueuePolicyRef.current === "enabled" && !quotaExhaustedRef.current) {
         void coordinator.startPage(pageIndex, paragraphs)
       }
 
@@ -572,6 +695,37 @@ async function maybeRenderFirstUseToast(src: string) {
           }
         },
       }),
+    ),
+  )
+}
+
+/**
+ * Mount the PDF-translation UpgradeDialog into its dedicated root
+ * (`#upgrade-dialog-root`). The dialog starts hidden; main.ts's quota-
+ * exhaustion handler flips `showPdfUpgradeDialogAtom` to open it.
+ *
+ * Pulled out of `boot()` so tests can exercise the mount independently and
+ * so dialog setup can fail without taking down the PDF render (see the
+ * fire-and-forget `.catch` at the call site).
+ */
+async function mountUpgradeDialog() {
+  const mountNode = document.getElementById("upgrade-dialog-root")
+  if (!mountNode)
+    return
+
+  const [{ createRoot }, React, { Provider: JotaiProvider }, { PdfUpgradeDialogMount }] = await Promise.all([
+    import("react-dom/client"),
+    import("react"),
+    import("jotai"),
+    import("./components/pdf-upgrade-dialog-mount"),
+  ])
+
+  const root = createRoot(mountNode)
+  root.render(
+    React.createElement(
+      JotaiProvider,
+      { store: pdfViewerStore },
+      React.createElement(PdfUpgradeDialogMount),
     ),
   )
 }
