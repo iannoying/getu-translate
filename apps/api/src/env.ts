@@ -8,12 +8,19 @@ export interface WorkerEnv {
   AUTH_SECRET: string
   AUTH_BASE_URL: string
   ALLOWED_EXTENSION_ORIGINS: string
+  // Phase 3: AI proxy
+  BIANXIE_API_KEY: string
+  BIANXIE_BASE_URL: string
+  AI_JWT_SECRET: string
 }
 
 export const SecretsSchema = z.object({
   AUTH_SECRET: z.string().min(32),
   AUTH_BASE_URL: z.string().url(),
   ALLOWED_EXTENSION_ORIGINS: z.string(),
+  BIANXIE_API_KEY: z.string().min(10),
+  BIANXIE_BASE_URL: z.string().url(),
+  AI_JWT_SECRET: z.string().min(32),
 })
 
 export function parseSecrets(env: WorkerEnv) {
@@ -21,5 +28,8 @@ export function parseSecrets(env: WorkerEnv) {
     AUTH_SECRET: env.AUTH_SECRET,
     AUTH_BASE_URL: env.AUTH_BASE_URL,
     ALLOWED_EXTENSION_ORIGINS: env.ALLOWED_EXTENSION_ORIGINS,
+    BIANXIE_API_KEY: env.BIANXIE_API_KEY,
+    BIANXIE_BASE_URL: env.BIANXIE_BASE_URL,
+    AI_JWT_SECRET: env.AI_JWT_SECRET,
   })
 }
