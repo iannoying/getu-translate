@@ -19,7 +19,7 @@ import {
   touchCachedPage,
 } from "@/utils/db/dexie/pdf-translations"
 import { fingerprintForPdf } from "@/utils/pdf/fingerprint"
-import { showPdfUpgradeDialogAtom } from "./atoms"
+import { hasAnyTranslatedPageAtom, showPdfUpgradeDialogAtom } from "./atoms"
 import { parseSrcParam } from "./parse-src-param"
 import { segmentStatusAtomFamily } from "./translation/atoms"
 import { decideInitialPolicy } from "./translation/enqueue-policy"
@@ -231,6 +231,15 @@ async function boot() {
     putCachedPage,
     touchCachedPage,
     onPageSuccess: (pageIndex) => {
+      // M3 PR#C Task 4: mark the session as having seen ≥1 translated page
+      // so the Free-tier watermark becomes visible. Runs synchronously
+      // before the async quota work so the watermark appears the moment a
+      // page finishes — regardless of whether the quota write succeeds.
+      // The atom write is idempotent (sticky `true`); re-setting has no
+      // extra React render cost once the flag is up.
+      if (!pdfViewerStore.get(hasAnyTranslatedPageAtom))
+        pdfViewerStore.set(hasAnyTranslatedPageAtom, true)
+
       // Fire-and-forget: the counter write is best-effort and must not block
       // the UI. Failures are logged but don't reverse the on-screen success.
       void (async () => {
@@ -249,8 +258,13 @@ async function boot() {
             scheduler.abort()
             // Flip the dialog visibility atom. A dedicated React root mounted
             // on `#upgrade-dialog-root` subscribes and renders the shared
-            // UpgradeDialog component.
-            pdfViewerStore.set(showPdfUpgradeDialogAtom, true)
+            // UpgradeDialog component. Task 4 switched this atom from a bare
+            // boolean to `{ open, source }` so the pricing CTA can attribute
+            // the upsell to the daily-limit path.
+            pdfViewerStore.set(showPdfUpgradeDialogAtom, {
+              open: true,
+              source: "pdf-translation-daily-limit",
+            })
           }
         }
         catch (err) {
@@ -294,10 +308,20 @@ async function boot() {
     console.error("[pdf-viewer] export button mount failed:", err)
   })
 
+  // Mount the Free-tier watermark (M3 PR#C Task 4). Fire-and-forget — like
+  // the export button, the component itself checks entitlements and the
+  // `hasAnyTranslatedPageAtom` flag, so it self-hides for Pro users and for
+  // Free users who haven't yet seen a translated page. Safe to mount
+  // unconditionally.
+  const watermarkPromise = mountWatermark().catch((err) => {
+    console.error("[pdf-viewer] watermark mount failed:", err)
+  })
+
   await renderPdf(src, { fileHash, coordinator })
   await toastPromise
   await upgradeDialogPromise
   await exportButtonPromise
+  await watermarkPromise
 }
 
 async function renderPdf(
@@ -779,6 +803,40 @@ async function mountExportButton(props: {
       JotaiProvider,
       { store: pdfViewerStore },
       React.createElement(ExportButton, props),
+    ),
+  )
+}
+
+/**
+ * Mount the Free-tier watermark (M3 PR#C Task 4) into its dedicated root
+ * (`#watermark-root`). The component reads `entitlementsAtom` +
+ * `hasAnyTranslatedPageAtom` directly and self-hides for Pro users or for
+ * Free users who haven't yet seen a translated page — so mounting is
+ * unconditional. On click it writes `{ open: true, source:
+ * "pdf-translation-watermark" }` into the shared upgrade-dialog atom,
+ * which the `PdfUpgradeDialogMount` root already renders.
+ *
+ * Pulled into its own function (mirroring the toast / dialog / export
+ * mounts) so boot-time failures are isolated from the PDF render path.
+ */
+async function mountWatermark() {
+  const mountNode = document.getElementById("watermark-root")
+  if (!mountNode)
+    return
+
+  const [{ createRoot }, React, { Provider: JotaiProvider }, { Watermark }] = await Promise.all([
+    import("react-dom/client"),
+    import("react"),
+    import("jotai"),
+    import("./components/watermark"),
+  ])
+
+  const root = createRoot(mountNode)
+  root.render(
+    React.createElement(
+      JotaiProvider,
+      { store: pdfViewerStore },
+      React.createElement(Watermark),
     ),
   )
 }
