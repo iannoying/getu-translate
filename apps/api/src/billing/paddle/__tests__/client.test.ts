@@ -43,7 +43,18 @@ describe("paddle client", () => {
       const client = createPaddleClient({ apiKey: "k", baseUrl: "https://x" })
       await expect(client.createTransaction({
         priceId: "p", email: "e", userId: "u", successUrl: "https://getutranslate.com/",
-      })).rejects.toThrow(/paddle.*400/i)
+      })).rejects.toThrow(/paddle.*400.*bad/i)
+    })
+
+    it("throws on invalid JSON response", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => { throw new SyntaxError("unexpected token") },
+      }))
+      const client = createPaddleClient({ apiKey: "k", baseUrl: "https://x" })
+      await expect(client.createTransaction({
+        priceId: "p", email: "e", userId: "u", successUrl: "https://getutranslate.com/",
+      })).rejects.toThrow(/invalid json/i)
     })
   })
 

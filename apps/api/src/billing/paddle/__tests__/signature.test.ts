@@ -50,4 +50,13 @@ describe("verifyPaddleSignature", () => {
       header, rawBody: body, secret, toleranceMs: 200_000,
     })).resolves.toBe(true)
   })
+
+  it("rejects header with duplicate keys (shadowing attack)", async () => {
+    const ts = Math.floor(Date.now() / 1000)
+    const h1 = await signHmac(secret, `${ts}:${body}`)
+    // attacker appends a real h1 after a junk one — without dup-key rejection,
+    // Object.fromEntries would take the last (real) value and auth would pass.
+    const header = `ts=${ts};h1=deadbeef;h1=${h1}`
+    await expect(verifyPaddleSignature({ header, rawBody: body, secret })).resolves.toBe(false)
+  })
 })

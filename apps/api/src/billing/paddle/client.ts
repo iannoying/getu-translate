@@ -37,7 +37,11 @@ export function createPaddleClient({ apiKey, baseUrl }: PaddleClientOpts) {
       const text = await res.text().catch(() => "")
       throw new Error(`Paddle API ${res.status}: ${text.slice(0, 300)}`)
     }
-    return (await res.json()) as T
+    try {
+      return (await res.json()) as T
+    } catch {
+      throw new Error("Paddle API: invalid JSON response")
+    }
   }
 
   return {

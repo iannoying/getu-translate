@@ -12,9 +12,15 @@ export async function verifyPaddleSignature({
 }: VerifyInput): Promise<boolean> {
   if (!header) return false
 
-  const parts = Object.fromEntries(
-    header.split(";").map(p => p.split("=")).filter(a => a.length === 2).map(([k, v]) => [k.trim(), v.trim()]),
-  ) as Record<string, string>
+  const pairs = header
+    .split(";")
+    .map(p => p.split("=").map(s => s.trim()))
+    .filter(a => a.length === 2)
+  // Reject headers with duplicate keys (e.g. ts=X;h1=Y;h1=Z) to prevent
+  // attacker-controlled tail entries from shadowing earlier ones.
+  const keys = pairs.map(([k]) => k)
+  if (new Set(keys).size !== keys.length) return false
+  const parts = Object.fromEntries(pairs) as Record<string, string>
   if (!parts.ts || !parts.h1) return false
 
   const ts = Number.parseInt(parts.ts, 10)
