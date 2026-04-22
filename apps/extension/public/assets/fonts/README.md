@@ -21,8 +21,12 @@ URL resolver.
 - **License:** [SIL Open Font License 1.1](https://openfontlicense.org/) —
   include `OFL.txt` alongside the font file in this directory when you drop
   it in.
-- **Target size after subsetting:** ~400 KB (the full OTF is ~17 MB, which
-  would bloat the extension bundle unacceptably).
+- **Actual size after subsetting:** ~5 MB (the full OTF is ~16 MB). Keeping
+  the entire `U+4E00-9FFF` CJK Unified block (~20K glyphs) plus Latin, kana,
+  and punctuation is a hard floor of a few MB for vector font outlines — the
+  original "~400 KB" target in earlier iterations was unrealistic. A tighter
+  subset (e.g. GB 2312 Level 1 ~3755 most-common chars only) could shrink to
+  ~1.5 MB if extension bundle size becomes a concern.
 
 > **Heads up:** the repo does not currently ship the actual font binary.
 > Task 2 of M3 PR#C (the `pdf-lib` exporter) will fail to embed a CJK font
@@ -45,19 +49,16 @@ then run:
 ```bash
 pyftsubset NotoSansCJKsc-Regular.otf \
   --output-file=noto-sans-cjk-sc-subset.otf \
-  --unicodes='U+0020-007E,U+00A0-00FF,U+2000-206F,U+3000-303F,U+3040-309F,U+30A0-30FF,U+3400-4DBF,U+4E00-9FFF,U+AC00-D7AF,U+FF00-FFEF' \
-  --layout-features='*' \
-  --glyph-names \
-  --symbol-cmap \
-  --notdef-glyph \
-  --notdef-outline \
-  --recommended-glyphs \
-  --name-legacy \
-  --drop-tables= \
-  --name-IDs='*' \
-  --name-languages='*' \
-  --no-hinting
+  --unicodes='U+0020-007E,U+00A0-00FF,U+2000-206F,U+3000-303F,U+3040-309F,U+30A0-30FF,U+4E00-9FFF' \
+  --drop-tables+=BASE,GDEF,GPOS,GSUB,DSIG,vhea,vmtx,vrt2 \
+  --no-hinting \
+  --no-layout-closure \
+  --desubroutinize
 ```
+
+Layout tables (`BASE/GDEF/GPOS/GSUB`) and vertical-writing tables are dropped
+because `pdf-lib` renders text via simple glyph-index lookups and does not
+perform complex shaping.
 
 That range covers:
 
@@ -65,12 +66,18 @@ That range covers:
   system font mid-paragraph)
 - General Punctuation + CJK Symbols and Punctuation
 - Hiragana, Katakana
-- CJK Unified Ideographs + Extension A
-- Hangul Syllables
-- Halfwidth + Fullwidth Forms
+- CJK Unified Ideographs (the main ~20K block)
 
-…which matches the `CJK_RANGES` in `src/utils/pdf/cjk.ts` (plus the Latin
-ranges needed for mixed-language paragraphs).
+Dropped vs. `CJK_RANGES` in `src/utils/pdf/cjk.ts` to keep size manageable:
+
+- **CJK Ext-A** (`U+3400-4DBF`): rare characters, not worth the +1 MB
+- **Hangul Syllables** (`U+AC00-D7AF`): Korean translation target not in MVP
+  scope; adding back would cost ~3 MB
+- **Halfwidth/Fullwidth Forms** (`U+FF00-FFEF`): small block, defers until a
+  real-world Japanese PDF shows missing glyphs
+
+If exported PDFs show empty boxes for any of these, re-add the range to
+`--unicodes`, re-subset, and recommit.
 
 Drop the resulting `noto-sans-cjk-sc-subset.otf` (and a copy of `OFL.txt`)
 into this directory and commit.
