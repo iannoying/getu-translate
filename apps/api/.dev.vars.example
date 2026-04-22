@@ -1,0 +1,14 @@
+# Template for apps/api/.dev.vars — copy to .dev.vars and fill in sandbox values.
+# .dev.vars is gitignored; never commit real keys.
+# Sandbox vendor signup: https://sandbox-vendors.paddle.com
+
+# Phase 3 secrets (already in use):
+# AUTH_SECRET=<32+ char secret>
+# BIANXIE_API_KEY=<your bianxie.ai key>
+# AI_JWT_SECRET=<32+ char secret>
+
+# Phase 4 paddle secrets (T2+):
+PADDLE_API_KEY=<your sandbox API key>
+PADDLE_WEBHOOK_SECRET=<your sandbox notification secret (pdl_ntfset_...)>
+PADDLE_PRICE_PRO_MONTHLY=pri_01_sandbox_monthly_placeholder
+PADDLE_PRICE_PRO_YEARLY=pri_01_sandbox_yearly_placeholder

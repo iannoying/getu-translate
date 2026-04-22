@@ -14,6 +14,12 @@ export interface WorkerEnv {
   AI_JWT_SECRET: string
   // Phase 4: billing feature flag ("true" | "false")
   BILLING_ENABLED: string
+  // Phase 4: paddle billing (sandbox until vendor approval; prod values come later)
+  PADDLE_API_KEY: string
+  PADDLE_WEBHOOK_SECRET: string
+  PADDLE_PRICE_PRO_MONTHLY: string
+  PADDLE_PRICE_PRO_YEARLY: string
+  PADDLE_BASE_URL: string
 }
 
 export const SecretsSchema = z.object({
