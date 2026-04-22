@@ -62,3 +62,6 @@ export const AUTH_DOMAINS = ["getutranslate.com", "localhost"] as const
 
 // Override: GetU Translate rebranded APP_NAME (Phase 1 Task 5)
 export const APP_NAME = "GetU Translate"
+
+// GetU Translate PDF-translation commercialization constants
+export { FREE_PDF_PAGES_PER_DAY } from "./pdf/constants"
