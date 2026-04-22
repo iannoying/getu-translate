@@ -61,7 +61,7 @@ Run `SKIP_FREE_API=true pnpm --filter @getu/extension test -- pdf-viewer`. The s
 - `@/utils/atoms/pdf-translation` — `addDomainToBlocklistAtom` for the toast's "Never on this site" action (write goes through the shared Jotai store, not storageAdapter directly)
 - `@/types/config/config` — `PdfTranslationConfig["activationMode"]` type feeds `decideInitialPolicy`
 - `@/utils/pdf/domain` (hostname extraction for blocklist matching)
-- `@/utils/pdf/fingerprint` — `fingerprintForSrc` computes the per-file hash that keys segment atoms (B3 will swap in a content-based hash)
+- `@/utils/pdf/fingerprint` — `fingerprintForPdf` fetches PDF bytes and returns a SHA-256 hex (falls back to a sync URL hash on fetch failure). Keys segment atoms and the Dexie `pdfTranslations` cache rows.
 - `@/utils/host/translate/translate-variants` — `translateTextForPage` is the translation primitive wrapped by `translation/translate-segment.ts` and injected into `TranslationScheduler`
 - `./components/first-use-toast` (toast UI — PR #A; `onAccept` wired to scheduler in B2)
 - `./paragraph/*`, `./overlay/*`, `./translation/*` (see Subdirectories)

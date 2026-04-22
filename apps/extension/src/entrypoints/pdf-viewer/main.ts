@@ -18,7 +18,7 @@ import {
   putCachedPage,
   touchCachedPage,
 } from "@/utils/db/dexie/pdf-translations"
-import { fingerprintForSrc } from "@/utils/pdf/fingerprint"
+import { fingerprintForPdf } from "@/utils/pdf/fingerprint"
 import { showPdfUpgradeDialogAtom } from "./atoms"
 import { parseSrcParam } from "./parse-src-param"
 import { segmentStatusAtomFamily } from "./translation/atoms"
@@ -132,10 +132,12 @@ async function boot() {
     return
   }
 
-  // Compute the per-file fingerprint once. PR #B3 Task 6 will swap in a real
-  // content-based hash; for B2 `sha256(src)` is deterministic and sufficient
-  // to keep segment atoms from different PDFs out of each other's way.
-  const fileHash = fingerprintForSrc(src)
+  // Compute the per-file fingerprint once. PR #B3 Task 6 swapped this from a
+  // sync URL hash to an async content-based hash (fetch PDF bytes →
+  // `crypto.subtle.digest`). On fetch failure it falls back internally to
+  // `Sha256Hex(src)` so the viewer still boots even if the PDF can't be
+  // re-fetched (CORS / file:// without access).
+  const fileHash = await fingerprintForPdf(src)
 
   // Read once at boot time: the target language + translate provider id are
   // part of the cache key (PR #B3 Task 1). We snapshot them so a mid-session
