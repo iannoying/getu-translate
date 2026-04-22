@@ -9,7 +9,7 @@ declare global {
 }
 
 export default defineContentScript({
-  matches: ["*://*.youtube.com/*", "*://*.bilibili.com/*"],
+  matches: ["*://*.youtube.com/*", "*://*.bilibili.com/*", "*://*.ted.com/*"],
   cssInjectionMode: "manifest",
   async main(ctx) {
     if (window.__READ_FROG_SUBTITLES_INJECTED__)
