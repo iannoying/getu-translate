@@ -3,6 +3,10 @@
 // If you ever need to import this from a plain Node script or Jest without bundler-aware
 // paths, add a tsup/tsc build step and update exports first.
 
+import type { ContractRouterClient } from "@orpc/contract"
+import { contract as baseContract } from "./base.js"
+import { billingContract } from "./billing.js"
+
 export {
   contract,
   ColumnAddInputSchema,
@@ -64,8 +68,9 @@ export type {
   TableView,
 } from "./base.js"
 
+export { billingContract }
+
 export {
-  billingContract,
   EntitlementsSchema,
   FeatureKey,
   FREE_ENTITLEMENTS,
@@ -81,10 +86,6 @@ export type { Entitlements, ConsumeQuotaInput, ConsumeQuotaOutput, QuotaBucket }
 
 export { AI_MODEL_COEFFICIENTS, PRO_MODEL_WHITELIST, isProModel, normalizeTokens } from "./ai-models.js"
 export type { ProModel } from "./ai-models.js"
-
-import type { ContractRouterClient } from "@orpc/contract"
-import { contract as baseContract } from "./base.js"
-import { billingContract } from "./billing.js"
 
 export const mergedContract = {
   ...baseContract,

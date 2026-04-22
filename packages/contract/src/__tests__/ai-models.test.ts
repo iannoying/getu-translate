@@ -21,9 +21,10 @@ describe("@getu/contract ai-models", () => {
   it("normalizeTokens() multiplies by coefficients", () => {
     // gpt-4o-mini: 100 input @1 + 200 output @4 = 100 + 800 = 900 units
     expect(normalizeTokens("gpt-4o-mini", { input: 100, output: 200 })).toBe(900)
-    // claude-3-5-sonnet-latest is more expensive — verify it's >> gpt-4o-mini
-    expect(normalizeTokens("claude-3-5-sonnet-latest", { input: 100, output: 200 }))
-      .toBeGreaterThan(900)
+    // claude-3-5-sonnet-latest: 100 input @20 + 200 output @25 = 2000 + 5000 = 7000
+    expect(normalizeTokens("claude-3-5-sonnet-latest", { input: 100, output: 200 })).toBe(7000)
+    // gemini-2.0-flash: 100 input @1 + 200 output @3 = 100 + 600 = 700
+    expect(normalizeTokens("gemini-2.0-flash", { input: 100, output: 200 })).toBe(700)
   })
 
   it("normalizeTokens() throws on unknown model", () => {
