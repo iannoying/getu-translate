@@ -55,7 +55,7 @@ describe("segmentContent", () => {
     expect(container.querySelector(".getu-slot-translation")).not.toBeNull()
   })
 
-  it("renders an error glyph with the message in the title attribute when status is error", () => {
+  it("renders an error glyph with the message in the aria-label when status is error", () => {
     const store = createStore()
     const key = "fileA:p-0-3"
     store.set(segmentStatusAtomFamily(key), {
@@ -70,9 +70,14 @@ describe("segmentContent", () => {
     const errorEl = container.querySelector(".getu-slot-error") as HTMLElement
     expect(errorEl).not.toBeNull()
     expect(errorEl.textContent).toBe("[×]")
-    expect(errorEl.getAttribute("title")).toBe("provider unavailable")
+    // vitest.setup.ts mocks `#i18n` with `t: (key) => key`, so both the
+    // static tooltip and the interpolated aria-label reduce to their keys.
+    // Real locale-string rendering is exercised by the YAML round-trip.
+    expect(errorEl.getAttribute("title")).toBe(
+      "pdfViewer.segmentContent.errorTooltip",
+    )
     expect(errorEl.getAttribute("aria-label")).toBe(
-      "translation error: provider unavailable",
+      "pdfViewer.segmentContent.errorAriaLabel",
     )
   })
 

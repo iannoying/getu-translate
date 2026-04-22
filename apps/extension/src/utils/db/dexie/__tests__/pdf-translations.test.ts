@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
   clearPdfTranslations,
   evictExpired,
+  evictStaleConfigRows,
   getCachedPage,
   putCachedPage,
   touchCachedPage,
@@ -24,6 +25,10 @@ const getMock = vi.fn(async (id: string) => rows.get(id))
 const putMock = vi.fn(async (r: Row) => {
   rows.set(r.id, r)
 })
+const bulkDeleteMock = vi.fn(async (ids: string[]) => {
+  for (const id of ids)
+    rows.delete(id)
+})
 const clearMock = vi.fn(async () => {
   rows.clear()
 })
@@ -32,15 +37,17 @@ const transactionMock = vi.fn(
 )
 
 /**
- * Mock `db.pdfTranslations.where("lastAccessedAt").below(cutoff).delete()`
- * as a builder chain so the production code doesn't need to branch.
+ * Mock `db.pdfTranslations.where(field)` as a builder chain so production
+ * code doesn't need to branch:
+ *   - `where("lastAccessedAt").below(cutoff).delete()` → evictExpired
+ *   - `where("fileHash").equals(h).and(pred).toArray()` → evictStaleConfigRows
  */
 function whereImpl(field: string) {
   return {
     below: (cutoff: number) => ({
       delete: async () => {
         if (field !== "lastAccessedAt")
-          throw new Error(`unexpected field ${field}`)
+          throw new Error(`unexpected field ${field} for below()`)
         let n = 0
         for (const [id, row] of rows) {
           if (row.lastAccessedAt < cutoff) {
@@ -51,6 +58,20 @@ function whereImpl(field: string) {
         return n
       },
     }),
+    equals: (value: unknown) => ({
+      and: (pred: (row: Row) => boolean) => ({
+        toArray: async () => {
+          if (field !== "fileHash")
+            throw new Error(`unexpected field ${field} for equals()`)
+          const out: Row[] = []
+          for (const row of rows.values()) {
+            if (row.fileHash === value && pred(row))
+              out.push(row)
+          }
+          return out
+        },
+      }),
+    }),
   }
 }
 
@@ -59,6 +80,7 @@ vi.mock("@/utils/db/dexie/db", () => ({
     pdfTranslations: {
       get: (...args: unknown[]) => getMock(...(args as [string])),
       put: (...args: unknown[]) => putMock(...(args as [Row])),
+      bulkDelete: (...args: unknown[]) => bulkDeleteMock(...(args as [string[]])),
       clear: (...args: unknown[]) => clearMock(...(args as [])),
       where: (field: string) => whereImpl(field),
     },
@@ -90,6 +112,7 @@ describe("pdf-translations cache", () => {
     rows.clear()
     getMock.mockClear()
     putMock.mockClear()
+    bulkDeleteMock.mockClear()
     clearMock.mockClear()
     transactionMock.mockClear()
   })
@@ -195,5 +218,93 @@ describe("pdf-translations cache", () => {
     await putCachedPage(makeRow())
     await clearPdfTranslations()
     expect(rows.size).toBe(0)
+  })
+
+  describe("evictStaleConfigRows", () => {
+    it("keeps rows whose (targetLang, providerId) matches the current config", async () => {
+      await putCachedPage(makeRow({
+        id: "file1:0",
+        pageIndex: 0,
+        targetLang: "zh-CN",
+        providerId: "openai",
+      }))
+      await putCachedPage(makeRow({
+        id: "file1:1",
+        pageIndex: 1,
+        targetLang: "zh-CN",
+        providerId: "openai",
+      }))
+      const deleted = await evictStaleConfigRows("file1", "zh-CN", "openai")
+      expect(deleted).toBe(0)
+      expect(rows.size).toBe(2)
+    })
+
+    it("deletes rows with a stale targetLang", async () => {
+      await putCachedPage(makeRow({
+        id: "file1:0",
+        targetLang: "ja",
+        providerId: "openai",
+      }))
+      await putCachedPage(makeRow({
+        id: "file1:1",
+        pageIndex: 1,
+        targetLang: "zh-CN",
+        providerId: "openai",
+      }))
+      const deleted = await evictStaleConfigRows("file1", "zh-CN", "openai")
+      expect(deleted).toBe(1)
+      expect(rows.has("file1:0")).toBe(false)
+      expect(rows.has("file1:1")).toBe(true)
+    })
+
+    it("deletes rows with a stale providerId", async () => {
+      await putCachedPage(makeRow({
+        id: "file1:0",
+        targetLang: "zh-CN",
+        providerId: "anthropic",
+      }))
+      await putCachedPage(makeRow({
+        id: "file1:1",
+        pageIndex: 1,
+        targetLang: "zh-CN",
+        providerId: "openai",
+      }))
+      const deleted = await evictStaleConfigRows("file1", "zh-CN", "openai")
+      expect(deleted).toBe(1)
+      expect(rows.has("file1:0")).toBe(false)
+      expect(rows.has("file1:1")).toBe(true)
+    })
+
+    it("leaves unrelated fileHash rows untouched even when their config differs", async () => {
+      // Row for file1 with stale config: should be deleted.
+      await putCachedPage(makeRow({
+        id: "file1:0",
+        fileHash: "file1",
+        targetLang: "ja",
+        providerId: "openai",
+      }))
+      // Row for file2 with a *different* config: must survive — the sweep
+      // is scoped to one fileHash at a time.
+      await putCachedPage(makeRow({
+        id: "file2:0",
+        fileHash: "file2",
+        targetLang: "ja",
+        providerId: "openai",
+      }))
+      const deleted = await evictStaleConfigRows("file1", "zh-CN", "openai")
+      expect(deleted).toBe(1)
+      expect(rows.has("file1:0")).toBe(false)
+      expect(rows.has("file2:0")).toBe(true)
+    })
+
+    it("returns 0 and skips the bulkDelete write when nothing is stale", async () => {
+      await putCachedPage(makeRow({
+        targetLang: "zh-CN",
+        providerId: "openai",
+      }))
+      const deleted = await evictStaleConfigRows("file1", "zh-CN", "openai")
+      expect(deleted).toBe(0)
+      expect(bulkDeleteMock).not.toHaveBeenCalled()
+    })
   })
 })

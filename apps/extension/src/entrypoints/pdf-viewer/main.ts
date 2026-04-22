@@ -2,6 +2,7 @@ import type { Paragraph } from "./paragraph/types"
 import type { SegmentKey } from "./translation/atoms"
 import type { EnqueuePolicy } from "./translation/enqueue-policy"
 import type { PdfQuotaGate } from "./translation/pdf-quota-gate"
+import { i18n } from "#imports"
 import { FREE_PDF_PAGES_PER_DAY } from "@getu/definitions"
 import { createStore } from "jotai"
 import { hasFeature, isPro } from "@/types/entitlements"
@@ -14,18 +15,20 @@ import {
   incrementPdfPageUsage,
 } from "@/utils/db/dexie/pdf-translation-usage"
 import {
+  evictStaleConfigRows,
   getCachedPage,
   putCachedPage,
   touchCachedPage,
 } from "@/utils/db/dexie/pdf-translations"
 import { fingerprintForPdf } from "@/utils/pdf/fingerprint"
-import { showPdfUpgradeDialogAtom } from "./atoms"
+import { hasAnyTranslatedPageAtom, showPdfUpgradeDialogAtom } from "./atoms"
 import { parseSrcParam } from "./parse-src-param"
 import { segmentStatusAtomFamily } from "./translation/atoms"
 import { decideInitialPolicy } from "./translation/enqueue-policy"
 import { PageCacheCoordinator } from "./translation/page-cache-coordinator"
 import { parseSegmentKey } from "./translation/parse-segment-key"
 import { createPdfQuotaGate } from "./translation/pdf-quota-gate"
+import { runRetroEnqueue } from "./translation/retro-enqueue"
 import { TranslationScheduler } from "./translation/scheduler"
 import { translateSegment } from "./translation/translate-segment"
 import "pdfjs-dist/web/pdf_viewer.css"
@@ -128,7 +131,7 @@ const retroEnqueueRef: { current: () => void } = {
 async function boot() {
   const src = parseSrcParam(location.search)
   if (!src) {
-    document.body.textContent = "Missing ?src= parameter"
+    document.body.textContent = i18n.t("pdfViewer.error.missingSrc")
     return
   }
 
@@ -146,6 +149,20 @@ async function boot() {
   const config = (await getLocalConfig()) ?? DEFAULT_CONFIG
   const targetLang = config.language.targetCode
   const providerId = config.translate.providerId
+
+  // M3 PR#C Task 7 follow-up: sweep cache rows whose stored
+  // (targetLang, providerId) tuple doesn't match the session's current
+  // config. `getCachedPage` already treats them as misses, but without this
+  // proactive cleanup those orphans accumulate whenever a user switches
+  // target language or translate provider. Runs before the first cache read
+  // so a re-opened PDF in the new config starts from a clean slate.
+  // Fire-and-forget on failure — a Dexie hiccup must not block boot.
+  try {
+    await evictStaleConfigRows(fileHash, targetLang, providerId)
+  }
+  catch (err) {
+    console.warn("[pdf-viewer] evictStaleConfigRows failed:", err)
+  }
 
   // Fresh file — reset the sticky quota-exhausted flag so a Free user whose
   // counter rolled over since their last session gets a clean chance today.
@@ -231,6 +248,15 @@ async function boot() {
     putCachedPage,
     touchCachedPage,
     onPageSuccess: (pageIndex) => {
+      // M3 PR#C Task 4: mark the session as having seen ≥1 translated page
+      // so the Free-tier watermark becomes visible. Runs synchronously
+      // before the async quota work so the watermark appears the moment a
+      // page finishes — regardless of whether the quota write succeeds.
+      // The atom write is idempotent (sticky `true`); re-setting has no
+      // extra React render cost once the flag is up.
+      if (!pdfViewerStore.get(hasAnyTranslatedPageAtom))
+        pdfViewerStore.set(hasAnyTranslatedPageAtom, true)
+
       // Fire-and-forget: the counter write is best-effort and must not block
       // the UI. Failures are logged but don't reverse the on-screen success.
       void (async () => {
@@ -249,8 +275,13 @@ async function boot() {
             scheduler.abort()
             // Flip the dialog visibility atom. A dedicated React root mounted
             // on `#upgrade-dialog-root` subscribes and renders the shared
-            // UpgradeDialog component.
-            pdfViewerStore.set(showPdfUpgradeDialogAtom, true)
+            // UpgradeDialog component. Task 4 switched this atom from a bare
+            // boolean to `{ open, source }` so the pricing CTA can attribute
+            // the upsell to the daily-limit path.
+            pdfViewerStore.set(showPdfUpgradeDialogAtom, {
+              open: true,
+              source: "pdf-translation-daily-limit",
+            })
           }
         }
         catch (err) {
@@ -279,9 +310,35 @@ async function boot() {
     console.error("[pdf-viewer] upgrade dialog mount failed:", err)
   })
 
+  // Mount the Pro "Download bilingual PDF" button (PR #C Task 3). Fire-and-
+  // forget — button mount failures must never break PDF render. The button
+  // itself checks entitlements and no-ops for Free users, so it's safe to
+  // mount unconditionally. `targetLang` + `providerId` are the same snapshot
+  // used for the cache key, so the export writer reads the same rows the
+  // viewer just wrote.
+  const exportButtonPromise = mountExportButton({
+    fileHash,
+    src,
+    targetLang,
+    providerId,
+  }).catch((err) => {
+    console.error("[pdf-viewer] export button mount failed:", err)
+  })
+
+  // Mount the Free-tier watermark (M3 PR#C Task 4). Fire-and-forget — like
+  // the export button, the component itself checks entitlements and the
+  // `hasAnyTranslatedPageAtom` flag, so it self-hides for Pro users and for
+  // Free users who haven't yet seen a translated page. Safe to mount
+  // unconditionally.
+  const watermarkPromise = mountWatermark().catch((err) => {
+    console.error("[pdf-viewer] watermark mount failed:", err)
+  })
+
   await renderPdf(src, { fileHash, coordinator })
   await toastPromise
   await upgradeDialogPromise
+  await exportButtonPromise
+  await watermarkPromise
 }
 
 async function renderPdf(
@@ -316,10 +373,19 @@ async function renderPdf(
   // PR #B3 Task 4: retroactive enqueue now goes through the coordinator so
   // pages that rendered while the policy was `"blocked"` still benefit from
   // cache-first lookup (and write-on-success) when the user Accepts.
+  // M3 PR#C Task 7 follow-up: the fan-out loop now lives in the pure
+  // `runRetroEnqueue` helper so it can be unit-tested without a real
+  // coordinator. The closure here just binds the refs / coordinator and
+  // forwards to the helper; see `./translation/retro-enqueue.ts` for the
+  // quota-exhausted short-circuit rationale.
   retroEnqueueRef.current = () => {
-    for (const [pageNumber, paragraphs] of knownParagraphsRef.current) {
-      void coordinator.startPage(pageNumber - 1, paragraphs)
-    }
+    runRetroEnqueue({
+      knownParagraphs: knownParagraphsRef.current,
+      isQuotaExhausted: () => quotaExhaustedRef.current,
+      startPage: (pageIndex, paragraphs) => {
+        void coordinator.startPage(pageIndex, paragraphs)
+      },
+    })
   }
   // Lazy-load pdfjs so the initial bundle stays small and so tests can
   // import `parseSrcParam` (and friends) without pulling in the worker.
@@ -356,11 +422,11 @@ async function renderPdf(
     parsedSrc = new URL(src)
   }
   catch {
-    document.body.textContent = "Invalid PDF URL"
+    document.body.textContent = i18n.t("pdfViewer.error.invalidUrl")
     return
   }
   if (!["http:", "https:", "file:"].includes(parsedSrc.protocol)) {
-    document.body.textContent = `Unsupported URL scheme: ${parsedSrc.protocol}`
+    document.body.textContent = i18n.t("pdfViewer.error.unsupportedScheme", [parsedSrc.protocol])
     return
   }
 
@@ -732,6 +798,78 @@ async function mountUpgradeDialog() {
   )
 }
 
+/**
+ * Mount the Pro "Download bilingual PDF" button (PR #C Task 3) into its
+ * dedicated root (`#export-button-root`). The button reads the shared
+ * entitlements atom directly and renders disabled for Free users — so it
+ * mounts unconditionally and its visibility/enabled state follows the
+ * atom. Pulled into its own function (mirroring `mountUpgradeDialog`) so
+ * test / boot-time failures are isolated from the PDF render path.
+ */
+async function mountExportButton(props: {
+  fileHash: string
+  src: string
+  targetLang: string
+  providerId: string
+}) {
+  const mountNode = document.getElementById("export-button-root")
+  if (!mountNode)
+    return
+
+  const [{ createRoot }, React, { Provider: JotaiProvider }, { ExportButton }] = await Promise.all([
+    import("react-dom/client"),
+    import("react"),
+    import("jotai"),
+    import("./components/export-button"),
+  ])
+
+  const root = createRoot(mountNode)
+  root.render(
+    React.createElement(
+      JotaiProvider,
+      { store: pdfViewerStore },
+      React.createElement(ExportButton, props),
+    ),
+  )
+}
+
+/**
+ * Mount the Free-tier watermark (M3 PR#C Task 4) into its dedicated root
+ * (`#watermark-root`). The component reads `entitlementsAtom` +
+ * `hasAnyTranslatedPageAtom` directly and self-hides for Pro users or for
+ * Free users who haven't yet seen a translated page — so mounting is
+ * unconditional. On click it writes `{ open: true, source:
+ * "pdf-translation-watermark" }` into the shared upgrade-dialog atom,
+ * which the `PdfUpgradeDialogMount` root already renders.
+ *
+ * Pulled into its own function (mirroring the toast / dialog / export
+ * mounts) so boot-time failures are isolated from the PDF render path.
+ */
+async function mountWatermark() {
+  const mountNode = document.getElementById("watermark-root")
+  if (!mountNode)
+    return
+
+  const [{ createRoot }, React, { Provider: JotaiProvider }, { Watermark }] = await Promise.all([
+    import("react-dom/client"),
+    import("react"),
+    import("jotai"),
+    import("./components/watermark"),
+  ])
+
+  const root = createRoot(mountNode)
+  root.render(
+    React.createElement(
+      JotaiProvider,
+      { store: pdfViewerStore },
+      React.createElement(Watermark),
+    ),
+  )
+}
+
 boot().catch((err) => {
-  document.body.textContent = `Failed to load PDF: ${err instanceof Error ? err.message : String(err)}`
+  document.body.textContent = i18n.t(
+    "pdfViewer.error.loadFailed",
+    [err instanceof Error ? err.message : String(err)],
+  )
 })

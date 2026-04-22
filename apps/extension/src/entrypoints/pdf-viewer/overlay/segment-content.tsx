@@ -15,6 +15,7 @@
  * component is the sole reader for slot content.
  */
 import type { SegmentKey } from "../translation/atoms"
+import { i18n } from "#imports"
 import { useAtomValue } from "jotai"
 import * as React from "react"
 import { segmentStatusAtomFamily } from "../translation/atoms"
@@ -37,8 +38,8 @@ export function SegmentContent({ segmentKey }: SegmentContentProps): React.React
       return (
         <span
           className="getu-slot-error"
-          title={status.message}
-          aria-label={`translation error: ${status.message}`}
+          title={i18n.t("pdfViewer.segmentContent.errorTooltip")}
+          aria-label={i18n.t("pdfViewer.segmentContent.errorAriaLabel", [status.message])}
         >
           {ERROR_GLYPH}
         </span>

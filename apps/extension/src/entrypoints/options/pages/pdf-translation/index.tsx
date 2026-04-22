@@ -1,13 +1,20 @@
 import { browser, i18n } from "#imports"
+import { FREE_PDF_PAGES_PER_DAY } from "@getu/definitions"
 import { Icon } from "@iconify/react"
-import { useAtom } from "jotai"
+import { liveQuery } from "dexie"
+import { useAtom, useAtomValue } from "jotai"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/base-ui/button"
 import { Label } from "@/components/ui/base-ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/base-ui/radio-group"
 import { Switch } from "@/components/ui/base-ui/switch"
+import { hasFeature, isPro } from "@/types/entitlements"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
+import { entitlementsAtom } from "@/utils/atoms/entitlements"
+import { db } from "@/utils/db/dexie/db"
+import { getPdfPageUsage } from "@/utils/db/dexie/pdf-translation-usage"
+import { clearPdfTranslations } from "@/utils/db/dexie/pdf-translations"
 import { ConfigCard } from "../../components/config-card"
 import { PageLayout } from "../../components/page-layout"
 
@@ -229,6 +236,121 @@ function PdfTranslationFileProtocol() {
   )
 }
 
+/**
+ * Today's PDF-page translation usage. Shows `N / 50` for Free users and
+ * `N / unlimited` for Pro / Enterprise with `pdf_translate_unlimited`.
+ *
+ * The counter lives in Dexie (`pdfTranslationUsage`) and is bumped by the
+ * scheduler on successful translate. We subscribe via `liveQuery` so the
+ * badge reflects freshly-consumed pages without a manual refresh.
+ */
+function PdfTranslationUsage() {
+  const [used, setUsed] = useState(0)
+  const entitlements = useAtomValue(entitlementsAtom)
+  const isUnlimited
+    = isPro(entitlements) && hasFeature(entitlements, "pdf_translate_unlimited")
+
+  useEffect(() => {
+    const subscription = liveQuery(() => getPdfPageUsage()).subscribe({
+      next: (n) => {
+        setUsed(n)
+      },
+      error: () => {
+        // Swallow — the Dexie connection may still be opening on first
+        // mount; next emission will correct the count.
+      },
+    })
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const limitText = isUnlimited
+    ? i18n.t("options.pdfTranslation.usage.unlimited")
+    : String(FREE_PDF_PAGES_PER_DAY)
+
+  return (
+    <ConfigCard
+      id="pdf-translation-usage"
+      title={i18n.t("options.pdfTranslation.usage.title")}
+      description={i18n.t("options.pdfTranslation.usage.description")}
+    >
+      <div className="text-sm font-mono">
+        {used}
+        {" "}
+        /
+        {" "}
+        {limitText}
+      </div>
+    </ConfigCard>
+  )
+}
+
+/**
+ * Cache management card. Shows the live count of cached pages and exposes
+ * a "Clear cache" button (guarded by `confirm()`) that wipes the
+ * `pdfTranslations` table via the existing `clearPdfTranslations` helper.
+ *
+ * The counter uses `liveQuery` so removing rows elsewhere (e.g. LRU
+ * eviction alarm) updates the display without remounting the page.
+ */
+function PdfTranslationCache() {
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    const subscription = liveQuery(() => db.pdfTranslations.count()).subscribe({
+      next: (n) => {
+        setCount(n)
+      },
+      error: () => {
+        // Swallow — see PdfTranslationUsage for rationale.
+      },
+    })
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const handleClear = async () => {
+    // Use native `confirm` rather than a custom dialog — this matches the
+    // weight of the action (single-click destructive).
+    // eslint-disable-next-line no-alert
+    if (!globalThis.confirm(i18n.t("options.pdfTranslation.cache.clearConfirm")))
+      return
+    try {
+      await clearPdfTranslations()
+    }
+    catch {
+      // Swallow — liveQuery will refresh the count on next tick either way.
+    }
+  }
+
+  const countText = count === 1
+    ? i18n.t("options.pdfTranslation.cache.countOne", [String(count)])
+    : i18n.t("options.pdfTranslation.cache.countMany", [String(count)])
+
+  return (
+    <ConfigCard
+      id="pdf-translation-cache"
+      title={i18n.t("options.pdfTranslation.cache.title")}
+      description={i18n.t("options.pdfTranslation.cache.description")}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm">{countText}</div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={handleClear}
+          disabled={count === 0}
+        >
+          {i18n.t("options.pdfTranslation.cache.clear")}
+        </Button>
+      </div>
+    </ConfigCard>
+  )
+}
+
 export function PdfTranslationPage() {
   return (
     <PageLayout title={i18n.t("options.pdfTranslation.title")}>
@@ -237,6 +359,8 @@ export function PdfTranslationPage() {
         <PdfTranslationActivationMode />
         <PdfTranslationBlocklist />
         <PdfTranslationFileProtocol />
+        <PdfTranslationUsage />
+        <PdfTranslationCache />
       </div>
     </PageLayout>
   )
