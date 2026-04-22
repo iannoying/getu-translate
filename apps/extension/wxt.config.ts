@@ -38,6 +38,7 @@ export default defineConfig({
       // is ever tightened. Keep these in sync with subtitles.content `matches`.
       "*://*.bilibili.com/*",
       "*://api.bilibili.com/*",
+      "*://*.ted.com/*",
     ],
     // Allow images/SVGs referenced by content-script UI <img> tags to be loaded from
     // moz-extension:// URLs on regular pages. Firefox enforces this more strictly.
