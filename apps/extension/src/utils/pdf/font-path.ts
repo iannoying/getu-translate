@@ -35,5 +35,16 @@ export const CJK_FONT_PATH = "/assets/fonts/noto-sans-cjk-sc-subset.otf"
  * bytes to `PDFDocument.embedFont(bytes, { subset: true })`.
  */
 export function getCjkFontUrl(): string {
-  return browser.runtime.getURL(CJK_FONT_PATH)
+  // WXT generates `PublicPath` as a template-literal union of files
+  // *currently on disk* under `public/`. The Noto Sans CJK subset is a
+  // documented manual drop-in (see the README in `public/assets/fonts/`)
+  // and isn't yet committed to the repo, so `CJK_FONT_PATH` doesn't appear
+  // in the generated union and the call fails typechecking without a cast.
+  // The runtime contract — "a leading-slash extension-root-relative path"
+  // — is what `browser.runtime.getURL` actually needs, so a narrow
+  // structural cast is safe here. Remove the cast once the font binary is
+  // committed and WXT regenerates `PublicPath`.
+  return browser.runtime.getURL(
+    CJK_FONT_PATH as Parameters<typeof browser.runtime.getURL>[0],
+  )
 }
