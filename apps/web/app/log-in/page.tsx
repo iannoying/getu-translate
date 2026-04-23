@@ -53,7 +53,13 @@ export default function LogInPage() {
 
   async function handleSocial(provider: "google" | "github") {
     try {
-      await authClient.signIn.social({ provider, callbackURL: "/" })
+      // callbackURL must be absolute — better-auth resolves relative paths
+      // against the auth server (api.getutranslate.com), but we want to land
+      // back on the web origin.
+      await authClient.signIn.social({
+        provider,
+        callbackURL: `${window.location.origin}/`,
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error")
     }
