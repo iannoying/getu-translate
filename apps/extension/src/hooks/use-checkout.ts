@@ -3,14 +3,13 @@ import { useCallback, useState } from "react"
 import { orpcClient } from "@/utils/orpc/client"
 
 type Plan = "pro_monthly" | "pro_yearly"
-type Provider = "paddle" | "stripe"
-type PaymentMethod = "card" | "alipay" | "wechat_pay"
+type Mode = "subscription" | "one_time"
 
 export function useCheckout() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const startCheckout = useCallback(async ({ plan, provider, paymentMethod = "card" }: { plan: Plan, provider: Provider, paymentMethod?: PaymentMethod }) => {
+  const startCheckout = useCallback(async ({ plan, mode = "subscription" }: { plan: Plan, mode?: Mode }) => {
     setIsLoading(true)
     setError(null)
     try {
@@ -18,8 +17,8 @@ export function useCheckout() {
       const cancelUrl = `${successUrl}?cancelled=1`
       const { url } = await orpcClient.billing.createCheckoutSession({
         plan,
-        provider,
-        paymentMethod,
+        provider: "stripe",
+        mode,
         successUrl,
         cancelUrl,
       })

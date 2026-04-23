@@ -39,29 +39,26 @@ export async function createCheckoutSession(deps: CheckoutDeps): Promise<{ url: 
     })
   }
 
+  if (input.provider === "stripe" && input.mode === "one_time") {
+    const amountCents = input.plan === "pro_monthly" ? 800 : 7200
+    const durationDays = input.plan === "pro_monthly" ? 30 : 365
+    const productName = input.plan === "pro_monthly"
+      ? "GetU Pro — 1 month"
+      : "GetU Pro — 1 year"
+    const { checkoutUrl } = await stripe.createOneTimePaymentSession({
+      amountCents,
+      currency: "usd",
+      productName,
+      email: userEmail,
+      userId,
+      successUrl: input.successUrl,
+      cancelUrl: input.cancelUrl,
+      durationDays,
+    })
+    return { url: checkoutUrl }
+  }
+
   if (input.provider === "stripe") {
-    const paymentMethod = input.paymentMethod ?? "card"
-
-    if (paymentMethod === "alipay" || paymentMethod === "wechat_pay") {
-      const amountCents = input.plan === "pro_monthly" ? 800 : 7200
-      const durationDays = input.plan === "pro_monthly" ? 30 : 365
-      const productName = input.plan === "pro_monthly"
-        ? "GetU Pro — 1 month"
-        : "GetU Pro — 1 year"
-      const { checkoutUrl } = await stripe.createOneTimePaymentSession({
-        method: paymentMethod,
-        amountCents,
-        currency: "usd",
-        productName,
-        email: userEmail,
-        userId,
-        successUrl: input.successUrl,
-        cancelUrl: input.cancelUrl,
-        durationDays,
-      })
-      return { url: checkoutUrl }
-    }
-
     const priceId = input.plan === "pro_monthly"
       ? env.STRIPE_PRICE_PRO_MONTHLY
       : env.STRIPE_PRICE_PRO_YEARLY
@@ -78,6 +75,11 @@ export async function createCheckoutSession(deps: CheckoutDeps): Promise<{ url: 
       cancelUrl: input.cancelUrl,
     })
     return { url: checkoutUrl }
+  }
+
+  // Paddle does not support one-time payments
+  if (input.mode === "one_time") {
+    throw new ORPCError("BAD_REQUEST", { message: "Paddle does not support one-time payments yet" })
   }
 
   // default: paddle (existing path)

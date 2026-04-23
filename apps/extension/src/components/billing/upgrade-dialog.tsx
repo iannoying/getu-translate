@@ -17,7 +17,7 @@ import { useEntitlements } from "@/hooks/use-entitlements"
 import { authClient } from "@/utils/auth/auth-client"
 
 type Plan = "pro_monthly" | "pro_yearly"
-type PaymentMethod = "card" | "alipay" | "wechat_pay"
+type Mode = "subscription" | "one_time"
 
 interface UpgradeDialogProps {
   /** Optional trigger slot — if omitted, dialog is controlled via open/onOpenChange */
@@ -30,7 +30,7 @@ interface UpgradeDialogProps {
 
 export function UpgradeDialog({ trigger, open, onOpenChange }: UpgradeDialogProps) {
   const [plan, setPlan] = useState<Plan>("pro_yearly")
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
+  const [mode, setMode] = useState<Mode>("subscription")
   const { startCheckout, isLoading } = useCheckout()
 
   const session = authClient.useSession()
@@ -39,7 +39,7 @@ export function UpgradeDialog({ trigger, open, onOpenChange }: UpgradeDialogProp
   const billingEnabled = entitlements?.billingEnabled ?? false
 
   async function handleUpgrade() {
-    await startCheckout({ plan, provider: "stripe", paymentMethod })
+    await startCheckout({ plan, mode })
   }
 
   return (
@@ -76,32 +76,25 @@ export function UpgradeDialog({ trigger, open, onOpenChange }: UpgradeDialogProp
           </button>
         </div>
 
-        {/* Payment method toggle */}
+        {/* Mode toggle */}
         <div className="flex gap-2 rounded-md border p-1">
           <button
             type="button"
-            className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${paymentMethod === "card" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            onClick={() => setPaymentMethod("card")}
+            className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${mode === "subscription" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setMode("subscription")}
           >
-            {i18n.t("billing.upgrade.paymentMethodCard")}
+            {i18n.t("billing.upgrade.modeSubscription")}
           </button>
           <button
             type="button"
-            className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${paymentMethod === "alipay" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            onClick={() => setPaymentMethod("alipay")}
+            className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${mode === "one_time" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setMode("one_time")}
           >
-            {i18n.t("billing.upgrade.paymentMethodAlipay")}
-          </button>
-          <button
-            type="button"
-            className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${paymentMethod === "wechat_pay" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            onClick={() => setPaymentMethod("wechat_pay")}
-          >
-            {i18n.t("billing.upgrade.paymentMethodWechat")}
+            {i18n.t("billing.upgrade.modeOneTime")}
           </button>
         </div>
-        {paymentMethod !== "card" && (
-          <p className="text-xs text-muted-foreground">{i18n.t("billing.upgrade.oneTimeNote")}</p>
+        {mode === "one_time" && (
+          <p className="text-xs text-muted-foreground">{i18n.t("billing.upgrade.modeOneTimeNote")}</p>
         )}
 
         <DialogFooter>

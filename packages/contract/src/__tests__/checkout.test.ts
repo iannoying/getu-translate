@@ -108,55 +108,43 @@ describe("createCheckoutSession schemas", () => {
     ).toThrow()
   })
 
-  it("accepts paymentMethod=alipay with provider=stripe", () => {
+  it("accepts mode=subscription", () => {
     const parsed = createCheckoutSessionInputSchema.parse({
       plan: "pro_monthly",
       provider: "stripe",
-      paymentMethod: "alipay",
+      mode: "subscription",
       successUrl: "https://getutranslate.com/upgrade/success",
       cancelUrl: "https://getutranslate.com/price",
     })
-    expect(parsed.paymentMethod).toBe("alipay")
+    expect(parsed.mode).toBe("subscription")
   })
 
-  it("accepts paymentMethod=wechat_pay with provider=stripe", () => {
+  it("accepts mode=one_time", () => {
     const parsed = createCheckoutSessionInputSchema.parse({
       plan: "pro_monthly",
       provider: "stripe",
-      paymentMethod: "wechat_pay",
+      mode: "one_time",
       successUrl: "https://getutranslate.com/upgrade/success",
       cancelUrl: "https://getutranslate.com/price",
     })
-    expect(parsed.paymentMethod).toBe("wechat_pay")
+    expect(parsed.mode).toBe("one_time")
   })
 
-  it("rejects paymentMethod=alipay with provider=paddle", () => {
-    expect(() =>
-      createCheckoutSessionInputSchema.parse({
-        plan: "pro_monthly",
-        provider: "paddle",
-        paymentMethod: "alipay",
-        successUrl: "https://getutranslate.com/upgrade/success",
-        cancelUrl: "https://getutranslate.com/price",
-      }),
-    ).toThrow()
-  })
-
-  it("defaults paymentMethod to card when omitted", () => {
+  it("defaults to subscription when mode is omitted", () => {
     const parsed = createCheckoutSessionInputSchema.parse({
       plan: "pro_monthly",
       successUrl: "https://getutranslate.com/upgrade/success",
       cancelUrl: "https://getutranslate.com/price",
     })
-    expect(parsed.paymentMethod).toBe("card")
+    expect(parsed.mode).toBe("subscription")
   })
 
-  it("rejects unknown paymentMethod value", () => {
+  it("rejects unknown mode value", () => {
     expect(() =>
       createCheckoutSessionInputSchema.parse({
         plan: "pro_monthly",
         provider: "stripe",
-        paymentMethod: "bitcoin",
+        mode: "recurring",
         successUrl: "https://getutranslate.com/upgrade/success",
         cancelUrl: "https://getutranslate.com/price",
       }),

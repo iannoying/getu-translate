@@ -60,68 +60,50 @@ describe("useCheckout", () => {
     tabsCreateMock.mockResolvedValue({ id: 1 })
   })
 
-  it("calls createCheckoutSession with correct plan, provider, and URLs", async () => {
-    createCheckoutSessionMock.mockResolvedValue({ url: "https://checkout.paddle.com/session/abc" })
-
-    const { result } = renderHook(() => useCheckout())
-
-    await act(async () => {
-      await result.current.startCheckout({ plan: "pro_yearly", provider: "stripe" })
-    })
-
-    expect(createCheckoutSessionMock).toHaveBeenCalledWith({
-      plan: "pro_yearly",
-      provider: "stripe",
-      paymentMethod: "card",
-      successUrl: "chrome-extension://fake-id/upgrade-success.html",
-      cancelUrl: "chrome-extension://fake-id/upgrade-success.html?cancelled=1",
-    })
-  })
-
-  it("passes provider=paddle to createCheckoutSession", async () => {
-    createCheckoutSessionMock.mockResolvedValue({ url: "https://checkout.paddle.com/session/abc" })
-
-    const { result } = renderHook(() => useCheckout())
-
-    await act(async () => {
-      await result.current.startCheckout({ plan: "pro_monthly", provider: "paddle" })
-    })
-
-    expect(createCheckoutSessionMock).toHaveBeenCalledWith({
-      plan: "pro_monthly",
-      provider: "paddle",
-      paymentMethod: "card",
-      successUrl: "chrome-extension://fake-id/upgrade-success.html",
-      cancelUrl: "chrome-extension://fake-id/upgrade-success.html?cancelled=1",
-    })
-  })
-
-  it("passes paymentMethod=alipay when specified", async () => {
+  it("calls createCheckoutSession with plan, provider=stripe, mode=subscription, and URLs", async () => {
     createCheckoutSessionMock.mockResolvedValue({ url: "https://checkout.stripe.com/session/abc" })
 
     const { result } = renderHook(() => useCheckout())
 
     await act(async () => {
-      await result.current.startCheckout({ plan: "pro_monthly", provider: "stripe", paymentMethod: "alipay" })
+      await result.current.startCheckout({ plan: "pro_yearly" })
+    })
+
+    expect(createCheckoutSessionMock).toHaveBeenCalledWith({
+      plan: "pro_yearly",
+      provider: "stripe",
+      mode: "subscription",
+      successUrl: "chrome-extension://fake-id/upgrade-success.html",
+      cancelUrl: "chrome-extension://fake-id/upgrade-success.html?cancelled=1",
+    })
+  })
+
+  it("passes mode=one_time when specified", async () => {
+    createCheckoutSessionMock.mockResolvedValue({ url: "https://checkout.stripe.com/session/abc" })
+
+    const { result } = renderHook(() => useCheckout())
+
+    await act(async () => {
+      await result.current.startCheckout({ plan: "pro_monthly", mode: "one_time" })
     })
 
     expect(createCheckoutSessionMock).toHaveBeenCalledWith({
       plan: "pro_monthly",
       provider: "stripe",
-      paymentMethod: "alipay",
+      mode: "one_time",
       successUrl: "chrome-extension://fake-id/upgrade-success.html",
       cancelUrl: "chrome-extension://fake-id/upgrade-success.html?cancelled=1",
     })
   })
 
   it("opens a new tab with the checkout URL", async () => {
-    const checkoutUrl = "https://checkout.paddle.com/session/abc"
+    const checkoutUrl = "https://checkout.stripe.com/session/abc"
     createCheckoutSessionMock.mockResolvedValue({ url: checkoutUrl })
 
     const { result } = renderHook(() => useCheckout())
 
     await act(async () => {
-      await result.current.startCheckout({ plan: "pro_monthly", provider: "stripe" })
+      await result.current.startCheckout({ plan: "pro_monthly" })
     })
 
     expect(tabsCreateMock).toHaveBeenCalledWith({ url: checkoutUrl })
@@ -140,13 +122,13 @@ describe("useCheckout", () => {
 
     let startPromise: Promise<void>
     act(() => {
-      startPromise = result.current.startCheckout({ plan: "pro_yearly", provider: "stripe" })
+      startPromise = result.current.startCheckout({ plan: "pro_yearly" })
     })
 
     await waitFor(() => expect(result.current.isLoading).toBe(true))
 
     await act(async () => {
-      resolve({ url: "https://checkout.paddle.com/session/abc" })
+      resolve({ url: "https://checkout.stripe.com/session/abc" })
       await startPromise
     })
 
@@ -162,7 +144,7 @@ describe("useCheckout", () => {
     let caught: unknown
     await act(async () => {
       try {
-        await result.current.startCheckout({ plan: "pro_yearly", provider: "stripe" })
+        await result.current.startCheckout({ plan: "pro_yearly" })
       }
       catch (e) {
         caught = e
@@ -176,14 +158,14 @@ describe("useCheckout", () => {
 
   it("resets error on a subsequent successful call", async () => {
     createCheckoutSessionMock.mockRejectedValueOnce(new Error("first error"))
-    createCheckoutSessionMock.mockResolvedValue({ url: "https://checkout.paddle.com/session/abc" })
+    createCheckoutSessionMock.mockResolvedValue({ url: "https://checkout.stripe.com/session/abc" })
 
     const { result } = renderHook(() => useCheckout())
 
     // First call: fail and capture error
     await act(async () => {
       try {
-        await result.current.startCheckout({ plan: "pro_yearly", provider: "stripe" })
+        await result.current.startCheckout({ plan: "pro_yearly" })
       }
       catch {
         // expected
@@ -194,7 +176,7 @@ describe("useCheckout", () => {
 
     // Second call: success — error should be cleared
     await act(async () => {
-      await result.current.startCheckout({ plan: "pro_yearly", provider: "stripe" })
+      await result.current.startCheckout({ plan: "pro_yearly" })
     })
 
     expect(result.current.error).toBeNull()
