@@ -12,3 +12,9 @@ PADDLE_API_KEY=<your sandbox API key>
 PADDLE_WEBHOOK_SECRET=<your sandbox notification secret (pdl_ntfset_...)>
 PADDLE_PRICE_PRO_MONTHLY=pri_01_sandbox_monthly_placeholder
 PADDLE_PRICE_PRO_YEARLY=pri_01_sandbox_yearly_placeholder
+
+# Phase 5 stripe secrets:
+STRIPE_SECRET_KEY=<your sk_test_... or sk_live_...>
+STRIPE_WEBHOOK_SECRET=<your whsec_...>
+STRIPE_PRICE_PRO_MONTHLY=price_01_test_monthly_placeholder
+STRIPE_PRICE_PRO_YEARLY=price_01_test_yearly_placeholder
