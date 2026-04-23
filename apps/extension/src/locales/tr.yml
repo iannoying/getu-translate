@@ -998,6 +998,15 @@ billing:
     title: Bu özelliği Pro ile açın
     description: Pro; PDF çevirisi, sınırsız alan çevirisi, bulut eşzamanlı kelime defteri ve daha fazlasını sunar.
     close: Kapat
+    planYearly: Yearly
+    planMonthly: Monthly
+    providerStripe: Stripe
+    providerPaddle: Paddle
+    loading: Loading...
+    comingSoon: Coming soon
+    modeSubscription: Subscribe (auto-renew)
+    modeOneTime: Pay once
+    modeOneTimeNote: One-time payment, no auto-renewal
   quota:
     outOf: /
     remaining: kaldı
