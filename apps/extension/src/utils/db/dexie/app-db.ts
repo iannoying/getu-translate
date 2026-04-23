@@ -10,6 +10,7 @@ import InputTranslationUsage from "./tables/input-translation-usage"
 import PdfTranslationUsage from "./tables/pdf-translation-usage"
 import PdfTranslations from "./tables/pdf-translations"
 import TranslationCache from "./tables/translation-cache"
+import Word from "./tables/word"
 
 export default class AppDB extends Dexie {
   translationCache!: EntityTable<
@@ -51,6 +52,8 @@ export default class AppDB extends Dexie {
     PdfTranslationUsage,
     "dateKey"
   >
+
+  words!: EntityTable<Word, "id">
 
   constructor() {
     super(`${upperCamelCase(APP_NAME)}DB`)
@@ -248,6 +251,17 @@ export default class AppDB extends Dexie {
         dateKey,
         updatedAt`,
     })
+    this.version(10).stores({
+      translationCache: `key, translation, createdAt`,
+      batchRequestRecord: `key, createdAt, originalRequestCount, provider, model`,
+      articleSummaryCache: `key, createdAt`,
+      aiSegmentationCache: `key, createdAt`,
+      entitlementsCache: `userId, updatedAt`,
+      inputTranslationUsage: `dateKey, updatedAt`,
+      pdfTranslations: `id, fileHash, createdAt, lastAccessedAt`,
+      pdfTranslationUsage: `dateKey, updatedAt`,
+      words: `++id, word, nextReviewAt, createdAt`,
+    })
     this.translationCache.mapToClass(TranslationCache)
     this.batchRequestRecord.mapToClass(BatchRequestRecord)
     this.articleSummaryCache.mapToClass(ArticleSummaryCache)
@@ -256,5 +270,6 @@ export default class AppDB extends Dexie {
     this.inputTranslationUsage.mapToClass(InputTranslationUsage)
     this.pdfTranslations.mapToClass(PdfTranslations)
     this.pdfTranslationUsage.mapToClass(PdfTranslationUsage)
+    this.words.mapToClass(Word)
   }
 }
