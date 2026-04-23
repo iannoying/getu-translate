@@ -17,7 +17,6 @@ import { useEntitlements } from "@/hooks/use-entitlements"
 import { authClient } from "@/utils/auth/auth-client"
 
 type Plan = "pro_monthly" | "pro_yearly"
-type Provider = "paddle" | "stripe"
 type PaymentMethod = "card" | "alipay" | "wechat_pay"
 
 interface UpgradeDialogProps {
@@ -31,7 +30,6 @@ interface UpgradeDialogProps {
 
 export function UpgradeDialog({ trigger, open, onOpenChange }: UpgradeDialogProps) {
   const [plan, setPlan] = useState<Plan>("pro_yearly")
-  const [provider, setProvider] = useState<Provider>("stripe")
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
   const { startCheckout, isLoading } = useCheckout()
 
@@ -41,7 +39,7 @@ export function UpgradeDialog({ trigger, open, onOpenChange }: UpgradeDialogProp
   const billingEnabled = entitlements?.billingEnabled ?? false
 
   async function handleUpgrade() {
-    await startCheckout({ plan, provider, paymentMethod })
+    await startCheckout({ plan, provider: "stripe", paymentMethod })
   }
 
   return (
@@ -78,54 +76,31 @@ export function UpgradeDialog({ trigger, open, onOpenChange }: UpgradeDialogProp
           </button>
         </div>
 
-        {/* Provider toggle */}
+        {/* Payment method toggle */}
         <div className="flex gap-2 rounded-md border p-1">
           <button
             type="button"
-            className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${provider === "stripe" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            onClick={() => setProvider("stripe")}
+            className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${paymentMethod === "card" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setPaymentMethod("card")}
           >
-            {i18n.t("billing.upgrade.providerStripe")}
+            {i18n.t("billing.upgrade.paymentMethodCard")}
           </button>
           <button
             type="button"
-            className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${provider === "paddle" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            onClick={() => {
-              setProvider("paddle")
-              setPaymentMethod("card")
-            }}
+            className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${paymentMethod === "alipay" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setPaymentMethod("alipay")}
           >
-            {i18n.t("billing.upgrade.providerPaddle")}
+            {i18n.t("billing.upgrade.paymentMethodAlipay")}
+          </button>
+          <button
+            type="button"
+            className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${paymentMethod === "wechat_pay" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setPaymentMethod("wechat_pay")}
+          >
+            {i18n.t("billing.upgrade.paymentMethodWechat")}
           </button>
         </div>
-
-        {/* Payment method toggle (Stripe only) */}
-        {provider === "stripe" && (
-          <div className="flex gap-2 rounded-md border p-1">
-            <button
-              type="button"
-              className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${paymentMethod === "card" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              onClick={() => setPaymentMethod("card")}
-            >
-              {i18n.t("billing.upgrade.paymentMethodCard")}
-            </button>
-            <button
-              type="button"
-              className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${paymentMethod === "alipay" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              onClick={() => setPaymentMethod("alipay")}
-            >
-              {i18n.t("billing.upgrade.paymentMethodAlipay")}
-            </button>
-            <button
-              type="button"
-              className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${paymentMethod === "wechat_pay" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              onClick={() => setPaymentMethod("wechat_pay")}
-            >
-              {i18n.t("billing.upgrade.paymentMethodWechat")}
-            </button>
-          </div>
-        )}
-        {provider === "stripe" && paymentMethod !== "card" && (
+        {paymentMethod !== "card" && (
           <p className="text-xs text-muted-foreground">{i18n.t("billing.upgrade.oneTimeNote")}</p>
         )}
 
