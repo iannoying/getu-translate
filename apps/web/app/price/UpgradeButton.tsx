@@ -9,12 +9,12 @@ const SITE_ORIGIN = "https://getutranslate.com"
 export function UpgradeButton({
   plan,
   provider,
-  paymentMethod = "card",
+  mode = "subscription",
   label,
 }: {
   plan: "pro_monthly" | "pro_yearly"
   provider: "paddle" | "stripe"
-  paymentMethod?: "card" | "alipay" | "wechat_pay"
+  mode?: "subscription" | "one_time"
   label: string
 }) {
   const [loading, setLoading] = useState(false)
@@ -34,7 +34,7 @@ export function UpgradeButton({
       const { url } = await orpcClient.billing.createCheckoutSession({
         plan,
         provider,
-        paymentMethod,
+        mode,
         successUrl: `${SITE_ORIGIN}/upgrade/success`,
         cancelUrl: `${SITE_ORIGIN}/price`,
       })

@@ -72,7 +72,7 @@ describe("stripe client", () => {
   })
 
   describe("createOneTimePaymentSession", () => {
-    it("POSTs mode=payment, alipay, unit_amount=800, duration_days=30", async () => {
+    it("POSTs mode=payment with automatic_payment_methods, unit_amount=800, duration_days=30", async () => {
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({ id: "cs_pay_01", url: "https://checkout.stripe.com/pay/cs_pay_01" }),
@@ -81,7 +81,6 @@ describe("stripe client", () => {
 
       const client = createStripeClient({ apiKey: "sk_test_01", baseUrl: "https://api.stripe.com" })
       const out = await client.createOneTimePaymentSession({
-        method: "alipay",
         amountCents: 800,
         currency: "usd",
         productName: "GetU Pro — 1 month",
@@ -95,12 +94,13 @@ describe("stripe client", () => {
       expect(out).toEqual({ sessionId: "cs_pay_01", checkoutUrl: "https://checkout.stripe.com/pay/cs_pay_01" })
       const body = fetchMock.mock.calls[0][1].body as string
       expect(body).toContain("mode=payment")
-      expect(body).toContain("payment_method_types%5B0%5D=alipay")
+      expect(body).toContain("automatic_payment_methods%5Benabled%5D=true")
+      expect(body).not.toContain("payment_method_types%5B0%5D=alipay")
       expect(body).toContain("line_items%5B0%5D%5Bprice_data%5D%5Bunit_amount%5D=800")
       expect(body).toContain("metadata%5Bduration_days%5D=30")
     })
 
-    it("adds payment_method_options[wechat_pay][client]=web for wechat_pay", async () => {
+    it("does not include payment_method_types or wechat_pay options", async () => {
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({ id: "cs_pay_02", url: "https://checkout.stripe.com/pay/cs_pay_02" }),
@@ -109,7 +109,6 @@ describe("stripe client", () => {
 
       const client = createStripeClient({ apiKey: "sk_test_01", baseUrl: "https://api.stripe.com" })
       await client.createOneTimePaymentSession({
-        method: "wechat_pay",
         amountCents: 7200,
         currency: "usd",
         productName: "GetU Pro — 1 year",
@@ -121,8 +120,9 @@ describe("stripe client", () => {
       })
 
       const body = fetchMock.mock.calls[0][1].body as string
-      expect(body).toContain("payment_method_types%5B0%5D=wechat_pay")
-      expect(body).toContain("payment_method_options%5Bwechat_pay%5D%5Bclient%5D=web")
+      expect(body).not.toContain("payment_method_types")
+      expect(body).not.toContain("wechat_pay")
+      expect(body).toContain("automatic_payment_methods%5Benabled%5D=true")
       expect(body).toContain("metadata%5Bduration_days%5D=365")
     })
   })

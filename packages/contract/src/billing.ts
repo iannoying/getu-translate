@@ -96,15 +96,11 @@ export const createCheckoutSessionInputSchema = z
   .object({
     plan: z.enum(["pro_monthly", "pro_yearly"]),
     provider: z.enum(["paddle", "stripe"]).default("paddle"),
-    paymentMethod: z.enum(["card", "alipay", "wechat_pay"]).default("card"),
+    mode: z.enum(["subscription", "one_time"]).default("subscription"),
     successUrl: redirectUrlSchema,
     cancelUrl: redirectUrlSchema,
   })
   .strict()
-  .refine(
-    (data) => data.paymentMethod === "card" || data.provider === "stripe",
-    { message: "paymentMethod alipay/wechat_pay requires provider=stripe" },
-  )
 export type CreateCheckoutSessionInput = z.infer<typeof createCheckoutSessionInputSchema>
 
 export const createCheckoutSessionOutputSchema = z.object({ url: z.string().url() })

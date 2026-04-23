@@ -61,7 +61,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "paddle" as const,
-        paymentMethod: "card" as const,
+        mode: "subscription" as const,
         successUrl: "https://getutranslate.com/upgrade/success",
         cancelUrl: "https://getutranslate.com/price",
       },
@@ -82,7 +82,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_yearly",
         provider: "paddle" as const,
-        paymentMethod: "card" as const,
+        mode: "subscription" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -98,7 +98,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "paddle" as const,
-        paymentMethod: "card" as const,
+        mode: "subscription" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -118,7 +118,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "paddle" as const,
-        paymentMethod: "card" as const,
+        mode: "subscription" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -133,7 +133,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "paddle" as const,
-        paymentMethod: "card" as const,
+        mode: "subscription" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -153,7 +153,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "paddle" as const,
-        paymentMethod: "card" as const,
+        mode: "subscription" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -161,7 +161,7 @@ describe("createCheckoutSession", () => {
     expect(out.url).toBe("https://pay.paddle.io/hsc_01")
   })
 
-  it("calls stripe.createCheckoutSession when provider=stripe", async () => {
+  it("calls stripe.createCheckoutSession when provider=stripe mode=subscription", async () => {
     const stripe = fakeStripe()
     const out = await createCheckoutSession({
       db: fakeDb(null),
@@ -173,7 +173,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "stripe" as const,
-        paymentMethod: "card" as const,
+        mode: "subscription" as const,
         successUrl: "https://getutranslate.com/upgrade/success",
         cancelUrl: "https://getutranslate.com/price",
       },
@@ -188,7 +188,7 @@ describe("createCheckoutSession", () => {
     })
   })
 
-  it("throws INTERNAL_SERVER_ERROR when stripe price id is not configured", async () => {
+  it("throws INTERNAL_SERVER_ERROR when stripe price id is not configured (subscription)", async () => {
     await expect(createCheckoutSession({
       db: fakeDb(null), paddle: fakePaddle(), stripe: fakeStripe(),
       env: { ...baseEnv, STRIPE_PRICE_PRO_MONTHLY: "" },
@@ -196,14 +196,14 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "stripe" as const,
-        paymentMethod: "card" as const,
+        mode: "subscription" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
     })).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" })
   })
 
-  it("calls stripe.createOneTimePaymentSession with durationDays=30 for alipay pro_monthly", async () => {
+  it("calls stripe.createOneTimePaymentSession with durationDays=30 for pro_monthly one_time", async () => {
     const stripe = fakeStripe()
     const out = await createCheckoutSession({
       db: fakeDb(null),
@@ -215,18 +215,18 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "stripe" as const,
-        paymentMethod: "alipay" as const,
+        mode: "one_time" as const,
         successUrl: "https://getutranslate.com/upgrade/success",
         cancelUrl: "https://getutranslate.com/price",
       },
     })
     expect(out.url).toBe("https://checkout.stripe.com/pay/cs_pay_01")
     expect(stripe.createOneTimePaymentSession).toHaveBeenCalledWith(
-      expect.objectContaining({ method: "alipay", amountCents: 800, durationDays: 30 }),
+      expect.objectContaining({ amountCents: 800, durationDays: 30 }),
     )
   })
 
-  it("calls stripe.createOneTimePaymentSession with method=wechat_pay for wechat_pay", async () => {
+  it("calls stripe.createOneTimePaymentSession with durationDays=365 for pro_yearly one_time", async () => {
     const stripe = fakeStripe()
     const out = await createCheckoutSession({
       db: fakeDb(null),
@@ -238,15 +238,29 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_yearly",
         provider: "stripe" as const,
-        paymentMethod: "wechat_pay" as const,
+        mode: "one_time" as const,
         successUrl: "https://getutranslate.com/upgrade/success",
         cancelUrl: "https://getutranslate.com/price",
       },
     })
     expect(out.url).toBe("https://checkout.stripe.com/pay/cs_pay_01")
     expect(stripe.createOneTimePaymentSession).toHaveBeenCalledWith(
-      expect.objectContaining({ method: "wechat_pay", amountCents: 7200, durationDays: 365 }),
+      expect.objectContaining({ amountCents: 7200, durationDays: 365 }),
     )
+  })
+
+  it("throws BAD_REQUEST when paddle + mode=one_time", async () => {
+    await expect(createCheckoutSession({
+      db: fakeDb(null), paddle: fakePaddle(), stripe: fakeStripe(), env: baseEnv,
+      userId: "u1", userEmail: "u@x.com",
+      input: {
+        plan: "pro_monthly",
+        provider: "paddle" as const,
+        mode: "one_time" as const,
+        successUrl: "https://getutranslate.com/x",
+        cancelUrl: "https://getutranslate.com/y",
+      },
+    })).rejects.toMatchObject({ code: "BAD_REQUEST" })
   })
 })
 
