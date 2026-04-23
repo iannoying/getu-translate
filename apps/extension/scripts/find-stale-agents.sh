@@ -50,6 +50,7 @@ done < <(find . -name AGENTS.md \
   -not -path '*/.git/*' \
   -not -path '*/.wxt/*' \
   -not -path '*/.output/*' \
+  -not -path '*/output/*' \
   -not -path '*/.next/*' \
   -not -path '*/dist/*' \
   -not -path '*/coverage/*' \

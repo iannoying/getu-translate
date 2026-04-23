@@ -5,10 +5,18 @@ const WXT_API_KEY_PATTERN = /^WXT_.*API_KEY/
 const ALLOWED_BUNDLED_API_KEYS = new Set([
   "WXT_POSTHOG_API_KEY",
 ])
+const RAW_NONCHARACTERS_PATTERN = /[\uFFFF\uFFFE]/g
+
+function escapeRawNoncharacters(code: string): string {
+  return code.replaceAll(RAW_NONCHARACTERS_PATTERN, match =>
+    match === "\uFFFF" ? "\\uFFFF" : "\\uFFFE",
+  )
+}
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   srcDir: "src",
+  outDir: "output",
   imports: false,
   modules: ["@wxt-dev/module-react", "@wxt-dev/i18n/module"],
   manifestVersion: 3,
@@ -83,6 +91,18 @@ export default defineConfig({
   },
   vite: configEnv => ({
     plugins: [
+      {
+        name: "escape-raw-noncharacters",
+        generateBundle(_, bundle) {
+          for (const chunk of Object.values(bundle)) {
+            if (chunk.type !== "chunk" || !chunk.fileName.endsWith(".js")) {
+              continue
+            }
+
+            chunk.code = escapeRawNoncharacters(chunk.code)
+          }
+        },
+      },
       ...(configEnv.mode === "production"
         ? [
             {
