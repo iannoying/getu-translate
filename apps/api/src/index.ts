@@ -7,6 +7,7 @@ import { router } from "./orpc"
 import { handleChatCompletions } from "./ai/proxy"
 import { signAiJwt, AI_JWT_TTL_SECONDS } from "./ai/jwt"
 import { handlePaddleWebhook } from "./billing/webhook-handler"
+import { handleStripeWebhook } from "./billing/stripe-webhook-handler"
 
 const app = new Hono<{ Bindings: WorkerEnv }>()
 
@@ -68,5 +69,6 @@ app.post("/ai/v1/chat/completions", async (c) => {
 })
 
 app.post("/api/billing/webhook/paddle", handlePaddleWebhook)
+app.post("/api/billing/webhook/stripe", handleStripeWebhook)
 
 export default app
