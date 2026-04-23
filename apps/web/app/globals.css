@@ -432,6 +432,67 @@ a {
   width: 100%;
 }
 
+.language-switcher {
+  display: inline-flex;
+}
+
+.language-switcher select {
+  background: rgb(255 253 248 / 72%);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  min-height: 34px;
+  padding: 5px 28px 5px 10px;
+}
+
+.language-switcher select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.sr-only {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.root-locale-page {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  text-align: center;
+}
+
+.root-locale-page h1 {
+  font-family: Georgia, ui-serif, serif;
+  font-size: 48px;
+  font-weight: 520;
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0;
+}
+
+.root-locale-page nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
 @media (max-width: 760px) {
   .site-shell {
     padding: 18px;

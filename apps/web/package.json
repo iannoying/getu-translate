@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "echo 'web lint-todo (migrate off deprecated next lint to direct eslint)'",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@getu/contract": "workspace:*",
@@ -22,6 +23,7 @@
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.4"
   }
 }
