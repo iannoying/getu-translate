@@ -74,8 +74,8 @@ Run `SKIP_FREE_API=true pnpm --filter @getu/extension test -- pdf-viewer`. The s
 
 ## Browser Compatibility
 
-- **Chrome MV3**: fully supported (primary target). `pnpm exec wxt build` produces `.output/chrome-mv3/` with service-worker background and `pdf-viewer.html` in `web_accessible_resources` for `*://*/*` + `file:///*`.
-- **Firefox MV3**: filesystem-level build smoke test in M3 PR #A Task 7 passes — `pnpm exec wxt build -b firefox` exits 0 and emits `.output/firefox-mv3/pdf-viewer.html`, `manifest.json`, `background.js`, and the bundled `pdf.worker-*.mjs`. No Firefox-specific warnings from pdf-viewer, pdf-redirect, or `pdfjs-dist`. Runtime verification in Firefox (actually opening the viewer on a PDF URL) is deferred — Task 7 is build-only.
+- **Chrome MV3**: fully supported (primary target). `pnpm exec wxt build` produces `output/chrome-mv3/` with service-worker background and `pdf-viewer.html` in `web_accessible_resources` for `*://*/*` + `file:///*`.
+- **Firefox MV3**: filesystem-level build smoke test in M3 PR #A Task 7 passes — `pnpm exec wxt build -b firefox` exits 0 and emits `output/firefox-mv3/pdf-viewer.html`, `manifest.json`, `background.js`, and the bundled `pdf.worker-*.mjs`. No Firefox-specific warnings from pdf-viewer, pdf-redirect, or `pdfjs-dist`. Runtime verification in Firefox (actually opening the viewer on a PDF URL) is deferred — Task 7 is build-only.
 - **Known differences**:
   - Firefox MV3 background is an event page (`background.scripts` with `"type": "module"`) while Chrome uses a service worker. WXT handles the switch automatically; the pdf-redirect interceptor (Task 3) should keep working because `webNavigation` + `tabs.update` are available in both.
   - Firefox requires `browser_specific_settings.gecko.id` (auto-injected by WXT) and `strict_min_version: 112.0` to support MV3.
