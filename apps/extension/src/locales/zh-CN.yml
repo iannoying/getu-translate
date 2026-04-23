@@ -1114,6 +1114,15 @@ billing:
     title: 使用专业版解锁此功能
     description: 专业版包含 PDF 翻译、无限次输入框翻译、云同步生词本等更多高级功能。
     close: 关闭
+    planYearly: 年付
+    planMonthly: 月付
+    providerStripe: Stripe
+    providerPaddle: Paddle
+    loading: 加载中...
+    comingSoon: 即将推出
+    modeSubscription: 订阅（自动续费）
+    modeOneTime: 一次性付款
+    modeOneTimeNote: 一次性付款，无自动续费
   quota:
     outOf: /
     remaining: 剩余

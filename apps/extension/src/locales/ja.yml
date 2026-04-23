@@ -998,6 +998,15 @@ billing:
     title: Pro でこの機能をアンロック
     description: Pro では PDF 翻訳、無制限の入力欄翻訳、クラウド同期の単語帳などが使えます。
     close: 閉じる
+    planYearly: 年間プラン
+    planMonthly: 月間プラン
+    providerStripe: Stripe
+    providerPaddle: Paddle
+    loading: 読み込み中...
+    comingSoon: 近日公開
+    modeSubscription: サブスクリプション（自動更新）
+    modeOneTime: 一回払い
+    modeOneTimeNote: 一回払い、自動更新なし
   quota:
     outOf: /
     remaining: 残り
