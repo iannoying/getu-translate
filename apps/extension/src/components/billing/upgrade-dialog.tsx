@@ -17,6 +17,7 @@ import { useEntitlements } from "@/hooks/use-entitlements"
 import { authClient } from "@/utils/auth/auth-client"
 
 type Plan = "pro_monthly" | "pro_yearly"
+type Provider = "paddle" | "stripe"
 
 interface UpgradeDialogProps {
   /** Optional trigger slot — if omitted, dialog is controlled via open/onOpenChange */
@@ -29,6 +30,7 @@ interface UpgradeDialogProps {
 
 export function UpgradeDialog({ trigger, open, onOpenChange }: UpgradeDialogProps) {
   const [plan, setPlan] = useState<Plan>("pro_yearly")
+  const [provider, setProvider] = useState<Provider>("stripe")
   const { startCheckout, isLoading } = useCheckout()
 
   const session = authClient.useSession()
@@ -37,7 +39,7 @@ export function UpgradeDialog({ trigger, open, onOpenChange }: UpgradeDialogProp
   const billingEnabled = entitlements?.billingEnabled ?? false
 
   async function handleUpgrade() {
-    await startCheckout({ plan })
+    await startCheckout({ plan, provider })
   }
 
   return (
@@ -71,6 +73,24 @@ export function UpgradeDialog({ trigger, open, onOpenChange }: UpgradeDialogProp
             onClick={() => setPlan("pro_monthly")}
           >
             {i18n.t("billing.upgrade.planMonthly")}
+          </button>
+        </div>
+
+        {/* Provider toggle */}
+        <div className="flex gap-2 rounded-md border p-1">
+          <button
+            type="button"
+            className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${provider === "stripe" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setProvider("stripe")}
+          >
+            {i18n.t("billing.upgrade.providerStripe")}
+          </button>
+          <button
+            type="button"
+            className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${provider === "paddle" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setProvider("paddle")}
+          >
+            {i18n.t("billing.upgrade.providerPaddle")}
           </button>
         </div>
 

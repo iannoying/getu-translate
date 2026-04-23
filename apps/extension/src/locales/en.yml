@@ -1118,6 +1118,8 @@ billing:
     close: Close
     planYearly: Yearly
     planMonthly: Monthly
+    providerStripe: Stripe
+    providerPaddle: Paddle
     loading: Loading...
     comingSoon: Coming soon
   quota:

@@ -60,17 +60,35 @@ describe("useCheckout", () => {
     tabsCreateMock.mockResolvedValue({ id: 1 })
   })
 
-  it("calls createCheckoutSession with correct plan and URLs", async () => {
+  it("calls createCheckoutSession with correct plan, provider, and URLs", async () => {
     createCheckoutSessionMock.mockResolvedValue({ url: "https://checkout.paddle.com/session/abc" })
 
     const { result } = renderHook(() => useCheckout())
 
     await act(async () => {
-      await result.current.startCheckout({ plan: "pro_yearly" })
+      await result.current.startCheckout({ plan: "pro_yearly", provider: "stripe" })
     })
 
     expect(createCheckoutSessionMock).toHaveBeenCalledWith({
       plan: "pro_yearly",
+      provider: "stripe",
+      successUrl: "chrome-extension://fake-id/upgrade-success.html",
+      cancelUrl: "chrome-extension://fake-id/upgrade-success.html?cancelled=1",
+    })
+  })
+
+  it("passes provider=paddle to createCheckoutSession", async () => {
+    createCheckoutSessionMock.mockResolvedValue({ url: "https://checkout.paddle.com/session/abc" })
+
+    const { result } = renderHook(() => useCheckout())
+
+    await act(async () => {
+      await result.current.startCheckout({ plan: "pro_monthly", provider: "paddle" })
+    })
+
+    expect(createCheckoutSessionMock).toHaveBeenCalledWith({
+      plan: "pro_monthly",
+      provider: "paddle",
       successUrl: "chrome-extension://fake-id/upgrade-success.html",
       cancelUrl: "chrome-extension://fake-id/upgrade-success.html?cancelled=1",
     })
@@ -83,7 +101,7 @@ describe("useCheckout", () => {
     const { result } = renderHook(() => useCheckout())
 
     await act(async () => {
-      await result.current.startCheckout({ plan: "pro_monthly" })
+      await result.current.startCheckout({ plan: "pro_monthly", provider: "stripe" })
     })
 
     expect(tabsCreateMock).toHaveBeenCalledWith({ url: checkoutUrl })
@@ -102,7 +120,7 @@ describe("useCheckout", () => {
 
     let startPromise: Promise<void>
     act(() => {
-      startPromise = result.current.startCheckout({ plan: "pro_yearly" })
+      startPromise = result.current.startCheckout({ plan: "pro_yearly", provider: "stripe" })
     })
 
     await waitFor(() => expect(result.current.isLoading).toBe(true))
@@ -124,7 +142,7 @@ describe("useCheckout", () => {
     let caught: unknown
     await act(async () => {
       try {
-        await result.current.startCheckout({ plan: "pro_yearly" })
+        await result.current.startCheckout({ plan: "pro_yearly", provider: "stripe" })
       }
       catch (e) {
         caught = e
@@ -145,7 +163,7 @@ describe("useCheckout", () => {
     // First call: fail and capture error
     await act(async () => {
       try {
-        await result.current.startCheckout({ plan: "pro_yearly" })
+        await result.current.startCheckout({ plan: "pro_yearly", provider: "stripe" })
       }
       catch {
         // expected
@@ -156,7 +174,7 @@ describe("useCheckout", () => {
 
     // Second call: success — error should be cleared
     await act(async () => {
-      await result.current.startCheckout({ plan: "pro_yearly" })
+      await result.current.startCheckout({ plan: "pro_yearly", provider: "stripe" })
     })
 
     expect(result.current.error).toBeNull()
