@@ -188,17 +188,187 @@ export const messages: Record<Locale, Messages> = {
     privacy: {
       title: "Privacy Policy",
       description: "This policy explains what information GetU Translate collects, how we use it, and the choices available to users.",
-      sections: EMPTY_POLICY_SECTIONS,
+      sections: [
+        {
+          title: "1. Information we collect",
+          paragraphs: ["Depending on how you use GetU Translate, we may collect:"],
+          list: [
+            "Account information such as email address and login details.",
+            "Subscription and billing status received from Stripe.",
+            "Product settings, language preferences, and configuration choices.",
+            "Technical data such as browser type, extension version, diagnostics, and error logs.",
+            "Content you choose to translate when a feature requires processing by an AI or translation provider.",
+          ],
+        },
+        {
+          title: "2. How we use information",
+          paragraphs: ["We use information to provide and improve GetU Translate, including to:"],
+          list: [
+            "Operate translation, subtitle, article reading, and text-to-speech features.",
+            "Manage accounts, subscriptions, support, and security.",
+            "Debug product issues and protect against abuse.",
+            "Comply with legal, tax, and payment obligations.",
+          ],
+        },
+        {
+          title: "3. AI and translation providers",
+          paragraphs: [
+            "GetU Translate may send text you choose to translate to supported AI or translation providers. If you configure your own provider account or API key, that provider's terms and privacy practices may also apply.",
+          ],
+        },
+        {
+          title: "4. Payments",
+          paragraphs: [
+            "Payments are handled by Stripe. Stripe may process personal and payment information to complete purchases, manage subscriptions, prevent fraud, calculate taxes, and issue invoices. We receive limited billing information such as subscription status and transaction identifiers.",
+          ],
+        },
+        {
+          title: "5. Sharing",
+          paragraphs: [
+            "We do not sell personal information. We may share information with service providers that help us operate the product, comply with law, process payments, provide support, or protect the security of GetU Translate.",
+          ],
+        },
+        {
+          title: "6. Retention",
+          paragraphs: [
+            "We keep information for as long as needed to provide the product, maintain business records, resolve disputes, comply with legal obligations, and enforce our agreements. We remove or anonymize data when it is no longer needed.",
+          ],
+        },
+        {
+          title: "7. Your choices",
+          paragraphs: [
+            "You may request access, correction, deletion, or export of your personal information by contacting us. You can also adjust extension settings and cancel paid subscriptions through the subscription management flow.",
+          ],
+        },
+        {
+          title: "8. Security",
+          paragraphs: [
+            "We use reasonable technical and organizational safeguards to protect information. No online service can guarantee absolute security.",
+          ],
+        },
+        {
+          title: "9. Contact",
+          paragraphs: [
+            "Privacy questions can be sent to support@getutranslate.com.",
+          ],
+        },
+      ],
     },
     terms: {
       title: "Terms of Service",
       description: "These terms govern your access to and use of GetU Translate, including our browser extension, website, accounts, and paid subscription features.",
-      sections: EMPTY_POLICY_SECTIONS,
+      sections: [
+        {
+          title: "1. Acceptance of these terms",
+          paragraphs: [
+            "By installing, accessing, or using GetU Translate, you agree to these Terms of Service. If you do not agree, do not use the product.",
+          ],
+        },
+        {
+          title: "2. Product description",
+          paragraphs: [
+            "GetU Translate is an AI-powered browser translation and language-learning tool. It supports web page translation, selected-text translation, video subtitle translation, article reading assistance, text-to-speech, and configurable AI provider settings.",
+          ],
+        },
+        {
+          title: "3. Accounts and subscriptions",
+          paragraphs: [
+            "Some features may require an account or paid subscription. You are responsible for keeping your account information accurate and for protecting your login credentials.",
+            "Paid plans renew automatically unless cancelled before the renewal date. You can manage cancellation and billing through the checkout or subscription management flow provided at purchase.",
+          ],
+        },
+        {
+          title: "4. Payments",
+          paragraphs: [
+            "Payments are processed by Stripe. Stripe may collect payment details, apply taxes, issue invoices, and handle payment-related compliance. GetU Translate does not store full credit card numbers.",
+          ],
+        },
+        {
+          title: "5. Acceptable use",
+          paragraphs: ["You agree not to misuse GetU Translate, including by:"],
+          list: [
+            "Violating applicable laws or third-party rights.",
+            "Attempting to reverse engineer, disrupt, or overload the service.",
+            "Using the product to process content you are not permitted to use.",
+            "Bypassing usage limits, access controls, or security protections.",
+          ],
+        },
+        {
+          title: "6. AI translation output",
+          paragraphs: [
+            "AI-generated translations may be inaccurate, incomplete, or unsuitable for professional, legal, medical, financial, or safety-critical use. You are responsible for reviewing outputs before relying on them.",
+          ],
+        },
+        {
+          title: "7. Intellectual property",
+          paragraphs: [
+            "GetU Translate and its software, branding, website, and related materials are protected by intellectual property laws. You retain rights to your own content, subject to the permissions needed for the product to process and translate it.",
+          ],
+        },
+        {
+          title: "8. Availability and changes",
+          paragraphs: [
+            "We may update, suspend, or discontinue features as the product evolves. We aim to keep the service reliable, but we do not guarantee uninterrupted or error-free operation.",
+          ],
+        },
+        {
+          title: "9. Termination",
+          paragraphs: [
+            "We may suspend or terminate access if you violate these terms, create risk for the product or other users, or use the service unlawfully.",
+          ],
+        },
+        {
+          title: "10. Contact",
+          paragraphs: [
+            "Questions about these terms can be sent to support@getutranslate.com.",
+          ],
+        },
+      ],
     },
     refund: {
       title: "Refund Policy",
       description: "This policy describes how refunds work for GetU Translate paid subscriptions and purchases.",
-      sections: EMPTY_POLICY_SECTIONS,
+      sections: [
+        {
+          title: "1. Refund window",
+          paragraphs: [
+            "If you are not satisfied with a paid GetU Translate subscription, you may request a refund within 14 days of the initial purchase or renewal charge.",
+          ],
+        },
+        {
+          title: "2. How to request a refund",
+          paragraphs: [
+            "Contact support@getutranslate.com with the email address used for purchase, the Stripe order or transaction number if available, and a brief reason for the request.",
+          ],
+        },
+        {
+          title: "3. Processing",
+          paragraphs: [
+            "Approved refunds are processed back to the original payment method through Stripe. The time it takes for funds to appear depends on the payment method and financial institution.",
+          ],
+        },
+        {
+          title: "4. Non-refundable cases",
+          paragraphs: ["Refunds may be declined when:"],
+          list: [
+            "The request is made more than 14 days after the relevant charge.",
+            "The account shows abuse, fraud, or violation of our Terms of Service.",
+            "The purchase was already refunded, charged back, or otherwise reversed.",
+          ],
+        },
+        {
+          title: "5. Cancellation",
+          paragraphs: [
+            "Cancelling a subscription stops future renewals but does not automatically refund prior charges. After cancellation, paid features remain available until the end of the current billing period unless a refund is approved.",
+          ],
+        },
+        {
+          title: "6. Contact",
+          paragraphs: [
+            "Billing and refund questions can be sent to support@getutranslate.com.",
+          ],
+        },
+      ],
     },
   },
   "zh-CN": {
@@ -327,17 +497,187 @@ export const messages: Record<Locale, Messages> = {
     privacy: {
       title: "隐私政策",
       description: "本政策说明 GetU Translate 收集哪些信息、如何使用这些信息，以及用户可做出的选择。",
-      sections: EMPTY_POLICY_SECTIONS,
+      sections: [
+        {
+          title: "1. 我们收集的信息",
+          paragraphs: ["根据你使用 GetU Translate 的方式，我们可能收集："],
+          list: [
+            "账户信息，例如邮箱地址和登录信息。",
+            "来自 Stripe 的订阅和账单状态。",
+            "产品设置、语言偏好和配置选择。",
+            "技术数据，例如浏览器类型、扩展版本、诊断信息和错误日志。",
+            "当某项功能需要通过 AI 或翻译提供商处理时，你主动提交用于翻译的内容。",
+          ],
+        },
+        {
+          title: "2. 我们如何使用信息",
+          paragraphs: ["我们使用这些信息来提供和改进 GetU Translate，包括："],
+          list: [
+            "运行翻译、字幕、文章阅读和文本转语音功能。",
+            "管理账户、订阅、支持和安全。",
+            "排查产品问题并防止滥用。",
+            "履行法律、税务和支付相关义务。",
+          ],
+        },
+        {
+          title: "3. AI 与翻译提供商",
+          paragraphs: [
+            "GetU Translate 可能会将你选择翻译的文本发送给受支持的 AI 或翻译提供商。如果你配置了自己的提供商账户或 API Key，还可能同时受该提供商的条款和隐私政策约束。",
+          ],
+        },
+        {
+          title: "4. 支付",
+          paragraphs: [
+            "付款由 Stripe 处理。Stripe 可能会处理个人信息和支付信息，以完成购买、管理订阅、防止欺诈、计算税费和开具发票。我们只会接收有限的账单信息，例如订阅状态和交易标识符。",
+          ],
+        },
+        {
+          title: "5. 信息共享",
+          paragraphs: [
+            "我们不会出售个人信息。我们可能会与帮助我们运营产品、遵守法律、处理支付、提供支持或保护 GetU Translate 安全的服务提供商共享信息。",
+          ],
+        },
+        {
+          title: "6. 保留期限",
+          paragraphs: [
+            "我们会在提供产品、维护业务记录、解决争议、履行法律义务和执行协议所需的期限内保留信息。在不再需要时，我们会删除或匿名化这些数据。",
+          ],
+        },
+        {
+          title: "7. 你的选择",
+          paragraphs: [
+            "你可以联系我们，请求访问、更正、删除或导出你的个人信息。你也可以通过扩展设置调整相关选项，并通过订阅管理流程取消付费订阅。",
+          ],
+        },
+        {
+          title: "8. 安全",
+          paragraphs: [
+            "我们会采取合理的技术和组织措施保护信息安全。但任何在线服务都无法保证绝对安全。",
+          ],
+        },
+        {
+          title: "9. 联系方式",
+          paragraphs: [
+            "有关隐私的问题可发送至 support@getutranslate.com。",
+          ],
+        },
+      ],
     },
     terms: {
       title: "服务条款",
       description: "这些条款适用于你访问和使用 GetU Translate，包括浏览器扩展、网站、账户和付费订阅功能。",
-      sections: EMPTY_POLICY_SECTIONS,
+      sections: [
+        {
+          title: "1. 接受这些条款",
+          paragraphs: [
+            "当你安装、访问或使用 GetU Translate 时，即表示你同意本服务条款。如果你不同意，请不要使用本产品。",
+          ],
+        },
+        {
+          title: "2. 产品说明",
+          paragraphs: [
+            "GetU Translate 是一款由 AI 驱动的浏览器翻译和语言学习工具，支持网页翻译、划词翻译、视频字幕翻译、文章阅读辅助、文本转语音以及可配置的 AI Provider 设置。",
+          ],
+        },
+        {
+          title: "3. 账户与订阅",
+          paragraphs: [
+            "部分功能可能需要账户或付费订阅。你有责任确保账户信息准确，并妥善保管登录凭证。",
+            "付费套餐会在续费日前未取消的情况下自动续费。你可以通过购买时提供的结账或订阅管理流程管理取消和账单。",
+          ],
+        },
+        {
+          title: "4. 支付",
+          paragraphs: [
+            "付款由 Stripe 处理。Stripe 可能会收集支付信息、计算税费、开具发票并处理支付合规事项。GetU Translate 不会存储完整的信用卡号。",
+          ],
+        },
+        {
+          title: "5. 合理使用",
+          paragraphs: ["你同意不会以以下方式滥用 GetU Translate："],
+          list: [
+            "违反适用法律或第三方权利。",
+            "试图逆向工程、干扰或过载服务。",
+            "使用本产品处理你无权使用的内容。",
+            "绕过使用限制、访问控制或安全保护。",
+          ],
+        },
+        {
+          title: "6. AI 翻译输出",
+          paragraphs: [
+            "AI 生成的翻译可能不准确、不完整，或不适用于专业、法律、医疗、金融或其他安全关键场景。在依赖这些输出之前，你应自行审查。",
+          ],
+        },
+        {
+          title: "7. 知识产权",
+          paragraphs: [
+            "GetU Translate 及其软件、品牌、网站和相关材料均受知识产权法律保护。你仍保有自己内容的权利，但需授予产品处理和翻译这些内容所必需的权限。",
+          ],
+        },
+        {
+          title: "8. 可用性与变更",
+          paragraphs: [
+            "随着产品演进，我们可能会更新、暂停或终止部分功能。我们会尽力保持服务可靠，但不保证服务持续不中断或完全无错误。",
+          ],
+        },
+        {
+          title: "9. 终止",
+          paragraphs: [
+            "如果你违反这些条款、给产品或其他用户带来风险，或以非法方式使用服务，我们可能暂停或终止你的访问权限。",
+          ],
+        },
+        {
+          title: "10. 联系方式",
+          paragraphs: [
+            "有关这些条款的问题可发送至 support@getutranslate.com。",
+          ],
+        },
+      ],
     },
     refund: {
       title: "退款政策",
       description: "本政策说明 GetU Translate 付费订阅和购买的退款规则。",
-      sections: EMPTY_POLICY_SECTIONS,
+      sections: [
+        {
+          title: "1. 退款期限",
+          paragraphs: [
+            "如果你对付费版 GetU Translate 订阅不满意，可在首次购买或续费扣款后的 14 天内申请退款。",
+          ],
+        },
+        {
+          title: "2. 如何申请退款",
+          paragraphs: [
+            "请发送邮件至 support@getutranslate.com，并提供购买时使用的邮箱、可用时的 Stripe 订单号或交易号，以及简要退款原因。",
+          ],
+        },
+        {
+          title: "3. 处理方式",
+          paragraphs: [
+            "经批准的退款将通过 Stripe 原路退回到原支付方式。到账时间取决于支付方式和金融机构。",
+          ],
+        },
+        {
+          title: "4. 不可退款情形",
+          paragraphs: ["在以下情况下，退款申请可能会被拒绝："],
+          list: [
+            "申请时间距离相关扣款已超过 14 天。",
+            "账户存在滥用、欺诈或违反服务条款的行为。",
+            "该购买已被退款、拒付或以其他方式撤销。",
+          ],
+        },
+        {
+          title: "5. 取消订阅",
+          paragraphs: [
+            "取消订阅只会阻止未来续费，不会自动退还之前的扣款。取消后，除非退款获批，付费功能仍可使用到当前计费周期结束。",
+          ],
+        },
+        {
+          title: "6. 联系方式",
+          paragraphs: [
+            "有关账单和退款的问题可发送至 support@getutranslate.com。",
+          ],
+        },
+      ],
     },
   },
   "zh-TW": {
@@ -466,17 +806,187 @@ export const messages: Record<Locale, Messages> = {
     privacy: {
       title: "隱私政策",
       description: "本政策說明 GetU Translate 收集哪些資訊、如何使用這些資訊，以及使用者可做出的選擇。",
-      sections: EMPTY_POLICY_SECTIONS,
+      sections: [
+        {
+          title: "1. 我們收集的資訊",
+          paragraphs: ["根據你使用 GetU Translate 的方式，我們可能收集："],
+          list: [
+            "帳戶資訊，例如電子郵件地址和登入資料。",
+            "來自 Stripe 的訂閱和帳單狀態。",
+            "產品設定、語言偏好和設定選項。",
+            "技術資料，例如瀏覽器類型、擴充功能版本、診斷資訊和錯誤日誌。",
+            "當某項功能需要透過 AI 或翻譯服務提供商處理時，你主動提交用於翻譯的內容。",
+          ],
+        },
+        {
+          title: "2. 我們如何使用資訊",
+          paragraphs: ["我們使用這些資訊來提供並改進 GetU Translate，包括："],
+          list: [
+            "運作翻譯、字幕、文章閱讀和文字轉語音功能。",
+            "管理帳戶、訂閱、支援和安全。",
+            "排查產品問題並防止濫用。",
+            "履行法律、稅務和付款相關義務。",
+          ],
+        },
+        {
+          title: "3. AI 與翻譯服務提供商",
+          paragraphs: [
+            "GetU Translate 可能會將你選擇翻譯的文字傳送給支援的 AI 或翻譯服務提供商。如果你設定了自己的提供商帳戶或 API Key，也可能同時受到該提供商條款與隱私政策的約束。",
+          ],
+        },
+        {
+          title: "4. 付款",
+          paragraphs: [
+            "付款由 Stripe 處理。Stripe 可能會處理個人資訊和付款資訊，以完成購買、管理訂閱、防止詐欺、計算稅費及開立發票。我們只會收到有限的帳單資訊，例如訂閱狀態和交易識別碼。",
+          ],
+        },
+        {
+          title: "5. 資訊分享",
+          paragraphs: [
+            "我們不會出售個人資訊。我們可能會與協助我們營運產品、遵守法律、處理付款、提供支援或保護 GetU Translate 安全的服務提供商分享資訊。",
+          ],
+        },
+        {
+          title: "6. 保留期間",
+          paragraphs: [
+            "我們會在提供產品、維護商業紀錄、解決爭議、履行法律義務和執行協議所需的期間內保留資訊。當不再需要時，我們會刪除或匿名化這些資料。",
+          ],
+        },
+        {
+          title: "7. 你的選擇",
+          paragraphs: [
+            "你可以聯絡我們，要求存取、更正、刪除或匯出你的個人資訊。你也可以透過擴充功能設定調整相關選項，並透過訂閱管理流程取消付費訂閱。",
+          ],
+        },
+        {
+          title: "8. 安全",
+          paragraphs: [
+            "我們會採取合理的技術與組織措施保護資訊安全。但任何線上服務都無法保證絕對安全。",
+          ],
+        },
+        {
+          title: "9. 聯絡方式",
+          paragraphs: [
+            "如有隱私相關問題，請寄送至 support@getutranslate.com。",
+          ],
+        },
+      ],
     },
     terms: {
       title: "服務條款",
       description: "這些條款適用於你存取和使用 GetU Translate，包括瀏覽器擴充功能、網站、帳戶和付費訂閱功能。",
-      sections: EMPTY_POLICY_SECTIONS,
+      sections: [
+        {
+          title: "1. 接受這些條款",
+          paragraphs: [
+            "當你安裝、存取或使用 GetU Translate，即表示你同意本服務條款。如果你不同意，請不要使用本產品。",
+          ],
+        },
+        {
+          title: "2. 產品說明",
+          paragraphs: [
+            "GetU Translate 是一款由 AI 驅動的瀏覽器翻譯與語言學習工具，支援網頁翻譯、劃詞翻譯、影片字幕翻譯、文章閱讀輔助、文字轉語音以及可設定的 AI Provider 選項。",
+          ],
+        },
+        {
+          title: "3. 帳戶與訂閱",
+          paragraphs: [
+            "部分功能可能需要帳戶或付費訂閱。你有責任確保帳戶資訊正確，並妥善保管登入憑證。",
+            "付費方案會在續費日前未取消的情況下自動續費。你可以透過購買時提供的結帳或訂閱管理流程管理取消與帳單。",
+          ],
+        },
+        {
+          title: "4. 付款",
+          paragraphs: [
+            "付款由 Stripe 處理。Stripe 可能會收集付款資訊、計算稅費、開立發票並處理付款合規事項。GetU Translate 不會儲存完整信用卡號。",
+          ],
+        },
+        {
+          title: "5. 合理使用",
+          paragraphs: ["你同意不會以下列方式濫用 GetU Translate："],
+          list: [
+            "違反適用法律或第三方權利。",
+            "試圖逆向工程、干擾或使服務過載。",
+            "使用本產品處理你無權使用的內容。",
+            "繞過使用限制、存取控制或安全保護。",
+          ],
+        },
+        {
+          title: "6. AI 翻譯輸出",
+          paragraphs: [
+            "AI 生成的翻譯可能不準確、不完整，或不適用於專業、法律、醫療、金融或其他安全關鍵場景。在依賴這些輸出前，你應自行審查。",
+          ],
+        },
+        {
+          title: "7. 智慧財產權",
+          paragraphs: [
+            "GetU Translate 及其軟體、品牌、網站和相關資料均受智慧財產權法律保護。你仍保有自己內容的權利，但需授予產品處理和翻譯該內容所必需的權限。",
+          ],
+        },
+        {
+          title: "8. 可用性與變更",
+          paragraphs: [
+            "隨著產品演進，我們可能會更新、暫停或終止部分功能。我們會盡力維持服務可靠，但不保證服務持續不中斷或完全無錯誤。",
+          ],
+        },
+        {
+          title: "9. 終止",
+          paragraphs: [
+            "如果你違反這些條款、對產品或其他使用者造成風險，或以非法方式使用服務，我們可能暫停或終止你的存取權限。",
+          ],
+        },
+        {
+          title: "10. 聯絡方式",
+          paragraphs: [
+            "如對這些條款有疑問，請寄送至 support@getutranslate.com。",
+          ],
+        },
+      ],
     },
     refund: {
       title: "退款政策",
       description: "本政策說明 GetU Translate 付費訂閱和購買的退款規則。",
-      sections: EMPTY_POLICY_SECTIONS,
+      sections: [
+        {
+          title: "1. 退款期限",
+          paragraphs: [
+            "如果你對付費版 GetU Translate 訂閱不滿意，可在首次購買或續費扣款後 14 天內申請退款。",
+          ],
+        },
+        {
+          title: "2. 如何申請退款",
+          paragraphs: [
+            "請寄信至 support@getutranslate.com，並提供購買時使用的電子郵件、可用時的 Stripe 訂單號或交易號，以及簡要退款原因。",
+          ],
+        },
+        {
+          title: "3. 處理方式",
+          paragraphs: [
+            "經核准的退款將透過 Stripe 原路退回至原付款方式。入帳時間取決於付款方式與金融機構。",
+          ],
+        },
+        {
+          title: "4. 不可退款情形",
+          paragraphs: ["在以下情況下，退款申請可能會被拒絕："],
+          list: [
+            "申請時間距離相關扣款已超過 14 天。",
+            "帳戶存在濫用、詐欺或違反服務條款的行為。",
+            "該筆購買已被退款、拒付或以其他方式撤銷。",
+          ],
+        },
+        {
+          title: "5. 取消訂閱",
+          paragraphs: [
+            "取消訂閱只會停止未來續費，不會自動退還先前的扣款。取消後，除非退款獲准，付費功能仍可使用至當前計費週期結束。",
+          ],
+        },
+        {
+          title: "6. 聯絡方式",
+          paragraphs: [
+            "如有帳單與退款相關問題，請寄送至 support@getutranslate.com。",
+          ],
+        },
+      ],
     },
   },
 }
