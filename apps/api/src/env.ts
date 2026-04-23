@@ -20,6 +20,12 @@ export interface WorkerEnv {
   PADDLE_PRICE_PRO_MONTHLY: string
   PADDLE_PRICE_PRO_YEARLY: string
   PADDLE_BASE_URL: string
+  // Phase 5: Stripe
+  STRIPE_SECRET_KEY: string
+  STRIPE_WEBHOOK_SECRET: string
+  STRIPE_PRICE_PRO_MONTHLY: string
+  STRIPE_PRICE_PRO_YEARLY: string
+  STRIPE_BASE_URL: string
 }
 
 export const SecretsSchema = z.object({

@@ -23,6 +23,7 @@ BIANXIE_BASE_URL = "https://api.bianxie.ai/v1"
 # FLIP TO "true" ONLY after Paddle vendor approval + webhook handler live
 BILLING_ENABLED = "false"
 PADDLE_BASE_URL = "https://sandbox-api.paddle.com"
+STRIPE_BASE_URL = "https://api.stripe.com"
 
 # Production deploy — invoked via `wrangler deploy --env production`
 [env.production]
@@ -42,3 +43,4 @@ BIANXIE_BASE_URL = "https://api.bianxie.ai/v1"
 BILLING_ENABLED = "false"
 # stays on sandbox until paddle vendor approval — flip to https://api.paddle.com then
 PADDLE_BASE_URL = "https://sandbox-api.paddle.com"
+STRIPE_BASE_URL = "https://api.stripe.com"

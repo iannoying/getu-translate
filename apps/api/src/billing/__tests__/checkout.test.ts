@@ -40,6 +40,7 @@ describe("createCheckoutSession", () => {
       userEmail: "u@x.com",
       input: {
         plan: "pro_monthly",
+        provider: "paddle" as const,
         successUrl: "https://getutranslate.com/upgrade/success",
         cancelUrl: "https://getutranslate.com/price",
       },
@@ -59,6 +60,7 @@ describe("createCheckoutSession", () => {
       db: fakeDb(null), paddle, env: baseEnv, userId: "u1", userEmail: "u@x.com",
       input: {
         plan: "pro_yearly",
+        provider: "paddle" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -72,6 +74,7 @@ describe("createCheckoutSession", () => {
       userId: "u1", userEmail: "u@x.com",
       input: {
         plan: "pro_monthly",
+        provider: "paddle" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -90,6 +93,7 @@ describe("createCheckoutSession", () => {
       userId: "u1", userEmail: "u@x.com",
       input: {
         plan: "pro_monthly",
+        provider: "paddle" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -103,6 +107,7 @@ describe("createCheckoutSession", () => {
       userId: "u1", userEmail: "u@x.com",
       input: {
         plan: "pro_monthly",
+        provider: "paddle" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -121,6 +126,7 @@ describe("createCheckoutSession", () => {
       userId: "u1", userEmail: "u@x.com",
       input: {
         plan: "pro_monthly",
+        provider: "paddle" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
