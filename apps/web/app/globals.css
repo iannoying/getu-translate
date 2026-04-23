@@ -432,6 +432,40 @@ a {
   width: 100%;
 }
 
+.language-switcher {
+  display: inline-flex;
+}
+
+.language-switcher select {
+  background: rgb(255 253 248 / 72%);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  min-height: 34px;
+  padding: 5px 28px 5px 10px;
+}
+
+.language-switcher select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.sr-only {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
 @media (max-width: 760px) {
   .site-shell {
     padding: 18px;
