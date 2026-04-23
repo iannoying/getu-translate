@@ -125,7 +125,7 @@ describe("upgradeDialog", () => {
     fireEvent.click(screen.getByText("billing.upgrade.cta"))
 
     await waitFor(() => {
-      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_yearly" })
+      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_yearly", provider: "stripe" })
     })
   })
 
@@ -138,7 +138,7 @@ describe("upgradeDialog", () => {
     fireEvent.click(screen.getByText("billing.upgrade.cta"))
 
     await waitFor(() => {
-      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_monthly" })
+      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_monthly", provider: "stripe" })
     })
   })
 

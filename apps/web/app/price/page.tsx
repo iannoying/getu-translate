@@ -1,13 +1,12 @@
+"use client"
 import Link from "next/link"
+import { useState } from "react"
 import { PageHero, SiteShell } from "../components"
 import { UpgradeButton } from "./UpgradeButton"
 
-export const metadata = {
-  title: "Pricing | GetU Translate",
-  description: "Pricing for GetU Translate, an AI-powered browser translation extension.",
-}
-
 export default function PricePage() {
+  const [plan, setPlan] = useState<"pro_monthly" | "pro_yearly">("pro_monthly")
+
   return (
     <SiteShell>
       <PageHero eyebrow="Pricing" title="Simple plans for browser translation">
@@ -30,7 +29,7 @@ export default function PricePage() {
 
         <article className="price-card highlight">
           <h2>GetU Pro</h2>
-          <p className="price">$8</p>
+          <p className="price">{plan === "pro_monthly" ? "$8/mo" : "$72/yr"}</p>
           <p className="price-note">per month, or $72 per year when billed annually.</p>
           <ul className="feature-list">
             <li>Higher translation usage limits</li>
@@ -38,8 +37,25 @@ export default function PricePage() {
             <li>Priority access to new AI reading features</li>
             <li>Email support for billing and account issues</li>
           </ul>
-          <div className="cta-row">
-            <UpgradeButton plan="pro_monthly" />
+
+          <div className="plan-toggle">
+            <button
+              className={`toggle-btn${plan === "pro_monthly" ? " active" : ""}`}
+              onClick={() => setPlan("pro_monthly")}
+            >
+              Monthly
+            </button>
+            <button
+              className={`toggle-btn${plan === "pro_yearly" ? " active" : ""}`}
+              onClick={() => setPlan("pro_yearly")}
+            >
+              Yearly
+            </button>
+          </div>
+
+          <div className="checkout-options">
+            <UpgradeButton plan={plan} provider="paddle" label="Pay with Paddle" />
+            <UpgradeButton plan={plan} provider="stripe" label="Pay with Stripe" />
           </div>
         </article>
       </section>

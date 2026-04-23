@@ -6,7 +6,15 @@ import { orpcClient } from "@/lib/orpc-client"
 // In production this is always correct; in local dev billing returns 412 anyway.
 const SITE_ORIGIN = "https://getutranslate.com"
 
-export function UpgradeButton({ plan }: { plan: "pro_monthly" | "pro_yearly" }) {
+export function UpgradeButton({
+  plan,
+  provider,
+  label,
+}: {
+  plan: "pro_monthly" | "pro_yearly"
+  provider: "paddle" | "stripe"
+  label: string
+}) {
   const [loading, setLoading] = useState(false)
   const [enabled, setEnabled] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -23,6 +31,7 @@ export function UpgradeButton({ plan }: { plan: "pro_monthly" | "pro_yearly" }) 
     try {
       const { url } = await orpcClient.billing.createCheckoutSession({
         plan,
+        provider,
         successUrl: `${SITE_ORIGIN}/upgrade/success`,
         cancelUrl: `${SITE_ORIGIN}/price`,
       })
@@ -39,7 +48,7 @@ export function UpgradeButton({ plan }: { plan: "pro_monthly" | "pro_yearly" }) 
   return (
     <>
       <button className="button primary" onClick={onClick} disabled={loading}>
-        {loading ? "Loading\u2026" : "Upgrade to Pro"}
+        {loading ? "Loading\u2026" : label}
       </button>
       {error && <p className="price-note">{error}</p>}
     </>
