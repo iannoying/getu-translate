@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { PolicyPage } from "@/app/components"
 import { getMessages } from "@/lib/i18n/messages"
 import { isSupportedLocale, type Locale } from "@/lib/i18n/locales"
+import { absoluteLocaleUrl, languageAlternates } from "@/lib/i18n/routing"
 
 export async function generateMetadata({
   params,
@@ -15,6 +16,10 @@ export async function generateMetadata({
   return {
     title: `${t.terms.title} | GetU Translate`,
     description: t.terms.description,
+    alternates: {
+      canonical: absoluteLocaleUrl(locale, "/terms-and-conditions"),
+      languages: languageAlternates("/terms-and-conditions"),
+    },
   }
 }
 

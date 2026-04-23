@@ -4,8 +4,7 @@ import { useEffect, useState } from "react"
 import { orpcClient } from "@/lib/orpc-client"
 import type { Locale } from "@/lib/i18n/locales"
 import type { Messages } from "@/lib/i18n/messages"
-
-const SITE_ORIGIN = "https://getutranslate.com"
+import { SITE_ORIGIN } from "@/lib/i18n/routing"
 
 export function UpgradeButton({
   locale,

@@ -1,5 +1,7 @@
 import { type Locale, SUPPORTED_LOCALES } from "./locales"
 
+export const SITE_ORIGIN = "https://getutranslate.com"
+
 const KNOWN_PAGE_PATHS = new Set([
   "",
   "price",
@@ -36,4 +38,16 @@ export function switchLocalePath(currentPath: string, targetLocale: Locale): str
     return localeHref(targetLocale, inner)
   }
   return localeHref(targetLocale, "/")
+}
+
+export function absoluteLocaleUrl(locale: Locale, path: string): string {
+  return `${SITE_ORIGIN}${localeHref(locale, path)}`
+}
+
+export function languageAlternates(path: string): Record<string, string> {
+  return {
+    en: absoluteLocaleUrl("en", path),
+    "zh-CN": absoluteLocaleUrl("zh-CN", path),
+    "zh-TW": absoluteLocaleUrl("zh-TW", path),
+  }
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { getMessages } from "@/lib/i18n/messages"
 import { isSupportedLocale, LOCALE_HTML_LANG, SUPPORTED_LOCALES, type Locale } from "@/lib/i18n/locales"
+import { absoluteLocaleUrl, languageAlternates } from "@/lib/i18n/routing"
 
 export function generateStaticParams() {
   return SUPPORTED_LOCALES.map(locale => ({ locale }))
@@ -21,6 +22,10 @@ export async function generateMetadata({
   return {
     title: t.meta.siteTitle,
     description: t.meta.siteDescription,
+    alternates: {
+      canonical: absoluteLocaleUrl(rawLocale, "/"),
+      languages: languageAlternates("/"),
+    },
   }
 }
 
