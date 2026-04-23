@@ -1122,6 +1122,10 @@ billing:
     providerPaddle: Paddle
     loading: Loading...
     comingSoon: Coming soon
+    paymentMethodCard: Card
+    paymentMethodAlipay: Alipay
+    paymentMethodWechat: WeChat Pay
+    oneTimeNote: Alipay and WeChat Pay are one-time purchases — no auto-renewal. Re-purchase when your subscription expires.
   quota:
     outOf: of
     remaining: remaining

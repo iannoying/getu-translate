@@ -25,6 +25,9 @@ function fakeStripe(overrides: any = {}) {
     createCheckoutSession: vi.fn().mockResolvedValue({
       sessionId: "cs_01", checkoutUrl: "https://checkout.stripe.com/pay/cs_01",
     }),
+    createOneTimePaymentSession: vi.fn().mockResolvedValue({
+      sessionId: "cs_pay_01", checkoutUrl: "https://checkout.stripe.com/pay/cs_pay_01",
+    }),
     createPortalSession: vi.fn().mockResolvedValue({
       url: "https://billing.stripe.com/session/bps_01",
     }),
@@ -58,6 +61,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "paddle" as const,
+        paymentMethod: "card" as const,
         successUrl: "https://getutranslate.com/upgrade/success",
         cancelUrl: "https://getutranslate.com/price",
       },
@@ -78,6 +82,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_yearly",
         provider: "paddle" as const,
+        paymentMethod: "card" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -93,6 +98,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "paddle" as const,
+        paymentMethod: "card" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -112,6 +118,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "paddle" as const,
+        paymentMethod: "card" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -126,6 +133,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "paddle" as const,
+        paymentMethod: "card" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -145,6 +153,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "paddle" as const,
+        paymentMethod: "card" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -164,6 +173,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "stripe" as const,
+        paymentMethod: "card" as const,
         successUrl: "https://getutranslate.com/upgrade/success",
         cancelUrl: "https://getutranslate.com/price",
       },
@@ -186,10 +196,57 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "stripe" as const,
+        paymentMethod: "card" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
     })).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" })
+  })
+
+  it("calls stripe.createOneTimePaymentSession with durationDays=30 for alipay pro_monthly", async () => {
+    const stripe = fakeStripe()
+    const out = await createCheckoutSession({
+      db: fakeDb(null),
+      paddle: fakePaddle(),
+      stripe,
+      env: baseEnv,
+      userId: "u1",
+      userEmail: "u@x.com",
+      input: {
+        plan: "pro_monthly",
+        provider: "stripe" as const,
+        paymentMethod: "alipay" as const,
+        successUrl: "https://getutranslate.com/upgrade/success",
+        cancelUrl: "https://getutranslate.com/price",
+      },
+    })
+    expect(out.url).toBe("https://checkout.stripe.com/pay/cs_pay_01")
+    expect(stripe.createOneTimePaymentSession).toHaveBeenCalledWith(
+      expect.objectContaining({ method: "alipay", amountCents: 800, durationDays: 30 }),
+    )
+  })
+
+  it("calls stripe.createOneTimePaymentSession with method=wechat_pay for wechat_pay", async () => {
+    const stripe = fakeStripe()
+    const out = await createCheckoutSession({
+      db: fakeDb(null),
+      paddle: fakePaddle(),
+      stripe,
+      env: baseEnv,
+      userId: "u1",
+      userEmail: "u@x.com",
+      input: {
+        plan: "pro_yearly",
+        provider: "stripe" as const,
+        paymentMethod: "wechat_pay" as const,
+        successUrl: "https://getutranslate.com/upgrade/success",
+        cancelUrl: "https://getutranslate.com/price",
+      },
+    })
+    expect(out.url).toBe("https://checkout.stripe.com/pay/cs_pay_01")
+    expect(stripe.createOneTimePaymentSession).toHaveBeenCalledWith(
+      expect.objectContaining({ method: "wechat_pay", amountCents: 7200, durationDays: 365 }),
+    )
   })
 })
 

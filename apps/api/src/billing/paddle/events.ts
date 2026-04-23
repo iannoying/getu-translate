@@ -4,6 +4,7 @@ export type BillingEvent =
   | { kind: "subscription_canceled"; userId: string; subscriptionId: string }
   | { kind: "payment_past_due"; userId: string; subscriptionId: string; graceUntil: number }
   | { kind: "payment_succeeded"; userId: string; subscriptionId: string }
+  | { kind: "one_time_purchase_completed"; userId: string; customerId: string; durationDays: number; amountCents: number }
   | { kind: "ignored"; reason: string }
 
 export function normalizePaddleEvent(evt: any): BillingEvent {

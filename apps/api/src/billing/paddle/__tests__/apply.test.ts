@@ -119,4 +119,46 @@ describe("applyBillingEvent", () => {
     const rows = await ctx.db.select().from(schema.userEntitlements).all()
     expect(rows).toEqual([])
   })
+
+  it("one_time_purchase_completed inserts pro row with expiresAt = now + durationDays", async () => {
+    const before = Date.now()
+    await applyBillingEvent(ctx.db as any, {
+      kind: "one_time_purchase_completed",
+      userId: "u1", customerId: "cus_alipay_01", durationDays: 30, amountCents: 800,
+    }, "stripe")
+    const after = Date.now()
+    const row = await ctx.db
+      .select().from(schema.userEntitlements)
+      .where(eq(schema.userEntitlements.userId, "u1")).get()
+    expect(row!.tier).toBe("pro")
+    expect(row!.billingProvider).toBe("stripe")
+    expect(row!.providerCustomerId).toBe("cus_alipay_01")
+    expect(row!.providerSubscriptionId).toBeNull()
+    const expiry = row!.expiresAt instanceof Date
+      ? row!.expiresAt.getTime()
+      : (row!.expiresAt as unknown as number)
+    expect(expiry).toBeGreaterThanOrEqual(before + 30 * 86400_000)
+    expect(expiry).toBeLessThanOrEqual(after + 30 * 86400_000)
+  })
+
+  it("one_time_purchase_completed extends from existing unexpired entitlement", async () => {
+    const futureExpiry = Date.now() + 10 * 86400_000
+    await applyBillingEvent(ctx.db as any, {
+      kind: "subscription_activated",
+      userId: "u1", customerId: "cus_01", subscriptionId: "sub_01",
+      expiresAt: futureExpiry, priceId: "pri_m",
+    })
+    await applyBillingEvent(ctx.db as any, {
+      kind: "one_time_purchase_completed",
+      userId: "u1", customerId: "cus_alipay_01", durationDays: 30, amountCents: 800,
+    }, "stripe")
+    const row = await ctx.db
+      .select().from(schema.userEntitlements)
+      .where(eq(schema.userEntitlements.userId, "u1")).get()
+    const expiry = row!.expiresAt instanceof Date
+      ? row!.expiresAt.getTime()
+      : (row!.expiresAt as unknown as number)
+    // Should be based on future expiry (10 days from now) + 30 days
+    expect(expiry).toBeGreaterThanOrEqual(futureExpiry + 30 * 86400_000 - 1000)
+  })
 })

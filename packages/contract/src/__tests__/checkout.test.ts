@@ -107,4 +107,59 @@ describe("createCheckoutSession schemas", () => {
       }),
     ).toThrow()
   })
+
+  it("accepts paymentMethod=alipay with provider=stripe", () => {
+    const parsed = createCheckoutSessionInputSchema.parse({
+      plan: "pro_monthly",
+      provider: "stripe",
+      paymentMethod: "alipay",
+      successUrl: "https://getutranslate.com/upgrade/success",
+      cancelUrl: "https://getutranslate.com/price",
+    })
+    expect(parsed.paymentMethod).toBe("alipay")
+  })
+
+  it("accepts paymentMethod=wechat_pay with provider=stripe", () => {
+    const parsed = createCheckoutSessionInputSchema.parse({
+      plan: "pro_monthly",
+      provider: "stripe",
+      paymentMethod: "wechat_pay",
+      successUrl: "https://getutranslate.com/upgrade/success",
+      cancelUrl: "https://getutranslate.com/price",
+    })
+    expect(parsed.paymentMethod).toBe("wechat_pay")
+  })
+
+  it("rejects paymentMethod=alipay with provider=paddle", () => {
+    expect(() =>
+      createCheckoutSessionInputSchema.parse({
+        plan: "pro_monthly",
+        provider: "paddle",
+        paymentMethod: "alipay",
+        successUrl: "https://getutranslate.com/upgrade/success",
+        cancelUrl: "https://getutranslate.com/price",
+      }),
+    ).toThrow()
+  })
+
+  it("defaults paymentMethod to card when omitted", () => {
+    const parsed = createCheckoutSessionInputSchema.parse({
+      plan: "pro_monthly",
+      successUrl: "https://getutranslate.com/upgrade/success",
+      cancelUrl: "https://getutranslate.com/price",
+    })
+    expect(parsed.paymentMethod).toBe("card")
+  })
+
+  it("rejects unknown paymentMethod value", () => {
+    expect(() =>
+      createCheckoutSessionInputSchema.parse({
+        plan: "pro_monthly",
+        provider: "stripe",
+        paymentMethod: "bitcoin",
+        successUrl: "https://getutranslate.com/upgrade/success",
+        cancelUrl: "https://getutranslate.com/price",
+      }),
+    ).toThrow()
+  })
 })
