@@ -34,6 +34,11 @@ app.use("/orpc/*", async (c, next) => makeCorsMw(c.env)(c, next))
 
 app.get("/health", c => c.json({ ok: true, service: "getu-api" }))
 
+app.get("/api/identity/providers", c => c.json({
+  google: !!c.env.GOOGLE_CLIENT_ID,
+  github: !!c.env.GITHUB_CLIENT_ID,
+}))
+
 app.all("/api/identity/*", async (c) => {
   try {
     const auth = createAuth(c.env)

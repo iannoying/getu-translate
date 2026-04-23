@@ -304,6 +304,134 @@ a {
   margin: 4px 0 0;
 }
 
+/* Auth page */
+.auth-card-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 0 0 70px;
+}
+
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 32px;
+  width: 100%;
+  max-width: 440px;
+}
+
+.auth-mode-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.toggle-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 650;
+  padding: 7px 16px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.toggle-btn.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: white;
+}
+
+.auth-divider-label {
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.auth-social-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-social-btn {
+  gap: 10px;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.auth-social-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.auth-or {
+  align-items: center;
+  color: var(--ink-soft);
+  display: flex;
+  font-size: 13px;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.auth-or::before,
+.auth-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.auth-field span {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.auth-field input {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 15px;
+  padding: 9px 12px;
+  width: 100%;
+}
+
+.auth-field input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.auth-error {
+  color: crimson;
+  font-size: 14px;
+  margin: 0;
+}
+
+.auth-submit {
+  margin-top: 4px;
+  width: 100%;
+}
+
 @media (max-width: 760px) {
   .site-shell {
     padding: 18px;

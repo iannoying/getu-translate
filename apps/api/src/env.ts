@@ -26,6 +26,11 @@ export interface WorkerEnv {
   STRIPE_PRICE_PRO_MONTHLY: string
   STRIPE_PRICE_PRO_YEARLY: string
   STRIPE_BASE_URL: string
+  // Phase 5: OAuth social providers (optional — set via wrangler secret put)
+  GOOGLE_CLIENT_ID?: string
+  GOOGLE_CLIENT_SECRET?: string
+  GITHUB_CLIENT_ID?: string
+  GITHUB_CLIENT_SECRET?: string
 }
 
 export const SecretsSchema = z.object({
