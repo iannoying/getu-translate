@@ -988,6 +988,10 @@ translationHub:
   translationFailed: 번역 실패
   translationFailedFallback: 번역 실패
   retryTranslation: 번역 재시도
+wordbook:
+  save: 단어장에 추가
+  saved: 추가됨
+  limitReached: "단어 한도(100개)에 도달했습니다. Pro로 업그레이드하여 무제한 사용하세요."
 billing:
   tier:
     free: 무료

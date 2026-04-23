@@ -988,6 +988,10 @@ translationHub:
   translationFailed: Ошибка перевода
   translationFailedFallback: Ошибка перевода
   retryTranslation: Повторить перевод
+wordbook:
+  save: В словарь
+  saved: Добавлено
+  limitReached: "Достигнут лимит слов (100). Обновите до Pro для неограниченного использования."
 billing:
   tier:
     free: Бесплатный

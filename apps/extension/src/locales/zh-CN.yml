@@ -1104,6 +1104,10 @@ translationHub:
   translationFailed: 翻译失败
   translationFailedFallback: 翻译失败
   retryTranslation: 重试翻译
+wordbook:
+  save: 加入生词本
+  saved: 已加入
+  limitReached: "已达到生词上限（100个）。升级 Pro 解锁无限制。"
 billing:
   tier:
     free: 免费版
