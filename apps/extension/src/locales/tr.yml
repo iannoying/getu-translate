@@ -988,6 +988,10 @@ translationHub:
   translationFailed: Çeviri Başarısız
   translationFailedFallback: Çeviri başarısız
   retryTranslation: Çeviriyi yeniden dene
+wordbook:
+  save: Kelime defterine ekle
+  saved: Eklendi
+  limitReached: "Kelime limiti (100) doldu. Sınırsız kullanım için Pro'ya yükseltin."
 billing:
   tier:
     free: Ücretsiz

@@ -988,6 +988,10 @@ translationHub:
   translationFailed: Dịch Thất Bại
   translationFailedFallback: Dịch thất bại
   retryTranslation: Thử lại dịch
+wordbook:
+  save: Thêm vào từ điển
+  saved: Đã thêm
+  limitReached: Đã đạt giới hạn từ (100). Nâng cấp lên Pro để sử dụng không giới hạn.
 billing:
   tier:
     free: Miễn phí
