@@ -67,4 +67,44 @@ describe("createCheckoutSession schemas", () => {
       createPortalSessionOutputSchema.parse({ url: "https://billing.paddle.io/portal/xyz" }),
     ).not.toThrow()
   })
+
+  it("accepts provider=paddle", () => {
+    const parsed = createCheckoutSessionInputSchema.parse({
+      plan: "pro_monthly",
+      provider: "paddle",
+      successUrl: "https://getutranslate.com/upgrade/success",
+      cancelUrl: "https://getutranslate.com/price",
+    })
+    expect(parsed.provider).toBe("paddle")
+  })
+
+  it("accepts provider=stripe", () => {
+    const parsed = createCheckoutSessionInputSchema.parse({
+      plan: "pro_yearly",
+      provider: "stripe",
+      successUrl: "https://getutranslate.com/upgrade/success",
+      cancelUrl: "https://getutranslate.com/price",
+    })
+    expect(parsed.provider).toBe("stripe")
+  })
+
+  it("defaults provider to paddle when omitted (backward compat)", () => {
+    const parsed = createCheckoutSessionInputSchema.parse({
+      plan: "pro_monthly",
+      successUrl: "https://getutranslate.com/upgrade/success",
+      cancelUrl: "https://getutranslate.com/price",
+    })
+    expect(parsed.provider).toBe("paddle")
+  })
+
+  it("rejects unknown provider value", () => {
+    expect(() =>
+      createCheckoutSessionInputSchema.parse({
+        plan: "pro_monthly",
+        provider: "square",
+        successUrl: "https://getutranslate.com/upgrade/success",
+        cancelUrl: "https://getutranslate.com/price",
+      }),
+    ).toThrow()
+  })
 })

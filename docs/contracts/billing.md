@@ -1,8 +1,8 @@
-# `billing.*` oRPC 契约 (v2)
+# `billing.*` oRPC 契约 (v3)
 
 > **Audience:** GetU Translate 后端团队（`getu-translate` monorepo）
 > **Consumer:** 浏览器扩展 `apps/extension`（WXT）及 `apps/web`（Next.js）
-> **Status:** Active — Phase 4 Paddle-native subscriptions
+> **Status:** Active — Phase 5 multi-provider (Paddle + Stripe)
 > **Owner:** 后端团队
 > **Last updated:** 2026-04-22
 
@@ -146,15 +146,22 @@ const EntitlementsSchema = z.object({
 
 ### 4.3 `billing.createCheckoutSession`
 
-生成 Paddle Checkout 会话。扩展打开返回的 `url` 在新标签完成支付。
+生成 Checkout 会话（Paddle 或 Stripe）。扩展打开返回的 `url` 在新标签完成支付。
 
-| 项         | 值                                                                               |
-| ---------- | -------------------------------------------------------------------------------- |
-| Auth       | Required                                                                         |
-| Input      | `{ plan: 'pro_monthly' \| 'pro_yearly', successUrl: string, cancelUrl: string }` |
-| Output     | `{ url: string }`                                                                |
-| Idempotent | 幂等可选（建议按 `userId + plan + 15min 窗口` 去重）                             |
-| Rate limit | 10 req / min / user                                                              |
+| 项         | 值                                                                                                                   |
+| ---------- | -------------------------------------------------------------------------------------------------------------------- |
+| Auth       | Required                                                                                                             |
+| Input      | `{ plan: 'pro_monthly' \| 'pro_yearly', provider?: 'paddle' \| 'stripe', successUrl: string, cancelUrl: string }` |
+| Output     | `{ url: string }`                                                                                                    |
+| Idempotent | 幂等可选（建议按 `userId + plan + 15min 窗口` 去重）                                                                 |
+| Rate limit | 10 req / min / user                                                                                                  |
+
+**`provider` 字段（v3 新增）：**
+
+- 可选，默认 `'paddle'`，向后兼容 Phase 4 调用方。
+- `'paddle'`：调用 Paddle Checkout API 生成支付链接。
+- `'stripe'`：调用 Stripe Checkout Session API 生成支付链接（Phase 5）。
+- 传入 `'paddle'` 或 `'stripe'` 以外的值将返回 `BAD_REQUEST (400)`。
 
 **输入约束：**
 
@@ -313,3 +320,4 @@ CREATE TABLE billing_webhook_events (
 | ---------- | -------- | ---------------------------------------------------------- | ----------------------- |
 | 2026-04-20 | v1 draft | 初稿（Stripe-native）                                      | @iannoying (via Claude) |
 | 2026-04-22 | v2       | Paddle-native rewrite；EntitlementsSchema +3 字段；+2 procedure | Phase 4 T0 (via Claude) |
+| 2026-04-22 | v3       | `createCheckoutSession` 新增可选 `provider` 字段（默认 `'paddle'`，可选 `'stripe'`）；向后兼容 | Phase 5 S0 (via Claude) |
