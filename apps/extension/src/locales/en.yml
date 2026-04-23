@@ -1109,7 +1109,7 @@ translationHub:
 wordbook:
   save: Save word
   saved: Saved
-  limitReached: "Word limit reached (100). Upgrade to Pro for unlimited."
+  limitReached: Word limit reached (100). Upgrade to Pro for unlimited.
 billing:
   tier:
     free: Free

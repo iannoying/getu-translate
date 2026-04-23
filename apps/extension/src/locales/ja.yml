@@ -991,7 +991,7 @@ translationHub:
 wordbook:
   save: 単語帳に追加
   saved: 追加済み
-  limitReached: "単語数の上限（100語）に達しました。Proにアップグレードして無制限に。"
+  limitReached: 単語数の上限（100語）に達しました。Proにアップグレードして無制限に。
 billing:
   tier:
     free: 無料

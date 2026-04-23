@@ -991,7 +991,7 @@ translationHub:
 wordbook:
   save: 加入生字本
   saved: 已加入
-  limitReached: "已達到生字上限（100個）。升級 Pro 解鎖無限制。"
+  limitReached: 已達到生字上限（100個）。升級 Pro 解鎖無限制。
 billing:
   tier:
     free: 免費版
