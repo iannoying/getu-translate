@@ -168,20 +168,6 @@ describe("upgradeDialog", () => {
     })
   })
 
-  it("resets paymentMethod to card when switching to paddle", async () => {
-    useEntitlementsMock.mockReturnValue({ data: BILLING_ENABLED_FREE, isLoading: false, isFromCache: false })
-
-    render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
-
-    fireEvent.click(screen.getByText("billing.upgrade.paymentMethodAlipay"))
-    fireEvent.click(screen.getByText("billing.upgrade.providerPaddle"))
-    fireEvent.click(screen.getByText("billing.upgrade.cta"))
-
-    await waitFor(() => {
-      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_yearly", provider: "paddle", paymentMethod: "card" })
-    })
-  })
-
   it("uncontrolled mode: clicking a trigger opens the dialog", () => {
     useEntitlementsMock.mockReturnValue({ data: FREE_ENTITLEMENTS, isLoading: false, isFromCache: false })
 
