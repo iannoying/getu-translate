@@ -95,6 +95,7 @@ const redirectUrlSchema = z.string().refine(
 export const createCheckoutSessionInputSchema = z
   .object({
     plan: z.enum(["pro_monthly", "pro_yearly"]),
+    provider: z.enum(["paddle", "stripe"]).default("paddle"),
     successUrl: redirectUrlSchema,
     cancelUrl: redirectUrlSchema,
   })
