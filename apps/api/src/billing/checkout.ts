@@ -45,6 +45,14 @@ export async function createCheckoutSession(deps: CheckoutDeps): Promise<{ url: 
     const productName = input.plan === "pro_monthly"
       ? "GetU Pro — 1 month"
       : "GetU Pro — 1 year"
+    // Stripe Checkout requires explicit payment_method_types. Listed types
+    // must be activated on the account — unactivated types return 400.
+    // STRIPE_ONE_TIME_METHODS is a CSV env var so we can add alipay/wechat_pay
+    // via wrangler.toml without a code deploy once Stripe approves them.
+    const paymentMethodTypes = (env.STRIPE_ONE_TIME_METHODS ?? "card")
+      .split(",")
+      .map(s => s.trim())
+      .filter(Boolean)
     const { checkoutUrl } = await stripe.createOneTimePaymentSession({
       amountCents,
       currency: "usd",
@@ -54,6 +62,7 @@ export async function createCheckoutSession(deps: CheckoutDeps): Promise<{ url: 
       successUrl: input.successUrl,
       cancelUrl: input.cancelUrl,
       durationDays,
+      paymentMethodTypes,
     })
     return { url: checkoutUrl }
   }

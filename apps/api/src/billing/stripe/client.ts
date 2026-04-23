@@ -24,6 +24,10 @@ export interface CreateOneTimePaymentSessionIn {
   successUrl: string
   cancelUrl: string
   durationDays: number
+  /** Stripe only lets Checkout Sessions show explicitly listed payment_method_types.
+   *  (automatic_payment_methods is a Payment Intents param — not supported here.)
+   *  Pass whichever types your account has activated; invalid types produce 400. */
+  paymentMethodTypes: readonly string[]
 }
 
 export interface CreatePortalSessionIn {
@@ -83,6 +87,9 @@ export function createStripeClient({ apiKey, baseUrl }: StripeClientOpts) {
     },
 
     async createOneTimePaymentSession(input: CreateOneTimePaymentSessionIn): Promise<CreateCheckoutSessionOut> {
+      if (!input.paymentMethodTypes || input.paymentMethodTypes.length === 0) {
+        throw new Error("Stripe one-time session requires at least one payment_method_types entry")
+      }
       const params: Record<string, string> = {
         "mode": "payment",
         "line_items[0][price_data][currency]": input.currency,
@@ -95,8 +102,10 @@ export function createStripeClient({ apiKey, baseUrl }: StripeClientOpts) {
         "cancel_url": input.cancelUrl,
         "metadata[duration_days]": String(input.durationDays),
         "metadata[user_id]": input.userId,
-        "automatic_payment_methods[enabled]": "true",
       }
+      input.paymentMethodTypes.forEach((m, i) => {
+        params[`payment_method_types[${i}]`] = m
+      })
       const body = encodeForm(params)
       const resp = await call<{ id: string; url: string }>("/v1/checkout/sessions", body)
       return { sessionId: resp.id, checkoutUrl: resp.url }

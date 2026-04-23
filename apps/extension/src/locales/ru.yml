@@ -998,6 +998,15 @@ billing:
     title: Разблокируйте эту функцию с Pro
     description: Pro открывает доступ к переводу PDF, неограниченному переводу полей ввода, облачной синхронизации словаря и многому другому.
     close: Закрыть
+    planYearly: Yearly
+    planMonthly: Monthly
+    providerStripe: Stripe
+    providerPaddle: Paddle
+    loading: Loading...
+    comingSoon: Coming soon
+    modeSubscription: Subscribe (auto-renew)
+    modeOneTime: Pay once
+    modeOneTimeNote: One-time payment, no auto-renewal
   quota:
     outOf: из
     remaining: осталось

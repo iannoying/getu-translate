@@ -998,6 +998,15 @@ billing:
     title: 使用專業版解鎖此功能
     description: 專業版包含 PDF 翻譯、無限次輸入框翻譯、雲端同步生字本等更多進階功能。
     close: 關閉
+    planYearly: 年付
+    planMonthly: 月付
+    providerStripe: Stripe
+    providerPaddle: Paddle
+    loading: 載入中...
+    comingSoon: 即將推出
+    modeSubscription: 訂閱（自動續費）
+    modeOneTime: 一次性付款
+    modeOneTimeNote: 一次性付款，無自動續費
   quota:
     outOf: /
     remaining: 剩餘

@@ -998,6 +998,15 @@ billing:
     title: Mở khóa tính năng này với Pro
     description: Pro cho phép dịch PDF, dịch ô nhập không giới hạn, sổ từ vựng đồng bộ đám mây và nhiều hơn nữa.
     close: Đóng
+    planYearly: Yearly
+    planMonthly: Monthly
+    providerStripe: Stripe
+    providerPaddle: Paddle
+    loading: Loading...
+    comingSoon: Coming soon
+    modeSubscription: Subscribe (auto-renew)
+    modeOneTime: Pay once
+    modeOneTimeNote: One-time payment, no auto-renewal
   quota:
     outOf: /
     remaining: còn lại
