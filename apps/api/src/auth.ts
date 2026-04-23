@@ -12,7 +12,24 @@ export function createAuth(env: WorkerEnv) {
   if (cached) return cached
   const secrets = parseSecrets(env)
   const db = createDb(env.DB)
-  const auth = betterAuth({
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const socialProviders: Record<string, any> = {}
+  if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
+    socialProviders.google = {
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+    }
+  }
+  if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
+    socialProviders.github = {
+      clientId: env.GITHUB_CLIENT_ID,
+      clientSecret: env.GITHUB_CLIENT_SECRET,
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const config: Record<string, any> = {
     database: drizzleAdapter(db, { provider: "sqlite", schema }),
     secret: secrets.AUTH_SECRET,
     baseURL: secrets.AUTH_BASE_URL,
@@ -34,7 +51,12 @@ export function createAuth(env: WorkerEnv) {
       },
     },
     trustedOrigins: secrets.ALLOWED_EXTENSION_ORIGINS.split(",").map(s => s.trim()).filter(Boolean),
-  })
+  }
+  if (Object.keys(socialProviders).length > 0) {
+    config.socialProviders = socialProviders
+  }
+
+  const auth = betterAuth(config)
   authCache.set(env, auth)
   return auth
 }

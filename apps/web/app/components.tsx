@@ -7,6 +7,11 @@ const footerLinks = [
   { href: "/refund", label: "Refunds" },
 ]
 
+const topNavLinks = [
+  ...footerLinks,
+  { href: "/log-in", label: "Log in" },
+]
+
 export function SiteShell({ children }: { children: React.ReactNode }) {
   return (
     <main className="site-shell">
@@ -16,7 +21,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           <span>GetU Translate</span>
         </Link>
         <nav className="top-nav">
-          {footerLinks.map(link => (
+          {topNavLinks.map(link => (
             <Link key={link.href} href={link.href}>{link.label}</Link>
           ))}
         </nav>
