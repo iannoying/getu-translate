@@ -14,7 +14,7 @@ const PRO_FEATURES = [
   "subtitle_platforms_extended",
 ]
 
-export async function applyBillingEvent(db: Db, evt: BillingEvent): Promise<void> {
+export async function applyBillingEvent(db: Db, evt: BillingEvent, provider: "paddle" | "stripe" = "paddle"): Promise<void> {
   if (evt.kind === "ignored") return
 
   const { userEntitlements } = schema
@@ -29,7 +29,7 @@ export async function applyBillingEvent(db: Db, evt: BillingEvent): Promise<void
         expiresAt: new Date(evt.expiresAt),
         providerCustomerId: evt.customerId,
         providerSubscriptionId: evt.subscriptionId,
-        billingProvider: "paddle",
+        billingProvider: provider,
         graceUntil: null,
         updatedAt: now,
       }).onConflictDoUpdate({
@@ -40,7 +40,7 @@ export async function applyBillingEvent(db: Db, evt: BillingEvent): Promise<void
           expiresAt: new Date(evt.expiresAt),
           providerCustomerId: evt.customerId,
           providerSubscriptionId: evt.subscriptionId,
-          billingProvider: "paddle",
+          billingProvider: provider,
           graceUntil: null,
           updatedAt: now,
         },
