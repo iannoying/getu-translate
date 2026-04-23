@@ -10,6 +10,7 @@ import {
 import { loadEntitlements } from "../billing/entitlements"
 import { consumeQuota as consumeQuotaImpl } from "../billing/quota"
 import { createPaddleClient } from "../billing/paddle/client"
+import { createStripeClient } from "../billing/stripe/client"
 import { createCheckoutSession as createCheckoutImpl, createPortalSession as createPortalImpl } from "../billing/checkout"
 import { authed } from "./context"
 
@@ -41,9 +42,14 @@ export const billingRouter = {
         apiKey: context.env.PADDLE_API_KEY,
         baseUrl: context.env.PADDLE_BASE_URL,
       })
+      const stripe = createStripeClient({
+        apiKey: context.env.STRIPE_SECRET_KEY,
+        baseUrl: context.env.STRIPE_BASE_URL,
+      })
       return createCheckoutImpl({
         db,
         paddle,
+        stripe,
         env: context.env,
         userId: context.session.user.id,
         userEmail: context.session.user.email,
@@ -59,6 +65,10 @@ export const billingRouter = {
         apiKey: context.env.PADDLE_API_KEY,
         baseUrl: context.env.PADDLE_BASE_URL,
       })
-      return createPortalImpl({ db, paddle, env: context.env, userId: context.session.user.id })
+      const stripe = createStripeClient({
+        apiKey: context.env.STRIPE_SECRET_KEY,
+        baseUrl: context.env.STRIPE_BASE_URL,
+      })
+      return createPortalImpl({ db, paddle, stripe, env: context.env, userId: context.session.user.id })
     }),
 }

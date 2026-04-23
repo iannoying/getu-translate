@@ -4,6 +4,7 @@ import type { Db } from "@getu/db"
 import { schema } from "@getu/db"
 import type { CreateCheckoutSessionInput } from "@getu/contract"
 import type { PaddleClient } from "./paddle/client"
+import type { StripeClient } from "./stripe/client"
 import type { WorkerEnv } from "../env"
 
 const { userEntitlements } = schema
@@ -11,6 +12,7 @@ const { userEntitlements } = schema
 interface CheckoutDeps {
   db: Db
   paddle: PaddleClient
+  stripe: StripeClient
   env: WorkerEnv
   userId: string
   userEmail: string
@@ -18,7 +20,7 @@ interface CheckoutDeps {
 }
 
 export async function createCheckoutSession(deps: CheckoutDeps): Promise<{ url: string }> {
-  const { db, paddle, env, userId, userEmail, input } = deps
+  const { db, paddle, stripe, env, userId, userEmail, input } = deps
 
   if (env.BILLING_ENABLED !== "true") {
     throw new ORPCError("PRECONDITION_FAILED", { message: "Billing is not enabled" })
@@ -37,6 +39,26 @@ export async function createCheckoutSession(deps: CheckoutDeps): Promise<{ url: 
     })
   }
 
+  if (input.provider === "stripe") {
+    const priceId = input.plan === "pro_monthly"
+      ? env.STRIPE_PRICE_PRO_MONTHLY
+      : env.STRIPE_PRICE_PRO_YEARLY
+    if (!priceId) {
+      throw new ORPCError("INTERNAL_SERVER_ERROR", {
+        message: `Stripe price id not configured for plan ${input.plan}`,
+      })
+    }
+    const { checkoutUrl } = await stripe.createCheckoutSession({
+      priceId,
+      email: userEmail,
+      userId,
+      successUrl: input.successUrl,
+      cancelUrl: input.cancelUrl,
+    })
+    return { url: checkoutUrl }
+  }
+
+  // default: paddle (existing path)
   const priceId = input.plan === "pro_monthly"
     ? env.PADDLE_PRICE_PRO_MONTHLY
     : env.PADDLE_PRICE_PRO_YEARLY
@@ -60,25 +82,28 @@ export async function createCheckoutSession(deps: CheckoutDeps): Promise<{ url: 
 interface PortalDeps {
   db: Db
   paddle: PaddleClient
+  stripe: StripeClient
   env: WorkerEnv
   userId: string
 }
 
 export async function createPortalSession(deps: PortalDeps): Promise<{ url: string }> {
-  const { db, paddle, userId } = deps
+  const { db, paddle, stripe, userId } = deps
   const row = await db.select().from(userEntitlements).where(eq(userEntitlements.userId, userId)).get()
   if (!row?.providerCustomerId) {
     throw new ORPCError("PRECONDITION_FAILED", { message: "No billing customer on file" })
   }
-  // Guard future multi-provider support: this path only knows how to talk to Paddle.
-  // A Stripe customer (once added) would hit a different client/endpoint.
-  if (row.billingProvider !== "paddle") {
-    throw new ORPCError("PRECONDITION_FAILED", {
-      message: "No Paddle subscription on file",
+  if (row.billingProvider === "stripe") {
+    return stripe.createPortalSession({
+      customerId: row.providerCustomerId,
+      returnUrl: "https://getutranslate.com/account",
     })
   }
-  return paddle.createPortalSession({
-    customerId: row.providerCustomerId,
-    subscriptionIds: row.providerSubscriptionId ? [row.providerSubscriptionId] : undefined,
-  })
+  if (row.billingProvider === "paddle") {
+    return paddle.createPortalSession({
+      customerId: row.providerCustomerId,
+      subscriptionIds: row.providerSubscriptionId ? [row.providerSubscriptionId] : undefined,
+    })
+  }
+  throw new ORPCError("PRECONDITION_FAILED", { message: "Unknown billing provider" })
 }
