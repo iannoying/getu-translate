@@ -12,8 +12,20 @@ export function normalizeStripeEvent(evt: any, opts?: { userId?: string }): Stri
 
   switch (t) {
     case "checkout.session.completed": {
-      const userId = opts?.userId ?? (data.client_reference_id as string | undefined)
+      const userId = opts?.userId ?? (data.client_reference_id as string | undefined) ?? (data.metadata?.user_id as string | undefined)
       if (!userId) return { kind: "ignored", reason: "missing client_reference_id" }
+
+      if (data.mode === "payment") {
+        const durationDays = parseInt(data.metadata?.duration_days ?? "0", 10)
+        return {
+          kind: "one_time_purchase_completed",
+          userId,
+          customerId: data.customer,
+          durationDays,
+          amountCents: data.amount_total ?? 0,
+        }
+      }
+
       // expiresAt = 0 placeholder; will be filled by subsequent customer.subscription.updated
       return {
         kind: "subscription_activated",

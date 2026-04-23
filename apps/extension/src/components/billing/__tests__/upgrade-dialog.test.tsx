@@ -125,7 +125,7 @@ describe("upgradeDialog", () => {
     fireEvent.click(screen.getByText("billing.upgrade.cta"))
 
     await waitFor(() => {
-      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_yearly", provider: "stripe" })
+      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_yearly", provider: "stripe", paymentMethod: "card" })
     })
   })
 
@@ -138,7 +138,47 @@ describe("upgradeDialog", () => {
     fireEvent.click(screen.getByText("billing.upgrade.cta"))
 
     await waitFor(() => {
-      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_monthly", provider: "stripe" })
+      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_monthly", provider: "stripe", paymentMethod: "card" })
+    })
+  })
+
+  it("calls startCheckout with paymentMethod=alipay when alipay is selected", async () => {
+    useEntitlementsMock.mockReturnValue({ data: BILLING_ENABLED_FREE, isLoading: false, isFromCache: false })
+
+    render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
+
+    fireEvent.click(screen.getByText("billing.upgrade.paymentMethodAlipay"))
+    fireEvent.click(screen.getByText("billing.upgrade.cta"))
+
+    await waitFor(() => {
+      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_yearly", provider: "stripe", paymentMethod: "alipay" })
+    })
+  })
+
+  it("calls startCheckout with paymentMethod=wechat_pay when wechat is selected", async () => {
+    useEntitlementsMock.mockReturnValue({ data: BILLING_ENABLED_FREE, isLoading: false, isFromCache: false })
+
+    render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
+
+    fireEvent.click(screen.getByText("billing.upgrade.paymentMethodWechat"))
+    fireEvent.click(screen.getByText("billing.upgrade.cta"))
+
+    await waitFor(() => {
+      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_yearly", provider: "stripe", paymentMethod: "wechat_pay" })
+    })
+  })
+
+  it("resets paymentMethod to card when switching to paddle", async () => {
+    useEntitlementsMock.mockReturnValue({ data: BILLING_ENABLED_FREE, isLoading: false, isFromCache: false })
+
+    render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
+
+    fireEvent.click(screen.getByText("billing.upgrade.paymentMethodAlipay"))
+    fireEvent.click(screen.getByText("billing.upgrade.providerPaddle"))
+    fireEvent.click(screen.getByText("billing.upgrade.cta"))
+
+    await waitFor(() => {
+      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_yearly", provider: "paddle", paymentMethod: "card" })
     })
   })
 

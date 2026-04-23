@@ -54,8 +54,13 @@ export default function PricePage() {
           </div>
 
           <div className="checkout-options">
-            <UpgradeButton plan={plan} provider="paddle" label="Pay with Paddle" />
-            <UpgradeButton plan={plan} provider="stripe" label="Pay with Stripe" />
+            <p className="checkout-group-label">Auto-renew</p>
+            <UpgradeButton plan={plan} provider="paddle" paymentMethod="card" label="Pay with Paddle" />
+            <UpgradeButton plan={plan} provider="stripe" paymentMethod="card" label="Stripe: Card (auto-renew)" />
+            <p className="checkout-group-label">One-time (no auto-renew)</p>
+            <UpgradeButton plan={plan} provider="stripe" paymentMethod="alipay" label="Stripe: Alipay" />
+            <UpgradeButton plan={plan} provider="stripe" paymentMethod="wechat_pay" label="Stripe: WeChat Pay" />
+            <p className="price-note">Alipay 和 WeChat Pay 不自动续费，到期需重新购买</p>
           </div>
         </article>
       </section>

@@ -71,6 +71,62 @@ describe("stripe client", () => {
     })
   })
 
+  describe("createOneTimePaymentSession", () => {
+    it("POSTs mode=payment, alipay, unit_amount=800, duration_days=30", async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ id: "cs_pay_01", url: "https://checkout.stripe.com/pay/cs_pay_01" }),
+      })
+      vi.stubGlobal("fetch", fetchMock)
+
+      const client = createStripeClient({ apiKey: "sk_test_01", baseUrl: "https://api.stripe.com" })
+      const out = await client.createOneTimePaymentSession({
+        method: "alipay",
+        amountCents: 800,
+        currency: "usd",
+        productName: "GetU Pro — 1 month",
+        email: "u@x.com",
+        userId: "user_01",
+        successUrl: "https://getutranslate.com/upgrade/success",
+        cancelUrl: "https://getutranslate.com/price",
+        durationDays: 30,
+      })
+
+      expect(out).toEqual({ sessionId: "cs_pay_01", checkoutUrl: "https://checkout.stripe.com/pay/cs_pay_01" })
+      const body = fetchMock.mock.calls[0][1].body as string
+      expect(body).toContain("mode=payment")
+      expect(body).toContain("payment_method_types%5B0%5D=alipay")
+      expect(body).toContain("line_items%5B0%5D%5Bprice_data%5D%5Bunit_amount%5D=800")
+      expect(body).toContain("metadata%5Bduration_days%5D=30")
+    })
+
+    it("adds payment_method_options[wechat_pay][client]=web for wechat_pay", async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ id: "cs_pay_02", url: "https://checkout.stripe.com/pay/cs_pay_02" }),
+      })
+      vi.stubGlobal("fetch", fetchMock)
+
+      const client = createStripeClient({ apiKey: "sk_test_01", baseUrl: "https://api.stripe.com" })
+      await client.createOneTimePaymentSession({
+        method: "wechat_pay",
+        amountCents: 7200,
+        currency: "usd",
+        productName: "GetU Pro — 1 year",
+        email: "u@x.com",
+        userId: "user_01",
+        successUrl: "https://getutranslate.com/upgrade/success",
+        cancelUrl: "https://getutranslate.com/price",
+        durationDays: 365,
+      })
+
+      const body = fetchMock.mock.calls[0][1].body as string
+      expect(body).toContain("payment_method_types%5B0%5D=wechat_pay")
+      expect(body).toContain("payment_method_options%5Bwechat_pay%5D%5Bclient%5D=web")
+      expect(body).toContain("metadata%5Bduration_days%5D=365")
+    })
+  })
+
   describe("createPortalSession", () => {
     it("POSTs to /v1/billing_portal/sessions with customer + return_url", async () => {
       const fetchMock = vi.fn().mockResolvedValue({

@@ -4,12 +4,13 @@ import { orpcClient } from "@/utils/orpc/client"
 
 type Plan = "pro_monthly" | "pro_yearly"
 type Provider = "paddle" | "stripe"
+type PaymentMethod = "card" | "alipay" | "wechat_pay"
 
 export function useCheckout() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const startCheckout = useCallback(async ({ plan, provider }: { plan: Plan, provider: Provider }) => {
+  const startCheckout = useCallback(async ({ plan, provider, paymentMethod = "card" }: { plan: Plan, provider: Provider, paymentMethod?: PaymentMethod }) => {
     setIsLoading(true)
     setError(null)
     try {
@@ -18,6 +19,7 @@ export function useCheckout() {
       const { url } = await orpcClient.billing.createCheckoutSession({
         plan,
         provider,
+        paymentMethod,
         successUrl,
         cancelUrl,
       })

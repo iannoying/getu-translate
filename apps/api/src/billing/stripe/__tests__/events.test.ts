@@ -115,4 +115,51 @@ describe("normalizeStripeEvent", () => {
     const out = normalizeStripeEvent({ id: "evt_x", data: { object: {} } })
     expect(out.kind).toBe("ignored")
   })
+
+  it("checkout.session.completed with mode=payment → one_time_purchase_completed", () => {
+    const out = normalizeStripeEvent({
+      id: "evt_pay_01",
+      type: "checkout.session.completed",
+      created: 1720000000,
+      data: {
+        object: {
+          mode: "payment",
+          client_reference_id: "user_01",
+          customer: "cus_01",
+          amount_total: 800,
+          metadata: { duration_days: "30", user_id: "user_01" },
+        },
+      },
+    })
+    expect(out).toMatchObject({
+      kind: "one_time_purchase_completed",
+      userId: "user_01",
+      customerId: "cus_01",
+      durationDays: 30,
+      amountCents: 800,
+    })
+  })
+
+  it("checkout.session.completed mode=payment falls back to metadata.user_id when client_reference_id missing", () => {
+    const out = normalizeStripeEvent({
+      id: "evt_pay_02",
+      type: "checkout.session.completed",
+      created: 1720000000,
+      data: {
+        object: {
+          mode: "payment",
+          client_reference_id: null,
+          customer: "cus_02",
+          amount_total: 7200,
+          metadata: { duration_days: "365", user_id: "user_02" },
+        },
+      },
+    })
+    expect(out).toMatchObject({
+      kind: "one_time_purchase_completed",
+      userId: "user_02",
+      durationDays: 365,
+      amountCents: 7200,
+    })
+  })
 })

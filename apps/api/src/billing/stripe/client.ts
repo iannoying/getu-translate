@@ -15,6 +15,18 @@ export interface CreateCheckoutSessionOut {
   checkoutUrl: string
 }
 
+export interface CreateOneTimePaymentSessionIn {
+  method: "alipay" | "wechat_pay"
+  amountCents: number
+  currency: string
+  productName: string
+  email: string
+  userId: string
+  successUrl: string
+  cancelUrl: string
+  durationDays: number
+}
+
 export interface CreatePortalSessionIn {
   customerId: string
   returnUrl: string
@@ -67,6 +79,29 @@ export function createStripeClient({ apiKey, baseUrl }: StripeClientOpts) {
         "success_url": input.successUrl,
         "cancel_url": input.cancelUrl,
       })
+      const resp = await call<{ id: string; url: string }>("/v1/checkout/sessions", body)
+      return { sessionId: resp.id, checkoutUrl: resp.url }
+    },
+
+    async createOneTimePaymentSession(input: CreateOneTimePaymentSessionIn): Promise<CreateCheckoutSessionOut> {
+      const params: Record<string, string> = {
+        "mode": "payment",
+        "line_items[0][price_data][currency]": input.currency,
+        "line_items[0][price_data][unit_amount]": String(input.amountCents),
+        "line_items[0][price_data][product_data][name]": input.productName,
+        "line_items[0][quantity]": "1",
+        "customer_email": input.email,
+        "client_reference_id": input.userId,
+        "success_url": input.successUrl,
+        "cancel_url": input.cancelUrl,
+        "metadata[duration_days]": String(input.durationDays),
+        "metadata[user_id]": input.userId,
+        "payment_method_types[0]": input.method,
+      }
+      if (input.method === "wechat_pay") {
+        params["payment_method_options[wechat_pay][client]"] = "web"
+      }
+      const body = encodeForm(params)
       const resp = await call<{ id: string; url: string }>("/v1/checkout/sessions", body)
       return { sessionId: resp.id, checkoutUrl: resp.url }
     },

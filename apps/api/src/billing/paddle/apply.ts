@@ -87,5 +87,34 @@ export async function applyBillingEvent(db: Db, evt: BillingEvent, provider: "pa
         .where(eq(userEntitlements.userId, evt.userId))
       break
     }
+    case "one_time_purchase_completed": {
+      const existing = await db
+        .select()
+        .from(userEntitlements)
+        .where(eq(userEntitlements.userId, evt.userId))
+        .get()
+      const currentExpiry = existing?.expiresAt instanceof Date
+        ? existing.expiresAt.getTime()
+        : (existing?.expiresAt as number | null) ?? 0
+      const base = currentExpiry > Date.now() ? currentExpiry : Date.now()
+      const effectiveExpiry = new Date(base + evt.durationDays * 86400_000)
+      const patch = {
+        userId: evt.userId,
+        tier: "pro" as const,
+        features: JSON.stringify(PRO_FEATURES),
+        expiresAt: effectiveExpiry,
+        providerCustomerId: evt.customerId,
+        providerSubscriptionId: null,
+        billingProvider: provider,
+        graceUntil: null,
+        updatedAt: now,
+      }
+      if (existing) {
+        await db.update(userEntitlements).set(patch).where(eq(userEntitlements.userId, evt.userId))
+      } else {
+        await db.insert(userEntitlements).values({ ...patch, createdAt: now })
+      }
+      break
+    }
   }
 }

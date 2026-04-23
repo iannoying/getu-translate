@@ -72,6 +72,7 @@ describe("useCheckout", () => {
     expect(createCheckoutSessionMock).toHaveBeenCalledWith({
       plan: "pro_yearly",
       provider: "stripe",
+      paymentMethod: "card",
       successUrl: "chrome-extension://fake-id/upgrade-success.html",
       cancelUrl: "chrome-extension://fake-id/upgrade-success.html?cancelled=1",
     })
@@ -89,6 +90,25 @@ describe("useCheckout", () => {
     expect(createCheckoutSessionMock).toHaveBeenCalledWith({
       plan: "pro_monthly",
       provider: "paddle",
+      paymentMethod: "card",
+      successUrl: "chrome-extension://fake-id/upgrade-success.html",
+      cancelUrl: "chrome-extension://fake-id/upgrade-success.html?cancelled=1",
+    })
+  })
+
+  it("passes paymentMethod=alipay when specified", async () => {
+    createCheckoutSessionMock.mockResolvedValue({ url: "https://checkout.stripe.com/session/abc" })
+
+    const { result } = renderHook(() => useCheckout())
+
+    await act(async () => {
+      await result.current.startCheckout({ plan: "pro_monthly", provider: "stripe", paymentMethod: "alipay" })
+    })
+
+    expect(createCheckoutSessionMock).toHaveBeenCalledWith({
+      plan: "pro_monthly",
+      provider: "stripe",
+      paymentMethod: "alipay",
       successUrl: "chrome-extension://fake-id/upgrade-success.html",
       cancelUrl: "chrome-extension://fake-id/upgrade-success.html?cancelled=1",
     })
