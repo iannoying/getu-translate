@@ -61,6 +61,18 @@ export type Messages = {
   privacy: { title: string; description: string; sections: PolicySectionMessage[] }
   terms: { title: string; description: string; sections: PolicySectionMessage[] }
   refund: { title: string; description: string; sections: PolicySectionMessage[] }
+  guide: {
+    eyebrow: string
+    stepLabel: string
+    step1Title: string
+    step1Intro: string
+    pinTitle: string
+    pinSteps: string[]
+    tryTitle: string
+    tryBody: string
+    openPricing: string
+    openHome: string
+  }
 }
 
 const EMPTY_POLICY_SECTIONS: PolicySectionMessage[] = []
@@ -412,6 +424,22 @@ export const messages: Record<Locale, Messages> = {
         },
       ],
     },
+    guide: {
+      eyebrow: "Getting started",
+      stepLabel: "Step 1",
+      step1Title: "Almost there! Pin GetU Translate",
+      step1Intro: "You just installed GetU Translate. Pin it to your toolbar so it's always one click away when you need to translate a page, a snippet, or a video subtitle.",
+      pinTitle: "How to pin",
+      pinSteps: [
+        "Click the puzzle icon in the top-right of your browser toolbar.",
+        "Find GetU Translate in the list.",
+        "Click the pin icon next to GetU Translate.",
+      ],
+      tryTitle: "What's next",
+      tryBody: "Once pinned, open any web page and click the GetU Translate icon to start translating.",
+      openPricing: "View pricing",
+      openHome: "Go to home",
+    },
   },
   "zh-CN": {
     meta: {
@@ -759,6 +787,22 @@ export const messages: Record<Locale, Messages> = {
         },
       ],
     },
+    guide: {
+      eyebrow: "新手引导",
+      stepLabel: "第 1 步",
+      step1Title: "就差一步！请把 GetU Translate 固定到工具栏",
+      step1Intro: "你已经成功安装了 GetU Translate。把它固定到浏览器工具栏，之后每次想翻译网页、划词或视频字幕，都可以一键打开。",
+      pinTitle: "如何固定",
+      pinSteps: [
+        "点击浏览器右上角的扩展（拼图）图标。",
+        "在列表中找到 GetU Translate。",
+        "点击 GetU Translate 旁边的图钉图标。",
+      ],
+      tryTitle: "接下来",
+      tryBody: "固定好之后，打开任意网页，点击工具栏里的 GetU Translate 图标就可以开始翻译。",
+      openPricing: "查看价格",
+      openHome: "回到首页",
+    },
   },
   "zh-TW": {
     meta: {
@@ -1105,6 +1149,22 @@ export const messages: Record<Locale, Messages> = {
           ],
         },
       ],
+    },
+    guide: {
+      eyebrow: "新手引導",
+      stepLabel: "第 1 步",
+      step1Title: "就差一步！請把 GetU Translate 釘到工具列",
+      step1Intro: "你已經成功安裝了 GetU Translate。把它釘到瀏覽器工具列，之後每次想翻譯網頁、劃詞或影片字幕，都可以一鍵開啟。",
+      pinTitle: "如何釘選",
+      pinSteps: [
+        "點擊瀏覽器右上角的擴充功能（拼圖）圖示。",
+        "在清單中找到 GetU Translate。",
+        "點擊 GetU Translate 旁邊的圖釘圖示。",
+      ],
+      tryTitle: "接下來",
+      tryBody: "釘選完成後，開啟任意網頁，點擊工具列中的 GetU Translate 圖示即可開始翻譯。",
+      openPricing: "查看價格",
+      openHome: "回到首頁",
     },
   },
 }
