@@ -136,14 +136,14 @@ jobs:
             TAG="v$VERSION"
           fi
 
-          gh release upload "$TAG" apps/extension/.output/*-chrome.zip apps/extension/.output/*-edge.zip apps/extension/.output/*-firefox.zip apps/extension/.output/*-sources.zip --clobber
+          gh release upload "$TAG" apps/extension/output/*-chrome.zip apps/extension/output/*-edge.zip apps/extension/output/*-firefox.zip apps/extension/output/*-sources.zip --clobber
         env:
           GH_TOKEN: ${{ github.token }}
 
       # - name: Submit to Chrome & Edge Stores
       #   if: steps.changesets.outputs.published == 'true'
       #   run: |
-      #     ZIP_FILE=$(ls .output/*-chrome.zip)
+      #     ZIP_FILE=$(ls output/*-chrome.zip)
       #     echo "Uploading: $ZIP_FILE"
 
       #     # Verify manifest version before upload

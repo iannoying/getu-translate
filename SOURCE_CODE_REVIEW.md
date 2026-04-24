@@ -29,5 +29,5 @@ The `.env.production` file is included in this archive. It contains:
 After a successful build, the packaged extension will be at:
 
 ```
-.output/read-frog-<version>-firefox.zip
+output/read-frog-<version>-firefox.zip
 ```
