@@ -5,7 +5,7 @@ import { selectAtom } from "jotai/utils"
 import { configSchema } from "@/types/config/config"
 import { CONFIG_STORAGE_KEY, DEFAULT_CONFIG } from "../constants/config"
 import { logger } from "../logger"
-import { storageAdapter } from "./storage-adapter"
+import { isExtensionContextInvalidatedError, storageAdapter, swallowInvalidatedStorageRead } from "./storage-adapter"
 
 export const configAtom = atom<Config>(DEFAULT_CONFIG)
 
@@ -76,13 +76,22 @@ export const writeConfigAtom = atom(
         }
       }
       catch (error) {
-        console.error("Failed to set config to storage:", nextToPersist, error)
+        const invalidated = isExtensionContextInvalidatedError(error)
+        if (!invalidated) {
+          console.error("Failed to set config to storage:", nextToPersist, error)
+        }
 
         // Roll back to storage value on error, but only if we're still the latest write.
         if (currentWriteVersion === writeVersion) {
           set(configAtom, configInStorage)
         }
 
+        // Swallow invalidated-context errors so fire-and-forget callers
+        // (e.g. React event handlers doing `set(writeConfigAtom, ...)`)
+        // don't surface an unhandled rejection during extension reload.
+        if (invalidated) {
+          return
+        }
         throw error
       }
     })
@@ -112,7 +121,7 @@ configAtom.onMount = (setAtom: (newValue: Config) => void) => {
     if (!didReceiveStorageUpdate) {
       setAtom(value)
     }
-  })
+  }).catch(swallowInvalidatedStorageRead("configAtom initial"))
 
   // Watch for changes from other extension contexts (popup, options page, other tabs)
   const unwatch = storageAdapter.watch<Config>(CONFIG_STORAGE_KEY, (value) => {
@@ -126,7 +135,9 @@ configAtom.onMount = (setAtom: (newValue: Config) => void) => {
   const handleVisibilityChange = () => {
     if (document.visibilityState === "visible") {
       logger.info("configAtom onMount handleVisibilityChange when: ", new Date())
-      void storageAdapter.get<Config>(CONFIG_STORAGE_KEY, DEFAULT_CONFIG, configSchema).then(setAtom)
+      void storageAdapter.get<Config>(CONFIG_STORAGE_KEY, DEFAULT_CONFIG, configSchema)
+        .then(setAtom)
+        .catch(swallowInvalidatedStorageRead("configAtom visibilitychange"))
     }
   }
   document.addEventListener("visibilitychange", handleVisibilityChange)

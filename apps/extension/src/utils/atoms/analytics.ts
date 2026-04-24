@@ -2,7 +2,7 @@ import { atom } from "jotai"
 import { z } from "zod"
 import { ANALYTICS_ENABLED_STORAGE_KEY, DEFAULT_ANALYTICS_ENABLED } from "@/utils/constants/analytics"
 import { logger } from "../logger"
-import { storageAdapter } from "./storage-adapter"
+import { storageAdapter, swallowInvalidatedStorageRead } from "./storage-adapter"
 
 const analyticsEnabledSchema = z.boolean()
 
@@ -33,7 +33,9 @@ baseAnalyticsEnabledAtom.onMount = (setAtom) => {
     ANALYTICS_ENABLED_STORAGE_KEY,
     DEFAULT_ANALYTICS_ENABLED,
     analyticsEnabledSchema,
-  ).then(setAtom)
+  )
+    .then(setAtom)
+    .catch(swallowInvalidatedStorageRead("baseAnalyticsEnabledAtom initial"))
 
   const unwatch = storageAdapter.watch<boolean>(
     ANALYTICS_ENABLED_STORAGE_KEY,
@@ -47,7 +49,9 @@ baseAnalyticsEnabledAtom.onMount = (setAtom) => {
         ANALYTICS_ENABLED_STORAGE_KEY,
         DEFAULT_ANALYTICS_ENABLED,
         analyticsEnabledSchema,
-      ).then(setAtom)
+      )
+        .then(setAtom)
+        .catch(swallowInvalidatedStorageRead("baseAnalyticsEnabledAtom visibilitychange"))
     }
   }
   document.addEventListener("visibilitychange", handleVisibilityChange)

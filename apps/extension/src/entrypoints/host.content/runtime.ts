@@ -2,6 +2,7 @@ import type { ContentScriptContext } from "#imports"
 import type { LangCodeISO6393 } from "@getu/definitions"
 import type { Config } from "@/types/config/config"
 import { storage } from "#imports"
+import { isExtensionContextInvalidatedError } from "@/utils/atoms/storage-adapter"
 import { DEFAULT_CONFIG, DETECTED_CODE_STORAGE_KEY } from "@/utils/constants/config"
 import { getDocumentInfo } from "@/utils/content/analyze"
 import { ensurePresetStyles } from "@/utils/host/translate/ui/style-injector"
@@ -48,18 +49,27 @@ export async function bootstrapHostContent(ctx: ContentScriptContext, initialCon
   }
 
   const handleUrlChange = async (from: string, to: string) => {
-    if (from !== to) {
-      logger.info("URL changed from", from, "to", to)
-      if (manager.isActive) {
-        manager.stop()
-      }
-      // Only the top frame should detect and set language to avoid race conditions from iframes
-      if (window === window.top) {
-        const { detectedCodeOrUnd } = await getDocumentInfo()
-        const detectedCode: LangCodeISO6393 = detectedCodeOrUnd === "und" ? "eng" : detectedCodeOrUnd
-        await storage.setItem<LangCodeISO6393>(`local:${DETECTED_CODE_STORAGE_KEY}`, detectedCode)
-        // Notify background script that URL has changed, let it decide whether to automatically enable translation
-        void sendMessage("checkAndAskAutoPageTranslation", { url: to, detectedCodeOrUnd })
+    if (from === to) {
+      return
+    }
+    logger.info("URL changed from", from, "to", to)
+    if (manager.isActive) {
+      manager.stop()
+    }
+    // Only the top frame should detect and set language to avoid race conditions from iframes
+    if (window !== window.top) {
+      return
+    }
+    try {
+      const { detectedCodeOrUnd } = await getDocumentInfo()
+      const detectedCode: LangCodeISO6393 = detectedCodeOrUnd === "und" ? "eng" : detectedCodeOrUnd
+      await storage.setItem<LangCodeISO6393>(`local:${DETECTED_CODE_STORAGE_KEY}`, detectedCode)
+      // Notify background script that URL has changed, let it decide whether to automatically enable translation
+      await sendMessage("checkAndAskAutoPageTranslation", { url: to, detectedCodeOrUnd })
+    }
+    catch (error) {
+      if (!isExtensionContextInvalidatedError(error)) {
+        logger.error("Failed to handle URL change:", error)
       }
     }
   }
@@ -92,11 +102,18 @@ export async function bootstrapHostContent(ctx: ContentScriptContext, initialCon
 
   // Only the top frame should detect and set language to avoid race conditions from iframes
   if (window === window.top) {
-    const { detectedCodeOrUnd } = await getDocumentInfo()
-    const initialDetectedCode: LangCodeISO6393 = detectedCodeOrUnd === "und" ? "eng" : detectedCodeOrUnd
-    await storage.setItem<LangCodeISO6393>(`local:${DETECTED_CODE_STORAGE_KEY}`, initialDetectedCode)
+    try {
+      const { detectedCodeOrUnd } = await getDocumentInfo()
+      const initialDetectedCode: LangCodeISO6393 = detectedCodeOrUnd === "und" ? "eng" : detectedCodeOrUnd
+      await storage.setItem<LangCodeISO6393>(`local:${DETECTED_CODE_STORAGE_KEY}`, initialDetectedCode)
 
-    // Check if auto-translation should be enabled for initial page load
-    void sendMessage("checkAndAskAutoPageTranslation", { url: window.location.href, detectedCodeOrUnd })
+      // Check if auto-translation should be enabled for initial page load
+      await sendMessage("checkAndAskAutoPageTranslation", { url: window.location.href, detectedCodeOrUnd })
+    }
+    catch (error) {
+      if (!isExtensionContextInvalidatedError(error)) {
+        logger.error("Failed to handle initial URL state:", error)
+      }
+    }
   }
 }
