@@ -17,6 +17,9 @@ jobs:
   release:
     name: Release Extension
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     env:
       SKIP_ENV_VALIDATION: true
       HUSKY: 0
