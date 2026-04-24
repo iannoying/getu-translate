@@ -3,7 +3,7 @@ import { langCodeISO6393Schema } from "@getu/definitions"
 import { atom } from "jotai"
 import { DEFAULT_DETECTED_CODE, DETECTED_CODE_STORAGE_KEY } from "../constants/config"
 import { logger } from "../logger"
-import { storageAdapter } from "./storage-adapter"
+import { storageAdapter, swallowInvalidatedStorageRead } from "./storage-adapter"
 
 // Private base atom - not exported to prevent direct writes
 const baseDetectedCodeAtom = atom<LangCodeISO6393>(DEFAULT_DETECTED_CODE)
@@ -26,13 +26,17 @@ export const detectedCodeAtom = atom(
 
 // onMount on base atom - gets triggered when derived atom subscribes
 baseDetectedCodeAtom.onMount = (setAtom: (newValue: LangCodeISO6393) => void) => {
-  void storageAdapter.get<LangCodeISO6393>(DETECTED_CODE_STORAGE_KEY, DEFAULT_DETECTED_CODE, langCodeISO6393Schema).then(setAtom)
+  void storageAdapter.get<LangCodeISO6393>(DETECTED_CODE_STORAGE_KEY, DEFAULT_DETECTED_CODE, langCodeISO6393Schema)
+    .then(setAtom)
+    .catch(swallowInvalidatedStorageRead("detectedCodeAtom initial"))
   const unwatch = storageAdapter.watch<LangCodeISO6393>(DETECTED_CODE_STORAGE_KEY, setAtom)
 
   const handleVisibilityChange = () => {
     if (document.visibilityState === "visible") {
       logger.info("detectedCodeAtom onMount handleVisibilityChange when: ", new Date())
-      void storageAdapter.get<LangCodeISO6393>(DETECTED_CODE_STORAGE_KEY, DEFAULT_DETECTED_CODE, langCodeISO6393Schema).then(setAtom)
+      void storageAdapter.get<LangCodeISO6393>(DETECTED_CODE_STORAGE_KEY, DEFAULT_DETECTED_CODE, langCodeISO6393Schema)
+        .then(setAtom)
+        .catch(swallowInvalidatedStorageRead("detectedCodeAtom visibilitychange"))
     }
   }
   document.addEventListener("visibilitychange", handleVisibilityChange)
