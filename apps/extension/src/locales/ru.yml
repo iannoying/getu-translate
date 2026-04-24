@@ -25,6 +25,9 @@ popup:
   options: Настройки
   hover: Наведение
   translateParagraph: для перевода абзаца
+  review:
+    tooltip: Повторить слова
+    dueTooltip: $1 слов для повторения
   hub:
     tooltip: Переводите текст несколькими моделями одновременно
   discord:
@@ -69,6 +72,7 @@ options:
     product: Продукт
   tools:
     translationHub: Центр переводов
+    wordbook: Словарь
   setAPIKeyWarning:
     please: Пожалуйста, установите API-ключ на странице
     page: настроек

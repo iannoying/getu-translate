@@ -25,6 +25,9 @@ popup:
   options: Seçenekler
   hover: Üzerine Gel
   translateParagraph: paragrafı çevirmek için
+  review:
+    tooltip: Kelimeleri Tekrar Et
+    dueTooltip: $1 kelime tekrar bekliyor
   hub:
     tooltip: Birden fazla çeviri modeliyle aynı anda metin çevirin
   discord:
@@ -69,6 +72,7 @@ options:
     product: Ürün
   tools:
     translationHub: Çeviri Merkezi
+    wordbook: Kelime Defteri
   setAPIKeyWarning:
     please: Lütfen API Anahtarını
     page: sayfasında ayarlayın

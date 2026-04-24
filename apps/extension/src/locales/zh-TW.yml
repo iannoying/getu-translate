@@ -25,6 +25,9 @@ popup:
   options: 選項
   hover: 滑鼠懸停
   translateParagraph: 來翻譯段落
+  review:
+    tooltip: 複習生字
+    dueTooltip: $1 個詞待複習
   hub:
     tooltip: 一次性調用多個翻譯模型翻譯文本
   discord:
@@ -69,6 +72,7 @@ options:
     product: 產品
   tools:
     translationHub: 翻譯中心
+    wordbook: 生字本
   setAPIKeyWarning:
     please: 請在
     page: 頁設置 API Key

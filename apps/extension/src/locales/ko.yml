@@ -25,6 +25,9 @@ popup:
   options: 옵션
   hover: 마우스 오버
   translateParagraph: 단락 번역
+  review:
+    tooltip: 단어장 복습
+    dueTooltip: 복습할 단어 $1개
   hub:
     tooltip: 여러 번역 모델로 동시에 텍스트 번역
   discord:
@@ -69,6 +72,7 @@ options:
     product: 제품
   tools:
     translationHub: 번역 허브
+    wordbook: 단어장
   setAPIKeyWarning:
     please: API Key를 설정해 주세요
     page: 페이지에서

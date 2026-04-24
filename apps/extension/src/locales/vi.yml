@@ -25,6 +25,9 @@ popup:
   options: Tùy chọn
   hover: Di chuột
   translateParagraph: để dịch đoạn văn
+  review:
+    tooltip: Ôn tập từ vựng
+    dueTooltip: $1 từ cần ôn tập
   hub:
     tooltip: Dịch văn bản với nhiều mô hình đồng thời
   discord:
@@ -69,6 +72,7 @@ options:
     product: Sản phẩm
   tools:
     translationHub: Trung tâm Dịch thuật
+    wordbook: Từ điển
   setAPIKeyWarning:
     please: Vui lòng đặt API Key trên trang
     page: cài đặt

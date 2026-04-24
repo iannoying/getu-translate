@@ -25,6 +25,9 @@ popup:
   options: Options
   hover: Hover
   translateParagraph: to translate paragraph
+  review:
+    tooltip: Review Wordbook
+    dueTooltip: $1 words due for review
   hub:
     tooltip: Translate text with multiple models simultaneously
   discord:
@@ -69,6 +72,7 @@ options:
     product: Product
   tools:
     translationHub: Translation Hub
+    wordbook: Wordbook
   setAPIKeyWarning:
     please: Please set API Key on
     page: page

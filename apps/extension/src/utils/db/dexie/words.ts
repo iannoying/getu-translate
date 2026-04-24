@@ -1,4 +1,7 @@
 import type Word from "./tables/word"
+import type { ReviewGrade } from "@/utils/sm2"
+
+import { scheduleReview } from "@/utils/sm2"
 import { db } from "./db"
 
 export const FREE_WORD_LIMIT = 100
@@ -41,4 +44,21 @@ export async function listWords(): Promise<Word[]> {
 
 export async function deleteWord(id: number): Promise<void> {
   await db.words.delete(id)
+}
+
+export async function getDueWords(): Promise<Word[]> {
+  const now = new Date()
+  return db.words.where("nextReviewAt").belowOrEqual(now).toArray()
+}
+
+export async function reviewWord(id: number, grade: ReviewGrade): Promise<void> {
+  const word = await db.words.get(id)
+  if (!word)
+    return
+  const result = scheduleReview(word, grade)
+  await db.words.update(id, {
+    interval: result.interval,
+    repetitions: result.repetitions,
+    nextReviewAt: result.nextReviewAt,
+  })
 }

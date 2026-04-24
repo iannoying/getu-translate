@@ -25,6 +25,9 @@ popup:
   options: 选项
   hover: 鼠标悬停
   translateParagraph: 来翻译段落
+  review:
+    tooltip: 复习生词
+    dueTooltip: $1 个词待复习
   hub:
     tooltip: 一次性调用多个翻译模型翻译文本
   discord:
@@ -69,6 +72,7 @@ options:
     product: 产品
   tools:
     translationHub: 翻译中心
+    wordbook: 生词本
   setAPIKeyWarning:
     please: 请在
     page: 页设置 API Key
