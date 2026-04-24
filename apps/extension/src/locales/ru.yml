@@ -1002,7 +1002,8 @@ billing:
     pro: Pro
     enterprise: Корпоративный
   upgrade:
-    cta: Перейти на Pro
+    cta: Подписка (автопродление)
+    ctaCny: Купить сейчас
     title: Разблокируйте эту функцию с Pro
     description: Pro открывает доступ к переводу PDF, неограниченному переводу полей ввода, облачной синхронизации словаря и многому другому.
     close: Закрыть
@@ -1012,9 +1013,12 @@ billing:
     providerPaddle: Paddle
     loading: Loading...
     comingSoon: Coming soon
-    modeSubscription: Subscribe (auto-renew)
-    modeOneTime: Pay once
-    modeOneTimeNote: One-time payment, no auto-renewal
+    priceUsdMonthly: $5/мес
+    priceUsdYearly: $50/год
+    priceCnyMonthly: ¥29/мес
+    priceCnyYearly: ¥299/год
+    noteUsd: Subscription auto-renews; cancel anytime.
+    noteCny: 一次性付款，到期需重新购买
   quota:
     outOf: из
     remaining: осталось

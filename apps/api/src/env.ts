@@ -25,11 +25,9 @@ export interface WorkerEnv {
   STRIPE_WEBHOOK_SECRET: string
   STRIPE_PRICE_PRO_MONTHLY: string
   STRIPE_PRICE_PRO_YEARLY: string
+  STRIPE_PRICE_CNY_MONTHLY: string
+  STRIPE_PRICE_CNY_YEARLY: string
   STRIPE_BASE_URL: string
-  /** CSV of Stripe payment_method_types to offer on one-time Checkout Sessions.
-   *  Defaults to "card"; add "alipay" / "wechat_pay" when activated on the
-   *  account (no code deploy needed). */
-  STRIPE_ONE_TIME_METHODS?: string
   // Phase 5: OAuth social providers (optional — set via wrangler secret put)
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string

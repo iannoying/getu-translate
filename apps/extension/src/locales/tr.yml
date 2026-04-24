@@ -1002,7 +1002,8 @@ billing:
     pro: Pro
     enterprise: Kurumsal
   upgrade:
-    cta: Pro'ya Yükselt
+    cta: Abone Ol (otomatik yenileme)
+    ctaCny: Şimdi Satın Al
     title: Bu özelliği Pro ile açın
     description: Pro; PDF çevirisi, sınırsız alan çevirisi, bulut eşzamanlı kelime defteri ve daha fazlasını sunar.
     close: Kapat
@@ -1012,9 +1013,12 @@ billing:
     providerPaddle: Paddle
     loading: Loading...
     comingSoon: Coming soon
-    modeSubscription: Subscribe (auto-renew)
-    modeOneTime: Pay once
-    modeOneTimeNote: One-time payment, no auto-renewal
+    priceUsdMonthly: $5/ay
+    priceUsdYearly: $50/yıl
+    priceCnyMonthly: ¥29/ay
+    priceCnyYearly: ¥299/yıl
+    noteUsd: Subscription auto-renews; cancel anytime.
+    noteCny: 一次性付款，到期需重新购买
   quota:
     outOf: /
     remaining: kaldı

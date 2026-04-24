@@ -108,43 +108,43 @@ describe("createCheckoutSession schemas", () => {
     ).toThrow()
   })
 
-  it("accepts mode=subscription", () => {
+  it("accepts currency=usd", () => {
     const parsed = createCheckoutSessionInputSchema.parse({
       plan: "pro_monthly",
       provider: "stripe",
-      mode: "subscription",
+      currency: "usd",
       successUrl: "https://getutranslate.com/upgrade/success",
       cancelUrl: "https://getutranslate.com/price",
     })
-    expect(parsed.mode).toBe("subscription")
+    expect(parsed.currency).toBe("usd")
   })
 
-  it("accepts mode=one_time", () => {
+  it("accepts currency=cny", () => {
     const parsed = createCheckoutSessionInputSchema.parse({
       plan: "pro_monthly",
       provider: "stripe",
-      mode: "one_time",
+      currency: "cny",
       successUrl: "https://getutranslate.com/upgrade/success",
       cancelUrl: "https://getutranslate.com/price",
     })
-    expect(parsed.mode).toBe("one_time")
+    expect(parsed.currency).toBe("cny")
   })
 
-  it("defaults to subscription when mode is omitted", () => {
+  it("defaults to usd when currency is omitted", () => {
     const parsed = createCheckoutSessionInputSchema.parse({
       plan: "pro_monthly",
       successUrl: "https://getutranslate.com/upgrade/success",
       cancelUrl: "https://getutranslate.com/price",
     })
-    expect(parsed.mode).toBe("subscription")
+    expect(parsed.currency).toBe("usd")
   })
 
-  it("rejects unknown mode value", () => {
+  it("rejects unknown currency value", () => {
     expect(() =>
       createCheckoutSessionInputSchema.parse({
         plan: "pro_monthly",
         provider: "stripe",
-        mode: "recurring",
+        currency: "eur",
         successUrl: "https://getutranslate.com/upgrade/success",
         cancelUrl: "https://getutranslate.com/price",
       }),

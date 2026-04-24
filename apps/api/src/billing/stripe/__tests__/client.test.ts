@@ -72,7 +72,7 @@ describe("stripe client", () => {
   })
 
   describe("createOneTimePaymentSession", () => {
-    it("POSTs mode=payment with explicit payment_method_types[0]=card, unit_amount=800, duration_days=30", async () => {
+    it("POSTs mode=payment with priceId reference and payment_method_types[0]=card, duration_days=30", async () => {
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({ id: "cs_pay_01", url: "https://checkout.stripe.com/pay/cs_pay_01" }),
@@ -81,9 +81,7 @@ describe("stripe client", () => {
 
       const client = createStripeClient({ apiKey: "sk_test_01", baseUrl: "https://api.stripe.com" })
       const out = await client.createOneTimePaymentSession({
-        amountCents: 800,
-        currency: "usd",
-        productName: "GetU Pro — 1 month",
+        priceId: "price_1TPZKxKEvXDtLoI6U9fvO5GV",
         email: "u@x.com",
         userId: "user_01",
         successUrl: "https://getutranslate.com/upgrade/success",
@@ -97,7 +95,8 @@ describe("stripe client", () => {
       expect(body).toContain("mode=payment")
       expect(body).toContain("payment_method_types%5B0%5D=card")
       expect(body).not.toContain("automatic_payment_methods")
-      expect(body).toContain("line_items%5B0%5D%5Bprice_data%5D%5Bunit_amount%5D=800")
+      expect(body).toContain("line_items%5B0%5D%5Bprice%5D=price_1TPZKxKEvXDtLoI6U9fvO5GV")
+      expect(body).not.toContain("price_data")
       expect(body).toContain("metadata%5Bduration_days%5D=30")
     })
 
@@ -110,9 +109,7 @@ describe("stripe client", () => {
 
       const client = createStripeClient({ apiKey: "sk_test_01", baseUrl: "https://api.stripe.com" })
       await client.createOneTimePaymentSession({
-        amountCents: 7200,
-        currency: "usd",
-        productName: "GetU Pro — 1 year",
+        priceId: "price_1TPZLhKEvXDtLoI6F0iAP0Un",
         email: "u@x.com",
         userId: "user_01",
         successUrl: "https://getutranslate.com/upgrade/success",
@@ -131,9 +128,7 @@ describe("stripe client", () => {
     it("throws when paymentMethodTypes is empty", async () => {
       const client = createStripeClient({ apiKey: "sk", baseUrl: "https://x" })
       await expect(client.createOneTimePaymentSession({
-        amountCents: 800,
-        currency: "usd",
-        productName: "x",
+        priceId: "price_xxx",
         email: "e",
         userId: "u",
         successUrl: "https://getutranslate.com/",

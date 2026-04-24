@@ -1118,7 +1118,8 @@ billing:
     pro: 专业版
     enterprise: 企业版
   upgrade:
-    cta: 升级到专业版
+    cta: 订阅（自动续费）
+    ctaCny: 立即购买
     title: 使用专业版解锁此功能
     description: 专业版包含 PDF 翻译、无限次输入框翻译、云同步生词本等更多高级功能。
     close: 关闭
@@ -1128,9 +1129,12 @@ billing:
     providerPaddle: Paddle
     loading: 加载中...
     comingSoon: 即将推出
-    modeSubscription: 订阅（自动续费）
-    modeOneTime: 一次性付款
-    modeOneTimeNote: 一次性付款，无自动续费
+    priceUsdMonthly: $5/月
+    priceUsdYearly: $50/年
+    priceCnyMonthly: ¥29/月
+    priceCnyYearly: ¥299/年
+    noteUsd: 订阅自动续费；随时取消。
+    noteCny: 一次性付款，到期需重新购买
   quota:
     outOf: /
     remaining: 剩余

@@ -10,7 +10,7 @@ export function UpgradeButton({
   locale,
   plan,
   provider,
-  mode = "subscription",
+  currency = "usd",
   label,
   priceMessages,
   errors,
@@ -18,7 +18,7 @@ export function UpgradeButton({
   locale: Locale
   plan: "pro_monthly" | "pro_yearly"
   provider: "paddle" | "stripe"
-  mode?: "subscription" | "one_time"
+  currency?: "usd" | "cny"
   label: string
   priceMessages: Messages["price"]
   errors: Messages["errors"]
@@ -41,7 +41,7 @@ export function UpgradeButton({
       const { url } = await orpcClient.billing.createCheckoutSession({
         plan,
         provider,
-        mode,
+        currency,
         successUrl: `${SITE_ORIGIN}/${locale}/upgrade/success/`,
         cancelUrl: `${SITE_ORIGIN}/${locale}/price/`,
       })

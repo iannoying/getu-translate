@@ -24,8 +24,6 @@ BIANXIE_BASE_URL = "https://api.bianxie.ai/v1"
 BILLING_ENABLED = "false"
 PADDLE_BASE_URL = "https://sandbox-api.paddle.com"
 STRIPE_BASE_URL = "https://api.stripe.com"
-# CSV of payment_method_types for one-time Checkout. Add "alipay" / "wechat_pay" once activated in Stripe dashboard.
-STRIPE_ONE_TIME_METHODS = "card,alipay"
 
 # Production deploy — invoked via `wrangler deploy --env production`
 [env.production]
@@ -46,5 +44,3 @@ BILLING_ENABLED = "true"
 # stays on sandbox until paddle vendor approval — flip to https://api.paddle.com then
 PADDLE_BASE_URL = "https://sandbox-api.paddle.com"
 STRIPE_BASE_URL = "https://api.stripe.com"
-# CSV of payment_method_types for one-time Checkout. Add "alipay" / "wechat_pay" once activated in Stripe dashboard.
-STRIPE_ONE_TIME_METHODS = "card,alipay"

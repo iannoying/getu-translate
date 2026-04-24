@@ -1002,7 +1002,8 @@ billing:
     pro: 專業版
     enterprise: 企業版
   upgrade:
-    cta: 升級至專業版
+    cta: 訂閱（自動續費）
+    ctaCny: 立即購買
     title: 使用專業版解鎖此功能
     description: 專業版包含 PDF 翻譯、無限次輸入框翻譯、雲端同步生字本等更多進階功能。
     close: 關閉
@@ -1012,9 +1013,12 @@ billing:
     providerPaddle: Paddle
     loading: 載入中...
     comingSoon: 即將推出
-    modeSubscription: 訂閱（自動續費）
-    modeOneTime: 一次性付款
-    modeOneTimeNote: 一次性付款，無自動續費
+    priceUsdMonthly: $5/月
+    priceUsdYearly: $50/年
+    priceCnyMonthly: ¥29/月
+    priceCnyYearly: ¥299/年
+    noteUsd: 訂閱自動續費；隨時可取消。
+    noteCny: 一次性付款，到期需重新購買
   quota:
     outOf: /
     remaining: 剩餘

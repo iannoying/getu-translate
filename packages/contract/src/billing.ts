@@ -96,7 +96,7 @@ export const createCheckoutSessionInputSchema = z
   .object({
     plan: z.enum(["pro_monthly", "pro_yearly"]),
     provider: z.enum(["paddle", "stripe"]).default("paddle"),
-    mode: z.enum(["subscription", "one_time"]).default("subscription"),
+    currency: z.enum(["usd", "cny"]).default("usd"),
     successUrl: redirectUrlSchema,
     cancelUrl: redirectUrlSchema,
   })
