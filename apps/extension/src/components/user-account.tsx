@@ -8,12 +8,19 @@ export function UserAccount() {
   const { data, isPending } = authClient.useSession()
   return (
     <div className="flex items-center gap-2">
-      <img
-        src={data?.user.image ?? guest}
-        alt="User"
-        className={cn("rounded-full border size-6", !data?.user.image && "p-1", isPending && "animate-pulse")}
-      />
-      {isPending ? "Loading..." : data?.user.name || data?.user.email?.split("@")[0] || "Guest"}
+      <button
+        type="button"
+        onClick={() => window.open(WEBSITE_URL, "_blank", "noopener,noreferrer")}
+        className="flex items-center gap-2 cursor-pointer rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        title={WEBSITE_URL}
+      >
+        <img
+          src={data?.user.image ?? guest}
+          alt="User"
+          className={cn("rounded-full border size-6", !data?.user.image && "p-1", isPending && "animate-pulse")}
+        />
+        <span>{isPending ? "Loading..." : data?.user.name || data?.user.email?.split("@")[0] || "Guest"}</span>
+      </button>
       {!isPending && !data && (
         <Button
           size="xs"
