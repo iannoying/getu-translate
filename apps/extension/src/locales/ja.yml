@@ -1002,7 +1002,8 @@ billing:
     pro: Pro
     enterprise: エンタープライズ
   upgrade:
-    cta: Pro にアップグレード
+    cta: サブスクリプション（自動更新）
+    ctaCny: 今すぐ購入
     title: Pro でこの機能をアンロック
     description: Pro では PDF 翻訳、無制限の入力欄翻訳、クラウド同期の単語帳などが使えます。
     close: 閉じる
@@ -1012,9 +1013,12 @@ billing:
     providerPaddle: Paddle
     loading: 読み込み中...
     comingSoon: 近日公開
-    modeSubscription: サブスクリプション（自動更新）
-    modeOneTime: 一回払い
-    modeOneTimeNote: 一回払い、自動更新なし
+    priceUsdMonthly: $5/月
+    priceUsdYearly: $50/年
+    priceCnyMonthly: ¥29/月
+    priceCnyYearly: ¥299/年
+    noteUsd: サブスクリプションは自動更新されます。いつでもキャンセル可能です。
+    noteCny: 一回払い、期限後は再購入が必要です
   quota:
     outOf: /
     remaining: 残り

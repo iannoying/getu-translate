@@ -60,7 +60,7 @@ describe("useCheckout", () => {
     tabsCreateMock.mockResolvedValue({ id: 1 })
   })
 
-  it("calls createCheckoutSession with plan, provider=stripe, mode=subscription, and URLs", async () => {
+  it("calls createCheckoutSession with plan, provider=stripe, currency=usd, and URLs", async () => {
     createCheckoutSessionMock.mockResolvedValue({ url: "https://checkout.stripe.com/session/abc" })
 
     const { result } = renderHook(() => useCheckout())
@@ -72,25 +72,25 @@ describe("useCheckout", () => {
     expect(createCheckoutSessionMock).toHaveBeenCalledWith({
       plan: "pro_yearly",
       provider: "stripe",
-      mode: "subscription",
+      currency: "usd",
       successUrl: "chrome-extension://fake-id/upgrade-success.html",
       cancelUrl: "chrome-extension://fake-id/upgrade-success.html?cancelled=1",
     })
   })
 
-  it("passes mode=one_time when specified", async () => {
+  it("passes currency=cny when specified", async () => {
     createCheckoutSessionMock.mockResolvedValue({ url: "https://checkout.stripe.com/session/abc" })
 
     const { result } = renderHook(() => useCheckout())
 
     await act(async () => {
-      await result.current.startCheckout({ plan: "pro_monthly", mode: "one_time" })
+      await result.current.startCheckout({ plan: "pro_monthly", currency: "cny" })
     })
 
     expect(createCheckoutSessionMock).toHaveBeenCalledWith({
       plan: "pro_monthly",
       provider: "stripe",
-      mode: "one_time",
+      currency: "cny",
       successUrl: "chrome-extension://fake-id/upgrade-success.html",
       cancelUrl: "chrome-extension://fake-id/upgrade-success.html?cancelled=1",
     })

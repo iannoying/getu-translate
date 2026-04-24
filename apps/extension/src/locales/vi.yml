@@ -1002,7 +1002,8 @@ billing:
     pro: Pro
     enterprise: Doanh nghiệp
   upgrade:
-    cta: Nâng cấp lên Pro
+    cta: Đăng ký (tự động gia hạn)
+    ctaCny: Mua ngay
     title: Mở khóa tính năng này với Pro
     description: Pro cho phép dịch PDF, dịch ô nhập không giới hạn, sổ từ vựng đồng bộ đám mây và nhiều hơn nữa.
     close: Đóng
@@ -1012,9 +1013,12 @@ billing:
     providerPaddle: Paddle
     loading: Loading...
     comingSoon: Coming soon
-    modeSubscription: Subscribe (auto-renew)
-    modeOneTime: Pay once
-    modeOneTimeNote: One-time payment, no auto-renewal
+    priceUsdMonthly: $5/tháng
+    priceUsdYearly: $50/năm
+    priceCnyMonthly: ¥29/tháng
+    priceCnyYearly: ¥299/năm
+    noteUsd: Subscription auto-renews; cancel anytime.
+    noteCny: 一次性付款，到期需重新购买
   quota:
     outOf: /
     remaining: còn lại

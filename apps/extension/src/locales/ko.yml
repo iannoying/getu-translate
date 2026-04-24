@@ -1002,7 +1002,8 @@ billing:
     pro: Pro
     enterprise: 엔터프라이즈
   upgrade:
-    cta: Pro로 업그레이드
+    cta: 구독 (자동 갱신)
+    ctaCny: 지금 구매
     title: Pro로 이 기능 잠금 해제
     description: Pro를 사용하면 PDF 번역, 무제한 입력창 번역, 클라우드 동기화 단어장 등을 이용할 수 있습니다.
     close: 닫기
@@ -1012,9 +1013,12 @@ billing:
     providerPaddle: Paddle
     loading: 로딩 중...
     comingSoon: 출시 예정
-    modeSubscription: 구독 (자동 갱신)
-    modeOneTime: 일회 결제
-    modeOneTimeNote: 일회 결제, 자동 갱신 없음
+    priceUsdMonthly: $5/월
+    priceUsdYearly: $50/년
+    priceCnyMonthly: ¥29/월
+    priceCnyYearly: ¥299/년
+    noteUsd: 구독은 자동 갱신됩니다. 언제든지 취소 가능합니다.
+    noteCny: 일회 결제, 만료 후 재구매 필요
   quota:
     outOf: /
     remaining: 남음

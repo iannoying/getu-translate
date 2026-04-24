@@ -17,7 +17,12 @@ import { useEntitlements } from "@/hooks/use-entitlements"
 import { authClient } from "@/utils/auth/auth-client"
 
 type Plan = "pro_monthly" | "pro_yearly"
-type Mode = "subscription" | "one_time"
+type Currency = "usd" | "cny"
+
+function detectCurrency(): Currency {
+  const lang = typeof navigator !== "undefined" ? navigator.language : "en"
+  return lang.toLowerCase().startsWith("zh") ? "cny" : "usd"
+}
 
 interface UpgradeDialogProps {
   /** Optional trigger slot — if omitted, dialog is controlled via open/onOpenChange */
@@ -30,7 +35,6 @@ interface UpgradeDialogProps {
 
 export function UpgradeDialog({ trigger, open, onOpenChange }: UpgradeDialogProps) {
   const [plan, setPlan] = useState<Plan>("pro_yearly")
-  const [mode, setMode] = useState<Mode>("subscription")
   const { startCheckout, isLoading } = useCheckout()
 
   const session = authClient.useSession()
@@ -38,8 +42,18 @@ export function UpgradeDialog({ trigger, open, onOpenChange }: UpgradeDialogProp
   const { data: entitlements } = useEntitlements(userId)
   const billingEnabled = entitlements?.billingEnabled ?? false
 
+  const currency = detectCurrency()
+  const isCny = currency === "cny"
+
+  const priceLabel = plan === "pro_yearly"
+    ? (isCny ? i18n.t("billing.upgrade.priceCnyYearly") : i18n.t("billing.upgrade.priceUsdYearly"))
+    : (isCny ? i18n.t("billing.upgrade.priceCnyMonthly") : i18n.t("billing.upgrade.priceUsdMonthly"))
+
+  const ctaLabel = isCny ? i18n.t("billing.upgrade.ctaCny") : i18n.t("billing.upgrade.cta")
+  const noteKey = isCny ? "billing.upgrade.noteCny" : "billing.upgrade.noteUsd"
+
   async function handleUpgrade() {
-    await startCheckout({ plan, mode })
+    await startCheckout({ plan, currency })
   }
 
   return (
@@ -76,26 +90,8 @@ export function UpgradeDialog({ trigger, open, onOpenChange }: UpgradeDialogProp
           </button>
         </div>
 
-        {/* Mode toggle */}
-        <div className="flex gap-2 rounded-md border p-1">
-          <button
-            type="button"
-            className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${mode === "subscription" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            onClick={() => setMode("subscription")}
-          >
-            {i18n.t("billing.upgrade.modeSubscription")}
-          </button>
-          <button
-            type="button"
-            className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${mode === "one_time" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            onClick={() => setMode("one_time")}
-          >
-            {i18n.t("billing.upgrade.modeOneTime")}
-          </button>
-        </div>
-        {mode === "one_time" && (
-          <p className="text-xs text-muted-foreground">{i18n.t("billing.upgrade.modeOneTimeNote")}</p>
-        )}
+        <p className="text-center text-lg font-semibold">{priceLabel}</p>
+        <p className="text-xs text-muted-foreground">{i18n.t(noteKey)}</p>
 
         <DialogFooter>
           <DialogClose render={<Button variant="outline" />}>
@@ -104,7 +100,7 @@ export function UpgradeDialog({ trigger, open, onOpenChange }: UpgradeDialogProp
           {billingEnabled
             ? (
                 <Button onClick={handleUpgrade} disabled={isLoading}>
-                  {isLoading ? i18n.t("billing.upgrade.loading") : i18n.t("billing.upgrade.cta")}
+                  {isLoading ? i18n.t("billing.upgrade.loading") : ctaLabel}
                 </Button>
               )
             : (

@@ -16,17 +16,12 @@ export interface CreateCheckoutSessionOut {
 }
 
 export interface CreateOneTimePaymentSessionIn {
-  amountCents: number
-  currency: string
-  productName: string
+  priceId: string
   email: string
   userId: string
   successUrl: string
   cancelUrl: string
   durationDays: number
-  /** Stripe only lets Checkout Sessions show explicitly listed payment_method_types.
-   *  (automatic_payment_methods is a Payment Intents param — not supported here.)
-   *  Pass whichever types your account has activated; invalid types produce 400. */
   paymentMethodTypes: readonly string[]
 }
 
@@ -92,9 +87,7 @@ export function createStripeClient({ apiKey, baseUrl }: StripeClientOpts) {
       }
       const params: Record<string, string> = {
         "mode": "payment",
-        "line_items[0][price_data][currency]": input.currency,
-        "line_items[0][price_data][unit_amount]": String(input.amountCents),
-        "line_items[0][price_data][product_data][name]": input.productName,
+        "line_items[0][price]": input.priceId,
         "line_items[0][quantity]": "1",
         "customer_email": input.email,
         "client_reference_id": input.userId,

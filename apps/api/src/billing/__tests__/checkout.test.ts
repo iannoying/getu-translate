@@ -46,6 +46,8 @@ const baseEnv: any = {
   STRIPE_BASE_URL: "https://api.stripe.com",
   STRIPE_PRICE_PRO_MONTHLY: "price_m",
   STRIPE_PRICE_PRO_YEARLY: "price_y",
+  STRIPE_PRICE_CNY_MONTHLY: "price_cny_m",
+  STRIPE_PRICE_CNY_YEARLY: "price_cny_y",
 }
 
 describe("createCheckoutSession", () => {
@@ -61,7 +63,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "paddle" as const,
-        mode: "subscription" as const,
+        currency: "usd" as const,
         successUrl: "https://getutranslate.com/upgrade/success",
         cancelUrl: "https://getutranslate.com/price",
       },
@@ -82,7 +84,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_yearly",
         provider: "paddle" as const,
-        mode: "subscription" as const,
+        currency: "usd" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -98,7 +100,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "paddle" as const,
-        mode: "subscription" as const,
+        currency: "usd" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -118,7 +120,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "paddle" as const,
-        mode: "subscription" as const,
+        currency: "usd" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -133,7 +135,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "paddle" as const,
-        mode: "subscription" as const,
+        currency: "usd" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -153,7 +155,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "paddle" as const,
-        mode: "subscription" as const,
+        currency: "usd" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
@@ -161,7 +163,7 @@ describe("createCheckoutSession", () => {
     expect(out.url).toBe("https://pay.paddle.io/hsc_01")
   })
 
-  it("calls stripe.createCheckoutSession when provider=stripe mode=subscription", async () => {
+  it("calls stripe.createCheckoutSession when provider=stripe currency=usd", async () => {
     const stripe = fakeStripe()
     const out = await createCheckoutSession({
       db: fakeDb(null),
@@ -173,7 +175,7 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "stripe" as const,
-        mode: "subscription" as const,
+        currency: "usd" as const,
         successUrl: "https://getutranslate.com/upgrade/success",
         cancelUrl: "https://getutranslate.com/price",
       },
@@ -188,7 +190,7 @@ describe("createCheckoutSession", () => {
     })
   })
 
-  it("throws INTERNAL_SERVER_ERROR when stripe price id is not configured (subscription)", async () => {
+  it("throws INTERNAL_SERVER_ERROR when stripe price id is not configured (usd subscription)", async () => {
     await expect(createCheckoutSession({
       db: fakeDb(null), paddle: fakePaddle(), stripe: fakeStripe(),
       env: { ...baseEnv, STRIPE_PRICE_PRO_MONTHLY: "" },
@@ -196,14 +198,14 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "stripe" as const,
-        mode: "subscription" as const,
+        currency: "usd" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },
     })).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" })
   })
 
-  it("calls stripe.createOneTimePaymentSession with durationDays=30 for pro_monthly one_time", async () => {
+  it("calls stripe.createOneTimePaymentSession with priceId and durationDays=30 for pro_monthly cny", async () => {
     const stripe = fakeStripe()
     const out = await createCheckoutSession({
       db: fakeDb(null),
@@ -215,18 +217,22 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_monthly",
         provider: "stripe" as const,
-        mode: "one_time" as const,
+        currency: "cny" as const,
         successUrl: "https://getutranslate.com/upgrade/success",
         cancelUrl: "https://getutranslate.com/price",
       },
     })
     expect(out.url).toBe("https://checkout.stripe.com/pay/cs_pay_01")
     expect(stripe.createOneTimePaymentSession).toHaveBeenCalledWith(
-      expect.objectContaining({ amountCents: 800, durationDays: 30 }),
+      expect.objectContaining({
+        priceId: "price_cny_m",
+        durationDays: 30,
+        paymentMethodTypes: ["card", "alipay", "wechat_pay"],
+      }),
     )
   })
 
-  it("calls stripe.createOneTimePaymentSession with durationDays=365 for pro_yearly one_time", async () => {
+  it("calls stripe.createOneTimePaymentSession with priceId and durationDays=365 for pro_yearly cny", async () => {
     const stripe = fakeStripe()
     const out = await createCheckoutSession({
       db: fakeDb(null),
@@ -238,25 +244,44 @@ describe("createCheckoutSession", () => {
       input: {
         plan: "pro_yearly",
         provider: "stripe" as const,
-        mode: "one_time" as const,
+        currency: "cny" as const,
         successUrl: "https://getutranslate.com/upgrade/success",
         cancelUrl: "https://getutranslate.com/price",
       },
     })
     expect(out.url).toBe("https://checkout.stripe.com/pay/cs_pay_01")
     expect(stripe.createOneTimePaymentSession).toHaveBeenCalledWith(
-      expect.objectContaining({ amountCents: 7200, durationDays: 365 }),
+      expect.objectContaining({
+        priceId: "price_cny_y",
+        durationDays: 365,
+        paymentMethodTypes: ["card", "alipay", "wechat_pay"],
+      }),
     )
   })
 
-  it("throws BAD_REQUEST when paddle + mode=one_time", async () => {
+  it("throws INTERNAL_SERVER_ERROR when stripe CNY price id is not configured", async () => {
+    await expect(createCheckoutSession({
+      db: fakeDb(null), paddle: fakePaddle(), stripe: fakeStripe(),
+      env: { ...baseEnv, STRIPE_PRICE_CNY_MONTHLY: "" },
+      userId: "u1", userEmail: "u@x.com",
+      input: {
+        plan: "pro_monthly",
+        provider: "stripe" as const,
+        currency: "cny" as const,
+        successUrl: "https://getutranslate.com/x",
+        cancelUrl: "https://getutranslate.com/y",
+      },
+    })).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" })
+  })
+
+  it("throws BAD_REQUEST when paddle + currency=cny", async () => {
     await expect(createCheckoutSession({
       db: fakeDb(null), paddle: fakePaddle(), stripe: fakeStripe(), env: baseEnv,
       userId: "u1", userEmail: "u@x.com",
       input: {
         plan: "pro_monthly",
         provider: "paddle" as const,
-        mode: "one_time" as const,
+        currency: "cny" as const,
         successUrl: "https://getutranslate.com/x",
         cancelUrl: "https://getutranslate.com/y",
       },

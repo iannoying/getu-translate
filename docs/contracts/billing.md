@@ -1,4 +1,4 @@
-# `billing.*` oRPC 契约 (v5)
+# `billing.*` oRPC 契约 (v6)
 
 > **Audience:** GetU Translate 后端团队（`getu-translate` monorepo）
 > **Consumer:** 浏览器扩展 `apps/extension`（WXT）及 `apps/web`（Next.js）
@@ -151,7 +151,7 @@ const EntitlementsSchema = z.object({
 | 项         | 值                                                                                                                   |
 | ---------- | -------------------------------------------------------------------------------------------------------------------- |
 | Auth       | Required                                                                                                             |
-| Input      | `{ plan: 'pro_monthly' \| 'pro_yearly', provider?: 'paddle' \| 'stripe', mode?: 'subscription' \| 'one_time', successUrl: string, cancelUrl: string }` |
+| Input      | `{ plan: 'pro_monthly' \| 'pro_yearly', provider?: 'paddle' \| 'stripe', currency?: 'usd' \| 'cny', successUrl: string, cancelUrl: string }` |
 | Output     | `{ url: string }`                                                                                                    |
 | Idempotent | 幂等可选（建议按 `userId + plan + 15min 窗口` 去重）                                                                 |
 | Rate limit | 10 req / min / user                                                                                                  |
@@ -331,3 +331,4 @@ CREATE TABLE billing_webhook_events (
 | 2026-04-22 | v3       | `createCheckoutSession` 新增可选 `provider` 字段（默认 `'paddle'`，可选 `'stripe'`）；向后兼容 | Phase 5 S0 (via Claude) |
 | 2026-04-22 | v4       | `createCheckoutSession` 新增可选 `paymentMethod` 字段（`'card'` \| `'alipay'` \| `'wechat_pay'`，默认 `'card'`）；`alipay`/`wechat_pay` 为 Stripe 一次性支付，不自动续费 | Phase 5 (via Claude) |
 | 2026-04-22 | v5       | 移除 `paymentMethod`，改用 `mode: 'subscription' \| 'one_time'`（默认 `'subscription'`）；Stripe 一次性支付改用 `automatic_payment_methods`，由 Stripe 托管页面选择支付方式；Paddle 不支持 `mode=one_time` | Phase 5 (via Claude) |
+| 2026-04-22 | v6       | 移除 `mode`，改用 `currency: 'usd' \| 'cny'`（默认 `'usd'`）；`currency=usd` → Stripe 订阅（card only）；`currency=cny` → Stripe 一次性支付（card + alipay + wechat_pay），Price ID 从 `STRIPE_PRICE_CNY_MONTHLY` / `STRIPE_PRICE_CNY_YEARLY` 读取；Paddle 不支持 CNY | Phase 5 (via Claude) |

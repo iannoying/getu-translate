@@ -1120,7 +1120,8 @@ billing:
     pro: Pro
     enterprise: Enterprise
   upgrade:
-    cta: Upgrade to Pro
+    cta: Subscribe (auto-renew)
+    ctaCny: 立即购买
     title: Unlock this feature with Pro
     description: Pro unlocks PDF translation, unlimited input-field translation, cloud-synced vocabulary, and more.
     close: Close
@@ -1130,9 +1131,12 @@ billing:
     providerPaddle: Paddle
     loading: Loading...
     comingSoon: Coming soon
-    modeSubscription: Subscribe (auto-renew)
-    modeOneTime: Pay once
-    modeOneTimeNote: One-time payment, no auto-renewal
+    priceUsdMonthly: $$5/mo
+    priceUsdYearly: $$50/yr
+    priceCnyMonthly: ¥29/月
+    priceCnyYearly: ¥299/年
+    noteUsd: Subscription auto-renews; cancel anytime.
+    noteCny: 一次性付款，到期需重新购买
   quota:
     outOf: of
     remaining: remaining

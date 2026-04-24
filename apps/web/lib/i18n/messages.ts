@@ -38,14 +38,16 @@ export type Messages = {
     proTitle: string
     monthlyPrice: string
     yearlyPrice: string
+    cnyMonthlyPrice: string
+    cnyYearlyPrice: string
     proNote: string
     proFeatures: string[]
     monthly: string
     yearly: string
     subscribe: string
-    payOnceMonthly: string
-    payOnceYearly: string
-    paymentNote: string
+    buyOnce: string
+    billingNoteUsd: string
+    billingNoteCny: string
     comingSoon: string
     loading: string
     billingTitle: string
@@ -132,9 +134,11 @@ export const messages: Record<Locale, Messages> = {
         "Bring-your-own AI provider configuration",
       ],
       proTitle: "GetU Pro",
-      monthlyPrice: "$8/mo",
-      yearlyPrice: "$72/yr",
-      proNote: "per month, or $72 per year when billed annually.",
+      monthlyPrice: "$5/mo",
+      yearlyPrice: "$50/yr",
+      cnyMonthlyPrice: "¥29/月",
+      cnyYearlyPrice: "¥299/年",
+      proNote: "per month, or $50 per year when billed annually.",
       proFeatures: [
         "Higher translation usage limits",
         "Advanced article and subtitle translation support",
@@ -144,9 +148,9 @@ export const messages: Record<Locale, Messages> = {
       monthly: "Monthly",
       yearly: "Yearly",
       subscribe: "Subscribe (auto-renew)",
-      payOnceMonthly: "Pay once (30 days)",
-      payOnceYearly: "Pay once (1 year)",
-      paymentNote: "Subscriptions auto-renew; one-time purchases must be renewed manually after expiry.",
+      buyOnce: "立即购买（一次性）",
+      billingNoteUsd: "Subscription auto-renews each billing period. Cancel anytime via customer portal.",
+      billingNoteCny: "一次性付款，到期后需重新购买。支持信用卡、支付宝、微信支付。",
       comingSoon: "Coming soon",
       loading: "Loading...",
       billingTitle: "Billing terms",
@@ -441,9 +445,11 @@ export const messages: Record<Locale, Messages> = {
         "自带 AI Provider 配置",
       ],
       proTitle: "GetU Pro",
-      monthlyPrice: "$8/月",
-      yearlyPrice: "$72/年",
-      proNote: "按月支付，或按年支付 $72。",
+      monthlyPrice: "$5/月",
+      yearlyPrice: "$50/年",
+      cnyMonthlyPrice: "¥29/月",
+      cnyYearlyPrice: "¥299/年",
+      proNote: "按月支付，或按年支付 $50。",
       proFeatures: [
         "更高翻译用量",
         "高级文章和字幕翻译支持",
@@ -453,13 +459,13 @@ export const messages: Record<Locale, Messages> = {
       monthly: "月付",
       yearly: "年付",
       subscribe: "订阅（自动续费）",
-      payOnceMonthly: "单次购买（30 天）",
-      payOnceYearly: "单次购买（1 年）",
-      paymentNote: "订阅自动续费；一次性付款到期需重新购买。",
+      buyOnce: "立即购买（一次性）",
+      billingNoteUsd: "订阅按计费周期自动续费，随时可通过客户门户取消。",
+      billingNoteCny: "一次性付款，到期后需重新购买。支持信用卡、支付宝、微信支付。",
       comingSoon: "即将推出",
       loading: "加载中...",
       billingTitle: "账单条款",
-      billingBody: "价格以美元列出，可能会根据你的所在地收取税费。付款、发票、续费和订阅管理由 Stripe 安全处理。",
+      billingBody: "价格以人民币列出，可能会根据你的所在地收取税费。付款、发票和订单管理由 Stripe 安全处理。",
       billingAgreementPrefix: "购买即表示你同意我们的",
     },
     auth: {
@@ -750,9 +756,11 @@ export const messages: Record<Locale, Messages> = {
         "自帶 AI Provider 設定",
       ],
       proTitle: "GetU Pro",
-      monthlyPrice: "$8/月",
-      yearlyPrice: "$72/年",
-      proNote: "按月支付，或按年支付 $72。",
+      monthlyPrice: "$5/月",
+      yearlyPrice: "$50/年",
+      cnyMonthlyPrice: "¥29/月",
+      cnyYearlyPrice: "¥299/年",
+      proNote: "按月支付，或按年支付 $50。",
       proFeatures: [
         "更高翻譯用量",
         "進階文章和字幕翻譯支援",
@@ -762,13 +770,13 @@ export const messages: Record<Locale, Messages> = {
       monthly: "月付",
       yearly: "年付",
       subscribe: "訂閱（自動續費）",
-      payOnceMonthly: "單次購買（30 天）",
-      payOnceYearly: "單次購買（1 年）",
-      paymentNote: "訂閱自動續費；一次性付款到期需重新購買。",
+      buyOnce: "立即購買（一次性）",
+      billingNoteUsd: "訂閱按計費週期自動續費，隨時可透過客戶入口取消。",
+      billingNoteCny: "一次性付款，到期後需重新購買。支援信用卡、支付寶、微信支付。",
       comingSoon: "即將推出",
       loading: "載入中...",
       billingTitle: "帳單條款",
-      billingBody: "價格以美元列出，可能會依你的所在地收取稅費。付款、發票、續費和訂閱管理由 Stripe 安全處理。",
+      billingBody: "價格以人民幣列出，可能會依你的所在地收取稅費。付款、發票和訂單管理由 Stripe 安全處理。",
       billingAgreementPrefix: "購買即表示你同意我們的",
     },
     auth: {

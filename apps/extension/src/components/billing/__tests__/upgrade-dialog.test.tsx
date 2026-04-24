@@ -98,30 +98,11 @@ describe("upgradeDialog", () => {
     expect(monthlyBtn.className).toContain("bg-primary")
   })
 
-  it("shows mode toggle buttons for subscription and one_time", () => {
+  it("shows price label for usd (default locale)", () => {
     render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
 
-    expect(screen.getByText("billing.upgrade.modeSubscription")).toBeInTheDocument()
-    expect(screen.getByText("billing.upgrade.modeOneTime")).toBeInTheDocument()
-  })
-
-  it("defaults to subscription mode", () => {
-    render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
-
-    const subscriptionBtn = screen.getByText("billing.upgrade.modeSubscription")
-    expect(subscriptionBtn.className).toContain("bg-primary")
-    const oneTimeBtn = screen.getByText("billing.upgrade.modeOneTime")
-    expect(oneTimeBtn.className).not.toContain("bg-primary")
-  })
-
-  it("shows modeOneTimeNote when one_time is selected", () => {
-    render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
-
-    expect(screen.queryByText("billing.upgrade.modeOneTimeNote")).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByText("billing.upgrade.modeOneTime"))
-
-    expect(screen.getByText("billing.upgrade.modeOneTimeNote")).toBeInTheDocument()
+    // default plan is pro_yearly, default currency is usd
+    expect(screen.getByText("billing.upgrade.priceUsdYearly")).toBeInTheDocument()
   })
 
   it("shows coming soon button when billingEnabled is false", () => {
@@ -143,7 +124,7 @@ describe("upgradeDialog", () => {
     expect(screen.queryByText("billing.upgrade.comingSoon")).not.toBeInTheDocument()
   })
 
-  it("calls startCheckout with yearly plan and subscription mode when cTA is clicked", async () => {
+  it("calls startCheckout with yearly plan and usd currency when cTA is clicked", async () => {
     useEntitlementsMock.mockReturnValue({ data: BILLING_ENABLED_FREE, isLoading: false, isFromCache: false })
 
     render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
@@ -151,7 +132,7 @@ describe("upgradeDialog", () => {
     fireEvent.click(screen.getByText("billing.upgrade.cta"))
 
     await waitFor(() => {
-      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_yearly", mode: "subscription" })
+      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_yearly", currency: "usd" })
     })
   })
 
@@ -164,20 +145,7 @@ describe("upgradeDialog", () => {
     fireEvent.click(screen.getByText("billing.upgrade.cta"))
 
     await waitFor(() => {
-      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_monthly", mode: "subscription" })
-    })
-  })
-
-  it("calls startCheckout with mode=one_time when one_time is selected", async () => {
-    useEntitlementsMock.mockReturnValue({ data: BILLING_ENABLED_FREE, isLoading: false, isFromCache: false })
-
-    render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
-
-    fireEvent.click(screen.getByText("billing.upgrade.modeOneTime"))
-    fireEvent.click(screen.getByText("billing.upgrade.cta"))
-
-    await waitFor(() => {
-      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_yearly", mode: "one_time" })
+      expect(startCheckoutMock).toHaveBeenCalledWith({ plan: "pro_monthly", currency: "usd" })
     })
   })
 

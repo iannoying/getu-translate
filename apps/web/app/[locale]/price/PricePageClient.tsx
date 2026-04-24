@@ -8,9 +8,19 @@ import { type Locale } from "@/lib/i18n/locales"
 import { localeHref } from "@/lib/i18n/routing"
 import { UpgradeButton } from "./UpgradeButton"
 
+const CNY_LOCALES = new Set(["zh-CN", "zh-TW"])
+
 export function PricePageClient({ locale }: { locale: Locale }) {
   const t = getMessages(locale)
   const [plan, setPlan] = useState<"pro_monthly" | "pro_yearly">("pro_monthly")
+
+  const isCny = CNY_LOCALES.has(locale)
+  const currency = isCny ? "cny" as const : "usd" as const
+
+  const displayMonthlyPrice = isCny ? t.price.cnyMonthlyPrice : t.price.monthlyPrice
+  const displayYearlyPrice = isCny ? t.price.cnyYearlyPrice : t.price.yearlyPrice
+  const ctaLabel = isCny ? t.price.buyOnce : t.price.subscribe
+  const billingNote = isCny ? t.price.billingNoteCny : t.price.billingNoteUsd
 
   return (
     <SiteShell locale={locale} messages={t.common}>
@@ -30,7 +40,7 @@ export function PricePageClient({ locale }: { locale: Locale }) {
 
         <article className="price-card highlight">
           <h2>{t.price.proTitle}</h2>
-          <p className="price">{plan === "pro_monthly" ? t.price.monthlyPrice : t.price.yearlyPrice}</p>
+          <p className="price">{plan === "pro_monthly" ? displayMonthlyPrice : displayYearlyPrice}</p>
           <p className="price-note">{t.price.proNote}</p>
           <ul className="feature-list">
             {t.price.proFeatures.map(feature => <li key={feature}>{feature}</li>)}
@@ -56,21 +66,12 @@ export function PricePageClient({ locale }: { locale: Locale }) {
               locale={locale}
               plan={plan}
               provider="stripe"
-              mode="subscription"
-              label={t.price.subscribe}
+              currency={currency}
+              label={ctaLabel}
               priceMessages={t.price}
               errors={t.errors}
             />
-            <UpgradeButton
-              locale={locale}
-              plan={plan}
-              provider="stripe"
-              mode="one_time"
-              label={plan === "pro_monthly" ? t.price.payOnceMonthly : t.price.payOnceYearly}
-              priceMessages={t.price}
-              errors={t.errors}
-            />
-            <p className="price-note">{t.price.paymentNote}</p>
+            <p className="price-note">{billingNote}</p>
           </div>
         </article>
       </section>
