@@ -121,21 +121,29 @@ export default defineConfig({
                   )
                 }
 
-                // Check required env vars only for zip builds
+                // Optional feature-config env vars (Google Drive OAuth, PostHog
+                // analytics). Missing values disable the corresponding feature at
+                // runtime — the build is safe without them. Set
+                // WXT_REQUIRE_SECRETS=true to hard-fail instead of warning.
                 if (process.env.WXT_ZIP_MODE) {
-                  const requiredEnvVars = [
+                  const optionalEnvVars = [
                     "WXT_GOOGLE_CLIENT_ID",
                     "WXT_POSTHOG_API_KEY",
                     "WXT_POSTHOG_HOST",
                   ]
-                  const missing = requiredEnvVars.filter(key => !process.env[key])
+                  const missing = optionalEnvVars.filter(key => !process.env[key])
 
                   if (missing.length > 0) {
-                    throw new Error(
-                      `\n\nMissing required environment variables for zip:\n`
-                      + `${missing.map(k => `   - ${k}`).join("\n")}\n\n`
-                      + `Set them in .env.production or your environment.\n`,
-                    )
+                    const message
+                      = `\n\nMissing optional environment variables for zip:\n`
+                        + `${missing.map(k => `   - ${k}`).join("\n")}\n\n`
+                        + `Corresponding features will disable themselves at runtime.\n`
+                        + `Set them in .env.production or your environment to enable,\n`
+                        + `or set WXT_REQUIRE_SECRETS=true to make this a hard error.\n`
+                    if (process.env.WXT_REQUIRE_SECRETS === "true") {
+                      throw new Error(message)
+                    }
+                    console.warn(message)
                   }
                 }
               },
