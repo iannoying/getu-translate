@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Single-file integration of better-auth's React client with Read Frog's content-script CSP constraints. The exported `authClient` issues every credentialed request through the background `backgroundFetch` proxy so that auth cookies are sent to the Read Frog backend (`WEBSITE_URL + AUTH_BASE_PATH`) without tripping host-site CORS.
+Single-file integration of better-auth's React client with Read Frog's content-script CSP constraints. The exported `authClient` issues every credentialed request through the background `backgroundFetch` proxy so that auth cookies are sent to the GetU backend (`API_URL + AUTH_BASE_PATH`, i.e. `https://api.getutranslate.com/api/identity` in prod) without tripping host-site CORS.
 
 ## Key Files
 
@@ -23,7 +23,7 @@ Single-file integration of better-auth's React client with Read Frog's content-s
 
 - **Always go through `authClient`, never `better-auth/react` directly** in code that may run in a content script — direct `fetch()` will fail CORS for cross-origin auth endpoints.
 - The `cacheConfig.groupKey: "auth"` means responses get cached in `session-cache/` under the `cache_auth_*` namespace. Use `SessionCacheGroupRegistry.removeCacheGroup("auth")` (background) when forcing a session refresh.
-- The redirect URL `${WEBSITE_URL}${AUTH_BASE_PATH}` is built at module init — when `WEBSITE_URL` flips between `WEBSITE_PROD_URL` and `WEBSITE_CADDY_DEV_URL` (env `WXT_USE_LOCAL_PACKAGES=true`), restart the dev server so the module reloads.
+- The baseURL `${API_URL}${AUTH_BASE_PATH}` is built at module init — when the underlying `WEBSITE_URL` flips between `WEBSITE_PROD_URL` and `WEBSITE_CADDY_DEV_URL` (env `WXT_USE_LOCAL_PACKAGES=true`), restart the dev server so the module reloads. In prod `API_URL` prepends `api.` (separate CF Worker); in dev it falls back to `WEBSITE_URL` because Caddy serves API and web on a unified localhost port.
 - The custom fetch only forwards string bodies; if you ever pass `FormData`/`Blob` through better-auth, extend `createCustomFetch` to base64-encode and add a `bodyEncoding` field to `ProxyRequest`.
 
 ### Phase 2 Dev Override
