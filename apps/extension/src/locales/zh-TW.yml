@@ -1013,6 +1013,7 @@ billing:
     providerPaddle: Paddle
     loading: 載入中...
     comingSoon: 即將推出
+    loginToSubscribe: 登入後購買
     priceUsdMonthly: $5/月
     priceUsdYearly: $50/年
     priceCnyMonthly: ¥29/月

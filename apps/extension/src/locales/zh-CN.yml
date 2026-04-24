@@ -1129,6 +1129,7 @@ billing:
     providerPaddle: Paddle
     loading: 加载中...
     comingSoon: 即将推出
+    loginToSubscribe: 登录后购买
     priceUsdMonthly: $5/月
     priceUsdYearly: $50/年
     priceCnyMonthly: ¥29/月

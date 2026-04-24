@@ -1013,6 +1013,7 @@ billing:
     providerPaddle: Paddle
     loading: 로딩 중...
     comingSoon: 출시 예정
+    loginToSubscribe: 로그인 후 구독
     priceUsdMonthly: $5/월
     priceUsdYearly: $50/년
     priceCnyMonthly: ¥29/월
