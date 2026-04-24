@@ -9,9 +9,9 @@ Single-file oRPC client that talks to the Read Frog backend's RPC router (`@getu
 
 ## Key Files
 
-| File        | Description                                                                                                                                                                                                                                                                                                                                                            |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `client.ts` | Builds an `RPCLink` to `${WEBSITE_URL}/api/rpc` with header `x-orpc-source: extension`. The `fetch` impl rebuilds the request (URL, method, normalized headers via `normalizeHeaders`, optional `text()` body) and calls `sendMessage("backgroundFetch", { credentials: "include" })`. Exports `orpcClient` (raw) and `orpc` (`createTanstackQueryUtils(orpcClient)`). |
+| File        | Description                                                                                                                                                                                                                                                                                                                                                        |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `client.ts` | Builds an `RPCLink` to `${API_URL}/api/rpc` with header `x-orpc-source: extension`. The `fetch` impl rebuilds the request (URL, method, normalized headers via `normalizeHeaders`, optional `text()` body) and calls `sendMessage("backgroundFetch", { credentials: "include" })`. Exports `orpcClient` (raw) and `orpc` (`createTanstackQueryUtils(orpcClient)`). |
 
 ## Subdirectories
 

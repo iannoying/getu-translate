@@ -2,13 +2,13 @@ import type { ORPCRouterClient } from "@getu/contract"
 import { createORPCClient } from "@orpc/client"
 import { RPCLink } from "@orpc/client/fetch"
 import { createTanstackQueryUtils } from "@orpc/tanstack-query"
-import { WEBSITE_URL } from "../constants/url"
+import { API_URL } from "../constants/url"
 import { normalizeHeaders } from "../http"
 import { sendMessage } from "../message"
 
 const link = new RPCLink({
   // TODO: add and use ORPC_PREFIX from @getu/definitions
-  url: `${WEBSITE_URL}/api/rpc`,
+  url: `${API_URL}/api/rpc`,
   headers: {
     "x-orpc-source": "extension",
   },
