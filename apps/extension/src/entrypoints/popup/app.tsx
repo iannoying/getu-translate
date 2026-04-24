@@ -10,6 +10,7 @@ import { DiscordButton } from "./components/discord-button"
 import LanguageOptionsSelector from "./components/language-options-selector"
 import { MoreMenu } from "./components/more-menu"
 import Hotkey from "./components/node-translation-hotkey-selector"
+import { ReviewEntryButton } from "./components/review-entry-button"
 import { SiteControlToggle } from "./components/site-control-toggle"
 import TranslateButton from "./components/translate-button"
 import TranslateCurrentPdfButton from "./components/translate-current-pdf-button"
@@ -26,6 +27,7 @@ function App() {
         <div className="flex items-center justify-between">
           <UserAccount />
           <div className="flex items-center">
+            <ReviewEntryButton />
             <TranslationHubButton />
             <DiscordButton />
             <BlogNotification />
