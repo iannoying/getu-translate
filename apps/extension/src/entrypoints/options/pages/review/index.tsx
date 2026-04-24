@@ -53,7 +53,7 @@ export function ReviewPage() {
           left
         </span>
       </div>
-      <Flashcard word={queue[0]} onGrade={handleGrade} />
+      <Flashcard key={queue[0].id} word={queue[0]} onGrade={handleGrade} />
     </div>
   )
 }
