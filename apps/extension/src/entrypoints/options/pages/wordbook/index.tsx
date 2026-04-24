@@ -3,12 +3,20 @@ import { IconDownload } from "@tabler/icons-react"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/base-ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/base-ui/dropdown-menu"
-import { deleteWord, listWords } from "@/utils/db/dexie/words"
+import { useEntitlements } from "@/hooks/use-entitlements"
+import { isPro } from "@/types/entitlements"
+import { authClient } from "@/utils/auth/auth-client"
+import { deleteWord, FREE_WORD_LIMIT, listWords } from "@/utils/db/dexie/words"
 import { downloadCSV } from "@/utils/export/words-csv"
 import { downloadMarkdown } from "@/utils/export/words-markdown"
 
 export function WordbookPage() {
   const [words, setWords] = useState<Word[] | null>(null)
+
+  const session = authClient.useSession()
+  const userId = session?.data?.user?.id ?? null
+  const { data: entitlements } = useEntitlements(userId)
+  const isProUser = isPro(entitlements)
 
   useEffect(() => {
     void listWords().then(setWords)
@@ -52,6 +60,30 @@ export function WordbookPage() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      {!isProUser && words.length > FREE_WORD_LIMIT * 0.7 && (
+        <div className="flex flex-col gap-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>
+              {words.length}
+              {" "}
+              /
+              {" "}
+              {FREE_WORD_LIMIT}
+              {" "}
+              words (Free)
+            </span>
+            {words.length >= FREE_WORD_LIMIT && (
+              <span className="text-destructive font-medium">Limit reached — upgrade to Pro for unlimited</span>
+            )}
+          </div>
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${Math.min(100, (words.length / FREE_WORD_LIMIT) * 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
       <div className="divide-y">
         {words.map(w => (
           <div key={w.id} className="py-3 flex items-start justify-between gap-4">
