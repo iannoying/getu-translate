@@ -518,3 +518,144 @@ a {
     padding: 24px;
   }
 }
+
+/* Auth — method toggle (password / code) */
+.auth-method-toggle {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 2px;
+}
+
+.method-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+  padding: 5px 12px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.method-btn.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: white;
+}
+
+.auth-code-row {
+  display: flex;
+  gap: 8px;
+}
+
+.auth-code-row input {
+  flex: 1;
+  letter-spacing: 0.18em;
+  font-variant-numeric: tabular-nums;
+}
+
+.auth-send-code {
+  white-space: nowrap;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.auth-send-code:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.auth-info {
+  color: var(--accent-ink);
+  font-size: 13px;
+  margin: 0;
+}
+
+.auth-forgot {
+  margin: 0;
+  text-align: right;
+}
+
+.link-button {
+  background: transparent;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.auth-passkey-hint {
+  color: var(--ink-soft);
+  font-size: 12px;
+  margin: 14px 0 0;
+  text-align: center;
+}
+
+/* Settings page */
+.settings-card-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+  padding: 0 0 70px;
+}
+
+.settings-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 28px;
+  width: 100%;
+  max-width: 560px;
+}
+
+.settings-card h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.settings-row {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-email {
+  font-weight: 650;
+  margin: 4px 0 0;
+}
+
+.passkey-list {
+  list-style: none;
+  margin: 16px 0;
+  padding: 0;
+}
+
+.passkey-item {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.passkey-item:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.passkey-name {
+  font-weight: 650;
+  margin: 0;
+}
+
+.muted.small {
+  font-size: 12px;
+  margin: 2px 0 0;
+}

@@ -1013,6 +1013,7 @@ billing:
     providerPaddle: Paddle
     loading: Loading...
     comingSoon: Coming soon
+    loginToSubscribe: Log in to subscribe
     priceUsdMonthly: $5/tháng
     priceUsdYearly: $50/năm
     priceCnyMonthly: ¥29/tháng

@@ -49,3 +49,17 @@ export const verification = sqliteTable("verification", {
   createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull().default(unixMsDefault),
   updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull().default(unixMsDefault),
 })
+
+export const passkey = sqliteTable("passkey", {
+  id: text("id").primaryKey(),
+  name: text("name"),
+  publicKey: text("publicKey").notNull(),
+  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
+  credentialID: text("credentialID").notNull(),
+  counter: integer("counter").notNull(),
+  deviceType: text("deviceType").notNull(),
+  backedUp: integer("backedUp", { mode: "boolean" }).notNull(),
+  transports: text("transports"),
+  aaguid: text("aaguid"),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).default(unixMsDefault),
+})

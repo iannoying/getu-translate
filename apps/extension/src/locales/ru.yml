@@ -1013,6 +1013,7 @@ billing:
     providerPaddle: Paddle
     loading: Loading...
     comingSoon: Coming soon
+    loginToSubscribe: Log in to subscribe
     priceUsdMonthly: $5/мес
     priceUsdYearly: $50/год
     priceCnyMonthly: ¥29/мес
