@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-21 | Updated: 2026-04-22 (M3 PR #B2) -->
+<!-- Generated: 2026-04-21 | Updated: 2026-04-24 -->
 
 # pdf-viewer
 
@@ -7,9 +7,12 @@
 
 Standalone WXT HTML entrypoint that renders a PDF inside the extension itself. The page reads a `?src=<url>` query parameter and hands it to `pdfjs-dist`'s `PDFViewer`, so the rest of the extension can redirect user navigations to PDF URLs into `chrome-extension://<id>/pdf-viewer.html?src=<url>` and keep the document inside an origin the extension fully controls.
 
-PR #B1 added the translation-overlay scaffolding: on every `textlayerrendered` event we run a pure BabelDOC-inspired paragraph detector over the page's `TextItem[]` and mount a per-page React root that positions `[...]` placeholder slots beneath each detected paragraph. Push-down layout reserves vertical space below the page so the real translation blocks have somewhere to live.
+M3 landed in four PRs:
 
-PR #B2 wires the actual translation pipeline: a `TranslationScheduler` (concurrency 6, abort, dedup) enqueues each detected paragraph through `translate-segment.ts` (thin wrapper over `translateTextForPage`) and writes results into `segmentStatusAtomFamily`. `<OverlayLayer>`'s slots subscribe to that atom family via `useAtomValue` and progressively replace the `[...]` placeholder with the translation as each paragraph resolves. Activation is gated by a module-level enqueue policy — `"always"` translates on sight, `"ask"` waits for the first-use toast's Accept, `"manual"` stays idle. PR #B3 will add the file-hash cache, daily quota, and `useProGuard` upgrade path.
+- **B1** — translation-overlay scaffolding: `textlayerrendered` runs a pure BabelDOC-inspired paragraph detector over `TextItem[]` and mounts a per-page React root with `[...]` placeholder slots and push-down layout.
+- **B2** — translation pipeline: `TranslationScheduler` (concurrency 6, abort, dedup) enqueues each paragraph through `translate-segment.ts` (wrapping `translateTextForPage`) and writes results into `segmentStatusAtomFamily`. Slots subscribe via `useAtomValue` and progressively replace placeholders. Activation is gated by `activationMode` (`always` / `ask` / `manual`).
+- **B3** — file-hash cache, daily free-tier quota, `useProGuard` upgrade gate. Lives under `quota/`.
+- **C** — Pro-gated export (bilingual PDF). Lives under `export/`.
 
 ## Key Files
 
@@ -29,6 +32,8 @@ PR #B2 wires the actual translation pipeline: a `TranslationScheduler` (concurre
 | `paragraph/`   | Pure-TS, BabelDOC-inspired paragraph detection (B1). `types.ts` declares `TextItem` / `Paragraph` / `BoundingBox` independently of `pdfjs-dist`; `aggregate.ts` groups a page's `TextItem[]` into reading-order `Paragraph[]` via font + line-spacing + x-alignment heuristics. `__tests__/fixtures/` captures real-PDF dumps. See `BABELDOC_PORT_NOTES.md`.                                                                            |
 | `overlay/`     | React overlay layer mounted as a sibling of each page's `.textLayer` (B1). `layer.tsx` (`<OverlayLayer/>`) + `slot.tsx` (`<Slot/>`) render one slot per paragraph; `position-sync.ts` projects PDF-unit bounding boxes to CSS px via the active `PDFPageView.viewport.transform`; `push-down-layout.ts` reserves page-container padding; `segment-content.tsx` is the atom subscriber that swaps the `[...]` placeholder for live text. |
 | `translation/` | Translation pipeline (B2). `atoms.ts` exposes `segmentStatusAtomFamily` (keyed by `${fileHash}:${paragraph.key}`); `scheduler.ts` runs the bounded-concurrency promise pool with abort + dedup; `translate-segment.ts` wraps `translateTextForPage` for the scheduler's injection point; `enqueue-policy.ts` is the pure `decideInitialPolicy(activationMode)` helper that gates on-sight vs. toast-gated enqueueing.                   |
+| `quota/`       | Free-tier daily quota counters + `useProGuard` (B3). Reads `pdfTranslationUsage` Dexie table, blocks enqueue when exhausted, opens `<UpgradeDialog>` on trigger.                                                                                                                                                                                                                                                                        |
+| `export/`      | Pro-gated export (PR C). Renders a bilingual copy of the PDF (original + translation) for download; gates on entitlement via `<ProGate>`.                                                                                                                                                                                                                                                                                               |
 | `components/`  | React chrome (PR #A + B2). `first-use-toast.tsx` renders the Accept / Not this time / Never on this site prompt shown under `activationMode === "ask"`; `main.ts` wires its `onAccept` handler in B2 to flip the enqueue policy to `"enabled"` and retroactively schedule every already-rendered page.                                                                                                                                  |
 
 ## For AI Agents

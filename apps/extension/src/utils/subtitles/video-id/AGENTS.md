@@ -1,18 +1,21 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # video-id
 
 ## Purpose
 
-Per-platform synchronous resolution of the current page's video identifier from `window.location`. Lets fetchers and overlay code reach the canonical id without parsing URLs ad-hoc. Currently exposes only the YouTube resolver, with room to add Bilibili/Vimeo/etc. as siblings.
+Per-platform synchronous resolution of the current page's video identifier from `window.location`. Lets fetchers and overlay code reach the canonical id without parsing URLs ad-hoc. Ships one resolver per supported platform: YouTube, Bilibili, TED, and X.
 
 ## Key Files
 
-| File         | Description                                                                                                                                                                                                                                               |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`   | Barrel: `export { getYoutubeVideoId } from "./youtube"`.                                                                                                                                                                                                  |
-| `youtube.ts` | `getYoutubeVideoId()` — checks `?v=` first (watch URLs and embeds with query), then `/embed/<id>` path, then `youtu.be/<id>` short URLs. Returns `null` when no id is found. Uses pre-compiled regexes `EMBED_PATH_PATTERN` and `SHORT_URL_PATH_PATTERN`. |
+| File          | Description                                                                                                                                                                       |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`    | Barrel: re-exports `getYoutubeVideoId`, `getBilibiliVideoId`, `getTedVideoId`, `getXVideoId`.                                                                                     |
+| `youtube.ts`  | `getYoutubeVideoId()` — `?v=` → `/embed/<id>` → `youtu.be/<id>`. Returns `null` when no id is found. Uses pre-compiled regexes `EMBED_PATH_PATTERN` and `SHORT_URL_PATH_PATTERN`. |
+| `bilibili.ts` | `getBilibiliVideoId()` — resolves BVID / AID from Bilibili's `/video/<id>` URLs and legacy `av<id>` forms.                                                                        |
+| `ted.ts`      | `getTedVideoId()` — extracts the talk slug from `/talks/<slug>` URLs; trailing `/transcript` path strips cleanly.                                                                 |
+| `x.ts`        | `getXVideoId()` — resolves inline video status ids from X (Twitter) `/<user>/status/<id>` URLs.                                                                                   |
 
 ## Subdirectories
 

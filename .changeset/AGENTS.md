@@ -1,11 +1,11 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # .changeset
 
 ## Purpose
 
-Pending [Changesets](https://github.com/changesets/changesets) — markdown files that describe user-facing changes, their semver bump (patch/minor/major), and feed `CHANGELOG.md` and the version bump PR.
+Pending [Changesets](https://github.com/changesets/changesets) — markdown files that describe user-facing changes, their semver bump (patch/minor/major), and feed `CHANGELOG.md` and the version bump PR. All workspaces (`@getu/extension`, `@getu/api`, `@getu/web`, `@getu/contract`, `@getu/db`, `@getu/definitions`) can be bumped via a changeset.
 
 ## Key Files
 
@@ -26,7 +26,7 @@ None.
 - **Add a changeset for every user-visible change.** Run `pnpm changeset` interactively, or create a file by hand using the existing format:
   ```markdown
   ---
-  "@read-frog/extension": patch
+  "@getu/extension": patch
   ---
 
   Short description of the change.

@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # pages
 
@@ -21,9 +21,13 @@ This directory has no top-level files — only subdirectories.
 | `floating-button/`   | `floating-button-global-toggle.tsx`, `floating-button-click-action.tsx`, `floating-button-disabled-sites.tsx` (uses `PatternsTable`).                                                                                                      |
 | `selection-toolbar/` | `selection-toolbar-global-toggle.tsx`, `selection-toolbar-feature-toggles.tsx`, `selection-toolbar-opacity.tsx`, `selection-toolbar-disabled-sites.tsx`.                                                                                   |
 | `context-menu/`      | `context-menu-translate-toggle.tsx`.                                                                                                                                                                                                       |
-| `input-translation/` | Input-field translation — toggle, threshold, language list.                                                                                                                                                                                |
+| `input-translation/` | Input-field translation — toggle, threshold, language list, free-tier quota meter.                                                                                                                                                         |
+| `pdf-translation/`   | PDF viewer translation — toggle, scheduler knobs, cache/quota controls, Pro-gated export preferences.                                                                                                                                      |
 | `text-to-speech/`    | TTS settings (excluded from routing on Firefox via `nav-items.ts`).                                                                                                                                                                        |
+| `wordbook/`          | Wordbook list surface — saved words, tags, filters, and CSV / Obsidian Markdown export (Pro-gated beyond 100 words).                                                                                                                       |
+| `review/`            | SM-2 review page — queue of due words with rating buttons that update `words.due`/`interval`/`easiness`/`reps` per SM-2.                                                                                                                   |
 | `statistics/`        | Dashboard built from `MetricCard` plus `charts/batch-request-record/` (chart + metrics + aside, with its own atom).                                                                                                                        |
+| `account/`           | Account page — signed-in user identity (better-auth), entitlement tier badge, upgrade CTA, session management.                                                                                                                             |
 | `config/`            | Config management — `about-card`, `beta-experience`, `manual-config-sync`, `reset-config`, `config-backup/`, `google-drive-sync/` (with `unresolved-dialog` + `json-tree-view` for conflict resolution), and `components/view-config.tsx`. |
 
 ## For AI Agents

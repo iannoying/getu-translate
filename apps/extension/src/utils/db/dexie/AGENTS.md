@@ -1,19 +1,24 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # dexie
 
 ## Purpose
 
-Defines the extension's single IndexedDB database (`<AppName>DB`) via Dexie, exposing four `EntityTable`s: `translationCache`, `batchRequestRecord`, `articleSummaryCache`, and `aiSegmentationCache`. The `db` singleton is imported by the background request pipeline, page-translation flows, and the subtitle/summary processors to memoize expensive AI/HTTP work keyed by SHA-256 hashes of `(content, providerConfig)`.
+Defines the extension's single IndexedDB database (`<AppName>DB`) via Dexie, exposing the full local data layer: caches (`translationCache`, `articleSummaryCache`, `aiSegmentationCache`), request history (`batchRequestRecord`), per-feature usage counters (`inputTranslationUsage`, `pdfTranslationUsage`), PDF per-file translation state (`pdfTranslations`), user wordbook (`words`), and a local mirror of Pro entitlements (`entitlements`). The `db` singleton is imported by the background request pipeline, page/PDF/input/subtitle flows, the wordbook UI, and the quota surfaces.
 
 ## Key Files
 
-| File           | Description                                                                                                                                                                                                                                                     |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `db.ts`        | Exports `db = new AppDB()` — the one-and-only Dexie instance the rest of the codebase imports.                                                                                                                                                                  |
-| `app-db.ts`    | `AppDB extends Dexie` — declares typed `EntityTable<...>` properties, sets database name to `${upperCamelCase(APP_NAME)}DB`, registers four append-only schema versions, and `mapToClass()`-binds each table to its entity class.                               |
-| `mock-data.ts` | `generateMockBatchRequestRecords()` / `clearMockData()` — uses `@faker-js/faker` to seed `batchRequestRecord` for dev/QA of the request-history dashboard; sizes default to `REQUEST_RECORD_MAX_COUNT` / `REQUEST_RECORD_MAX_AGE_DAYS` from the bg cleanup job. |
+| File                         | Description                                                                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `db.ts`                      | Exports `db = new AppDB()` — the one-and-only Dexie instance the rest of the codebase imports.                                                                     |
+| `app-db.ts`                  | `AppDB extends Dexie` — typed `EntityTable<...>` properties, DB name `${upperCamelCase(APP_NAME)}DB`, append-only version blocks, `mapToClass` bindings per table. |
+| `words.ts`                   | Wordbook table: saved words + SM-2 scheduler state (`due`, `interval`, `easiness`, `reps`). Consumed by SaveWordButton + review page.                              |
+| `pdf-translations.ts`        | Per-PDF paragraph-overlay translation state (hash keyed on doc + page + paragraph).                                                                                |
+| `pdf-translation-usage.ts`   | Free-tier monthly quota counter for PDF translation (used by the paragraph-overlay gate).                                                                          |
+| `input-translation-usage.ts` | Free-tier daily quota counter for input (selection/typing) translation.                                                                                            |
+| `entitlements.ts`            | Local mirror of the remote entitlement (tier + expiresAt), refreshed from the api; lets UI render Pro state without a network round-trip.                          |
+| `mock-data.ts`               | `generateMockBatchRequestRecords()` / `clearMockData()` — `@faker-js/faker` seed for dev/QA of the request-history dashboard.                                      |
 
 ## Subdirectories
 

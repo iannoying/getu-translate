@@ -1,18 +1,19 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-21 | Updated: 2026-04-21 -->
+<!-- Generated: 2026-04-21 | Updated: 2026-04-24 -->
 
 # packages
 
 ## Purpose
 
-Container directory for all shared internal packages in the GetU Translate monorepo. Packages here are consumed by apps in `apps/` via the `workspace:*` protocol. None of these packages have a build step — they ship raw TypeScript and rely on the consuming bundler (WXT/Vite + tsconfig paths) for resolution.
+Container directory for all shared internal packages in the GetU Translate monorepo. Packages here are consumed by apps in `apps/` via the `workspace:*` protocol. None of these packages have a build step — they ship raw TypeScript and rely on the consuming bundler (WXT/Vite/Next + tsconfig paths) for resolution.
 
 ## Subdirectories
 
-| Directory      | Purpose                                                                                                    |
-| -------------- | ---------------------------------------------------------------------------------------------------------- |
-| `contract/`    | `@getu/contract` — oRPC API contract (routes, Zod schemas) shared with the backend (see `contract/AGENTS.md`). |
-| `definitions/` | `@getu/definitions` — Shared type/data definitions, language constants, and GetU-branded URL overrides (see `definitions/AGENTS.md`). |
+| Directory      | Purpose                                                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `contract/`    | `@getu/contract` — oRPC API contract (routes, Zod schemas) shared between api + web/extension clients (see `contract/AGENTS.md`).           |
+| `db/`          | `@getu/db` — Drizzle schema + `createDb()` factory over Cloudflare D1 (SQLite). Migrations live in `db/drizzle/` (see `db/AGENTS.md`).       |
+| `definitions/` | `@getu/definitions` — Shared type/data definitions, language constants, and GetU-branded URL overrides (see `definitions/AGENTS.md`).       |
 
 ## For AI Agents
 

@@ -1,19 +1,22 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # subtitles.content
 
 ## Purpose
 
-WXT content script (matches `*://*.youtube.com/*`) that overlays AI-translated, optionally AI-resegmented subtitles on top of native video subtitles. The script gates injection on `videoSubtitles.enabled` config and a `__READ_FROG_SUBTITLES_INJECTED__` window flag, then dynamically imports the runtime which wires together a per-platform adapter, a Jotai-backed scheduler, an AI segmentation pipeline, and a streaming translation coordinator. Native captions are hidden via an injected `<style>` only while the overlay is active, and the React UI is mounted into a Shadow Root attached to the platform's player container.
+WXT content script (matches YouTube / Bilibili / TED / X URL patterns) that overlays AI-translated, optionally AI-resegmented subtitles on top of native video subtitles. The script gates injection on `videoSubtitles.enabled` config and a `__READ_FROG_SUBTITLES_INJECTED__` window flag, then dynamically imports the runtime which dispatches by URL through the platform registry (`platforms/registry.ts`) and wires together a per-platform adapter, a Jotai-backed scheduler, an AI segmentation pipeline, and a streaming translation coordinator. Native captions are hidden via an injected `<style>` only while the overlay is active, and the React UI is mounted into a Shadow Root attached to the platform's player container.
 
 ## Key Files
 
 | File                         | Description                                                                                                                                                                                                               |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `index.tsx`                  | WXT `defineContentScript` entrypoint; double-injection guard, config gate, lazy `runtime` import.                                                                                                                         |
-| `runtime.ts`                 | Idempotent bootstrap that calls `initYoutubeSubtitles()` once per page lifetime.                                                                                                                                          |
+| `runtime.ts`                 | Idempotent bootstrap that matches the current URL against `platforms/registry.ts` and calls the corresponding `init*Subtitles()` once per page lifetime.                                                                  |
 | `init-youtube-subtitles.ts`  | YouTube SPA-aware initializer: re-mounts UI on `YOUTUBE_NAVIGATE_FINISH_EVENT`, calls `adapter.initialize()` once.                                                                                                        |
+| `init-bilibili-subtitles.ts` | Bilibili SPA initializer: handles Bilibili's video player lifecycle + history navigation.                                                                                                                                 |
+| `init-ted-subtitles.ts`      | TED talk initializer: simpler lifecycle since TED pages aren't SPA navigation-heavy.                                                                                                                                      |
+| `init-x-subtitles.ts`        | X (Twitter) initializer: handles inline video players inside tweet timelines and view transitions.                                                                                                                        |
 | `universal-adapter.ts`       | `UniversalVideoAdapter` — orchestrates fetcher, scheduler, segmentation pipeline, translation coordinator; handles SPA navigation reset, native-subtitle hiding, auto-start, source-subtitle download, and analytics.     |
 | `subtitles-scheduler.ts`     | `SubtitlesScheduler` listens to `timeupdate`/`seeking`, finds the active cue by time, and pushes `currentSubtitleAtom` / `subtitlesStateAtom` updates; auto-hides error state after 5s.                                   |
 | `segmentation-pipeline.ts`   | Async loop that walks raw fragments forward in time, batches by `PROCESS_LOOK_AHEAD_MS`, runs `aiSegmentBlock` + `optimizeSubtitles`, and replaces processed chunks in place.                                             |
@@ -32,7 +35,7 @@ WXT content script (matches `*://*.youtube.com/*`) that overlays AI-translated, 
 
 ### Working In This Directory
 
-- The runtime is YouTube-only today — `init-youtube-subtitles.ts` checks `YOUTUBE_WATCH_URL_PATTERN`. Add new sites by introducing a new `PlatformConfig` under `platforms/` and a new `init-*-subtitles.ts`, then call it from `runtime.ts`.
+- Platforms live in `platforms/` and are registered via `platforms/registry.ts`, which `runtime.ts` consults to dispatch by URL. Supported today: YouTube, Bilibili, TED, X. Add a new site by creating `platforms/<name>/`, a sibling `init-<name>-subtitles.ts`, and an entry in the registry — no edit to `runtime.ts` needed.
 - Always go through `subtitlesStore.set(...)` for atom writes from non-React code; the store is created with `createStore()` so it is independent of any React Provider.
 - Navigation handling is asymmetric: `handleNavigationStart` hides UI immediately when `videoIdChanged`, then `handleNavigationFinish` re-initializes after `NAVIGATION_HANDLER_DELAY` to let YouTube's DOM settle.
 - The scheduler, segmentation pipeline, and translation coordinator are decoupled by callbacks (`getFragments`, `getVideoElement`, `onTranslated`, `onStateChange`). Do not let one reach into another's internal state.

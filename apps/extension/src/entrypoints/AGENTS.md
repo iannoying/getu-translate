@@ -1,11 +1,11 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # entrypoints
 
 ## Purpose
 
-WXT auto-discovers each subfolder/file here as a separate browser-extension entrypoint and emits the corresponding manifest entry, build artifact, and HTML/JS bundle. Each `*.content/` directory compiles to a content script with its own `defineContentScript({ matches, runAt, world, main })` config; `background/` is the MV3 service worker; `popup/` and `options/` are extension UI pages; `offscreen/` is a Chrome-only offscreen document for audio playback (the `offscreen` permission is conditionally added in `wxt.config.ts` for non-Firefox builds); and `translation-hub/` is a standalone HTML page opened in its own tab as a multi-provider translation workbench.
+WXT auto-discovers each subfolder/file here as a separate browser-extension entrypoint and emits the corresponding manifest entry, build artifact, and HTML/JS bundle. Each `*.content/` directory compiles to a content script with its own `defineContentScript({ matches, runAt, world, main })` config; `background/` is the MV3 service worker; `popup/` and `options/` are extension UI pages; `offscreen/` is a Chrome-only offscreen document for audio playback; `pdf-viewer/` is the bundled PDF.js viewer used for PDF translation; `translation-hub/` is a standalone multi-provider translation + wordbook workbench; `upgrade-success/` is the post-checkout landing page.
 
 ## Key Files
 
@@ -20,12 +20,14 @@ This directory has no top-level files — only subdirectories.
 | `host.content/`        | Main per-page host content script (translation manager, side panel mount, message routing)                                               |
 | `interceptor.content/` | YouTube `MAIN`-world script that taps the `<html5-video-player>` API and observes `timedtext` URLs (see `interceptor.content/AGENTS.md`) |
 | `offscreen/`           | Chrome-only offscreen document that plays synthesized TTS audio outside the service worker (see `offscreen/AGENTS.md`)                   |
-| `options/`             | Options page (React app for settings, providers, prompts, backups)                                                                       |
+| `options/`             | Options page (React app for settings, providers, prompts, backups, wordbook, account)                                                    |
+| `pdf-viewer/`          | Bundled PDF.js viewer used for in-browser PDF translation (see `pdf-viewer/AGENTS.md`)                                                   |
 | `popup/`               | Toolbar popup (React app for quick toggles and status)                                                                                   |
 | `selection.content/`   | Selection-toolbar content script (translate selected text, custom actions)                                                               |
 | `side.content/`        | Side-panel content script with the in-page React UI (Shadow DOM)                                                                         |
-| `subtitles.content/`   | Video subtitle overlay/translation content script (YouTube and friends)                                                                  |
-| `translation-hub/`     | Standalone HTML page running multi-provider translation cards (see `translation-hub/AGENTS.md`)                                          |
+| `subtitles.content/`   | Video subtitle overlay/translation content script (YouTube, Bilibili, TED, X)                                                            |
+| `translation-hub/`     | Standalone HTML page running multi-provider translation cards + wordbook review/export (see `translation-hub/AGENTS.md`)                 |
+| `upgrade-success/`     | Standalone HTML page shown after a successful Paddle/Stripe checkout returns the user to the extension.                                  |
 
 ## For AI Agents
 

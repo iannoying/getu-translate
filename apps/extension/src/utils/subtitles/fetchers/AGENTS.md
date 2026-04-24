@@ -1,24 +1,27 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # fetchers
 
 ## Purpose
 
-Defines the `SubtitlesFetcher` interface that the subtitle overlay polls for fragments and hosts per-platform implementations. Currently ships a YouTube fetcher that talks to the embedded YouTube player via injected-script `postMessage` (player data, POT-token wait, timedtext URL discovery), selects the best caption track, fetches `/api/timedtext` JSON, and dispatches to format-specific parsers (standard, scrolling-ASR, karaoke, stylized-karaoke).
+Defines the `SubtitlesFetcher` interface that the subtitle overlay polls for fragments and hosts per-platform implementations. Ships one fetcher per supported video platform: YouTube (injected-script `postMessage` for player data + POT-token + timedtext), Bilibili, TED, and X (Twitter). Each fetcher is responsible for discovering the native subtitle tracks, selecting the best one, fetching the payload, and parsing it into the shared `SubtitleFragment` shape.
 
 ## Key Files
 
 | File       | Description                                                                                                               |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts` | Barrel: `export * from "./types"` and `export { YoutubeSubtitlesFetcher } from "./youtube"`.                              |
+| `index.ts` | Barrel: re-exports the `SubtitlesFetcher` interface plus every platform fetcher (`Youtube`, `Bilibili`, `Ted`, `X`).      |
 | `types.ts` | The `SubtitlesFetcher` interface: `fetch`, `cleanup`, `shouldUseSameTrack`, `getSourceLanguage`, `hasAvailableSubtitles`. |
 
 ## Subdirectories
 
-| Directory  | Purpose                                                                                                                                                                                                                                                                                                                       |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `youtube/` | YouTube implementation: `index.ts` (orchestrator + track selection priority), `format-detector.ts`, `noise-filter.ts`, `pot-token.ts`, `url-builder.ts`, `types.ts` (Zod-validated `youtubeSubtitlesResponseSchema`), and `parser/` (`standard-parser`, `scrolling-asr-parser`, `karaoke-parser`, `stylized-karaoke-parser`). |
+| Directory   | Purpose                                                                                                                                                                                                                                                                                                                       |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `youtube/`  | YouTube implementation: `index.ts` (orchestrator + track selection priority), `format-detector.ts`, `noise-filter.ts`, `pot-token.ts`, `url-builder.ts`, `types.ts` (Zod-validated `youtubeSubtitlesResponseSchema`), and `parser/` (`standard-parser`, `scrolling-asr-parser`, `karaoke-parser`, `stylized-karaoke-parser`). |
+| `bilibili/` | Bilibili implementation — fetches CC track metadata via Bilibili's player API, handles AID/BVID resolution, parses the CC JSON payload into fragments.                                                                                                                                                                        |
+| `ted/`      | TED implementation — fetches the talk's subtitle manifest from TED's API and parses the JSON transcripts.                                                                                                                                                                                                                     |
+| `x/`        | X (Twitter) implementation — extracts inline video subtitle URLs from the timeline tweet payload and parses the subtitle track.                                                                                                                                                                                               |
 
 ## For AI Agents
 

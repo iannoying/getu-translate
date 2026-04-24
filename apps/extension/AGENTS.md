@@ -1,11 +1,20 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-21 | Updated: 2026-04-21 -->
+<!-- Generated: 2026-04-21 | Updated: 2026-04-24 -->
 
 # extension (@getu/extension)
 
 ## Purpose
 
-The `@getu/extension` package is the GetU Translate browser extension, built with [WXT](https://wxt.dev) (a Vite-based browser-extension framework). It provides immersive bilingual page translation, selection translation, subtitle translation (YouTube/Netflix/etc.), text-to-speech, article reading assistance, and a configurable prompt/AI provider system. Ships to Chrome, Edge, and Firefox (MV3).
+The `@getu/extension` package is the GetU Translate browser extension, built with [WXT](https://wxt.dev) (a Vite-based browser-extension framework). Ships to Chrome, Edge, and Firefox (MV3). Feature surfaces:
+
+- **Immersive page translation** — bilingual inline / side-panel translation.
+- **Selection + input translation** — popover on text selection, inline translation in input fields (quota-gated on free tier).
+- **PDF translation** — bundled PDF.js viewer with paragraph overlay, scheduler, caching, and Pro export.
+- **Subtitle translation** — YouTube, Bilibili, TED, X. Driven by a central platform registry.
+- **Wordbook** — save words from any surface, review with SM-2 scheduler, export to CSV / Obsidian Markdown (free tier capped at 100 words).
+- **Billing / auth** — login + Pro upgrade via Paddle (USD sub) or Stripe (CNY one-time, Alipay + WeChat Pay).
+- **TTS + article reading** — text-to-speech playback via the offscreen document (Chrome) with Firefox fallback.
+- **Configurable prompts + AI providers** — Vercel AI SDK + 20+ provider packages.
 
 This package lives at `apps/extension/` inside the `getu-translate` monorepo.
 
