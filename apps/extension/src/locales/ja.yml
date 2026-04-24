@@ -27,7 +27,7 @@ popup:
   translateParagraph: 段落を翻訳
   review:
     tooltip: 単語帳を復習
-    dueTooltip: "$1語が復習待ち"
+    dueTooltip: $1語が復習待ち
   hub:
     tooltip: 複数の翻訳モデルで同時にテキストを翻訳
   discord:

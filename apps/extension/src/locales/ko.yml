@@ -27,7 +27,7 @@ popup:
   translateParagraph: 단락 번역
   review:
     tooltip: 단어장 복습
-    dueTooltip: "복습할 단어 $1개"
+    dueTooltip: 복습할 단어 $1개
   hub:
     tooltip: 여러 번역 모델로 동시에 텍스트 번역
   discord:

@@ -27,7 +27,7 @@ popup:
   translateParagraph: to translate paragraph
   review:
     tooltip: Review Wordbook
-    dueTooltip: "$1 words due for review"
+    dueTooltip: $1 words due for review
   hub:
     tooltip: Translate text with multiple models simultaneously
   discord:

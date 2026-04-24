@@ -27,7 +27,7 @@ popup:
   translateParagraph: paragrafı çevirmek için
   review:
     tooltip: Kelimeleri Tekrar Et
-    dueTooltip: "$1 kelime tekrar bekliyor"
+    dueTooltip: $1 kelime tekrar bekliyor
   hub:
     tooltip: Birden fazla çeviri modeliyle aynı anda metin çevirin
   discord:
