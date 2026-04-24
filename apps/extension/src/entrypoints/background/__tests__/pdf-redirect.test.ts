@@ -127,4 +127,93 @@ describe("decideRedirect", () => {
       decideRedirect({ ...base, targetUrl: "not a url" }).action,
     ).toBe("skip")
   })
+
+  // ---- source: "content-type" (fallback path for URLs without .pdf suffix) ----
+
+  it("content-type: redirects arxiv-style URL without .pdf suffix", () => {
+    const d = decideRedirect({
+      ...base,
+      targetUrl: "https://arxiv.org/pdf/2507.15551",
+      source: "content-type",
+    })
+    expect(d.action).toBe("redirect")
+    if (d.action === "redirect") {
+      expect(d.viewerUrl).toBe(
+        "chrome-extension://abc/pdf-viewer.html?src=https%3A%2F%2Farxiv.org%2Fpdf%2F2507.15551",
+      )
+    }
+  })
+
+  it("content-type: still respects manual mode", () => {
+    expect(
+      decideRedirect({
+        ...base,
+        activationMode: "manual",
+        targetUrl: "https://arxiv.org/pdf/2507.15551",
+        source: "content-type",
+      }).action,
+    ).toBe("skip")
+  })
+
+  it("content-type: still respects enabled=false", () => {
+    expect(
+      decideRedirect({
+        ...base,
+        enabled: false,
+        targetUrl: "https://arxiv.org/pdf/2507.15551",
+        source: "content-type",
+      }).action,
+    ).toBe("skip")
+  })
+
+  it("content-type: still respects blocklist", () => {
+    expect(
+      decideRedirect({
+        ...base,
+        blocklistDomains: ["arxiv.org"],
+        targetUrl: "https://arxiv.org/pdf/2507.15551",
+        source: "content-type",
+      }).action,
+    ).toBe("skip")
+  })
+
+  it("content-type: still respects self-recursion guard", () => {
+    expect(
+      decideRedirect({
+        ...base,
+        targetUrl:
+          "chrome-extension://abc/pdf-viewer.html?src=https%3A%2F%2Farxiv.org%2Fpdf%2F2507.15551",
+        source: "content-type",
+      }).action,
+    ).toBe("skip")
+  })
+
+  it("content-type: rejects non-http(s)/file protocols", () => {
+    expect(
+      decideRedirect({
+        ...base,
+        targetUrl: "data:application/pdf;base64,JVBERi0=",
+        source: "content-type",
+      }).action,
+    ).toBe("skip")
+  })
+
+  it("content-type: also works for .pdf-suffixed URLs (idempotent)", () => {
+    // Shouldn't happen in practice (onBeforeNavigate handles suffix URLs first),
+    // but the content-type path must not regress the suffix case.
+    expect(
+      decideRedirect({
+        ...base,
+        targetUrl: "https://a.com/x.pdf",
+        source: "content-type",
+      }).action,
+    ).toBe("redirect")
+  })
+
+  it("default source is path-suffix (backward compat)", () => {
+    // No `source` → must behave exactly like before this change.
+    expect(
+      decideRedirect({ ...base, targetUrl: "https://arxiv.org/pdf/2507.15551" }).action,
+    ).toBe("skip")
+  })
 })

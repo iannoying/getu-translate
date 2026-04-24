@@ -24,6 +24,19 @@ export interface DecideRedirectParams {
   allowFileProtocol: boolean
   /** e.g. `chrome-extension://<id>` — pass without trailing slash */
   viewerOrigin: string
+  /**
+   * How we determined this navigation is (likely) a PDF. Defaults to `"path-suffix"`.
+   *   - `"path-suffix"` — URL path ends with `.pdf`. The fast, synchronous path used
+   *     from `webNavigation.onBeforeNavigate`. Zero I/O, handles the 90% case.
+   *   - `"content-type"` — response `Content-Type` is `application/pdf`. The slow
+   *     path used from `webRequest.onHeadersReceived`, needed for PDFs served from
+   *     URLs without a `.pdf` extension (arxiv abs pages, CMS download handlers,
+   *     anything with a query-string-driven `?format=pdf` pattern).
+   *
+   * When `"content-type"`, the `.pdf` suffix gate is skipped; *all other gates*
+   * (enabled, manual, self-recursion, protocol, blocklist) still apply.
+   */
+  source?: "path-suffix" | "content-type"
 }
 
 const VIEWER_PATH = "/pdf-viewer.html"
@@ -45,6 +58,7 @@ export function decideRedirect(params: DecideRedirectParams): PdfRedirectDecisio
     blocklistDomains,
     allowFileProtocol,
     viewerOrigin,
+    source = "path-suffix",
   } = params
 
   // 1. Feature disabled globally.
@@ -86,9 +100,13 @@ export function decideRedirect(params: DecideRedirectParams): PdfRedirectDecisio
     return { action: "skip" }
   }
 
-  // 5. Path must end with `.pdf` (case-insensitive). `.pdf` appearing only in query / fragment
-  // must NOT trigger redirect — that's just a string, not a PDF document.
-  if (!parsed.pathname.toLowerCase().endsWith(".pdf")) {
+  // 5. PDF-ness gate.
+  //    path-suffix: path must end with `.pdf` (case-insensitive). `.pdf` in query /
+  //                 fragment must NOT trigger redirect — that's just a string.
+  //    content-type: caller already confirmed `Content-Type: application/pdf`, so
+  //                  skip the suffix check (this is how we catch arxiv-style URLs
+  //                  like `/pdf/2507.15551` that are PDFs without a `.pdf` suffix).
+  if (source === "path-suffix" && !parsed.pathname.toLowerCase().endsWith(".pdf")) {
     return { action: "skip" }
   }
 
@@ -147,4 +165,68 @@ export function setUpPdfRedirect() {
       logger.error("[Background][PdfRedirect] Failed to handle navigation", error)
     }
   })
+}
+
+/**
+ * Fallback for PDFs served from URLs that DO NOT end with `.pdf` — e.g. arxiv's
+ * `/pdf/2507.15551`, CMS download handlers, or any content-disposition-driven
+ * endpoint. Observes `webRequest.onHeadersReceived`; when the top-frame response
+ * advertises `Content-Type: application/pdf`, navigates the tab to our viewer.
+ *
+ * Non-blocking: Chrome has already started rendering the PDF in its native
+ * viewer by the time we `tabs.update`, so the user may see a brief flash. That
+ * is the best we can do in MV3 without `webRequestBlocking`.
+ */
+export function setUpPdfContentTypeRedirect() {
+  const viewerOrigin = browser.runtime.getURL("").replace(/\/$/, "")
+
+  browser.webRequest.onHeadersReceived.addListener(
+    (details) => {
+      // Gate on tab-owned top-frame document loads. `tabId < 0` is a background
+      // request (e.g. our own fetches); iframes stay with the host page.
+      if (details.tabId < 0 || details.frameId !== 0)
+        return
+
+      // Case-insensitive `Content-Type` check. Bail early if headers are absent
+      // or not application/pdf — this is the hot path (fires on every page load).
+      let contentType = ""
+      for (const h of details.responseHeaders ?? []) {
+        if (h.name.toLowerCase() === "content-type") {
+          contentType = (h.value ?? "").toLowerCase()
+          break
+        }
+      }
+      if (!contentType.startsWith("application/pdf"))
+        return
+
+      // Async tail — config lookup + `tabs.update`. Fire-and-forget; Chrome
+      // doesn't wait for us either way (we're not blocking the response).
+      void (async () => {
+        try {
+          const config = await ensureInitializedConfig()
+          if (!config)
+            return
+
+          const decision = decideRedirect({
+            targetUrl: details.url,
+            activationMode: config.pdfTranslation.activationMode,
+            enabled: config.pdfTranslation.enabled,
+            blocklistDomains: config.pdfTranslation.blocklistDomains,
+            allowFileProtocol: config.pdfTranslation.allowFileProtocol,
+            viewerOrigin,
+            source: "content-type",
+          })
+
+          if (decision.action === "redirect") {
+            await browser.tabs.update(details.tabId, { url: decision.viewerUrl })
+          }
+        }
+        catch (error) {
+          logger.error("[Background][PdfRedirect] onHeadersReceived failed", error)
+        }
+      })()
+    },
+    { urls: ["<all_urls>"], types: ["main_frame"] },
+    ["responseHeaders"],
+  )
 }
