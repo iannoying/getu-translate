@@ -407,10 +407,17 @@ async function renderPdf(
   }
   // Lazy-load pdfjs so the initial bundle stays small and so tests can
   // import `parseSrcParam` (and friends) without pulling in the worker.
-  const [pdfjsLib, pdfViewerMod] = await Promise.all([
-    import("pdfjs-dist"),
-    import("pdfjs-dist/web/pdf_viewer.mjs"),
-  ])
+  //
+  // Ordering matters: `pdfjs-dist/web/pdf_viewer.mjs` destructures from
+  // `globalThis.pdfjsLib` at module-init time (`const { AbortException, ... }
+  // = globalThis.pdfjsLib`). If the viewer module evaluates before we
+  // populate that global, it throws "Cannot destructure property
+  // 'AbortException' of 'globalThis.pdfjsLib' as it is undefined". A
+  // `Promise.all` has no ordering guarantee — we must import the core
+  // library first, publish it, then import the viewer.
+  const pdfjsLib = await import("pdfjs-dist")
+  ;(globalThis as unknown as { pdfjsLib: typeof pdfjsLib }).pdfjsLib = pdfjsLib
+  const pdfViewerMod = await import("pdfjs-dist/web/pdf_viewer.mjs")
   const { EventBus, PDFLinkService, PDFViewer } = pdfViewerMod
 
   pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
