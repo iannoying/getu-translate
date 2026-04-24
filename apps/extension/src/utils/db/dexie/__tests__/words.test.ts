@@ -131,3 +131,16 @@ describe("deleteWord", () => {
     expect(deleteMock).toHaveBeenCalledWith(3)
   })
 })
+
+describe("canAddWord — Pro bypass", () => {
+  it("always returns true when isPro=true regardless of count", async () => {
+    countMock.mockResolvedValueOnce(999)
+    expect(await canAddWord(true)).toBe(true)
+  })
+
+  it("does not call db.count when isPro=true", async () => {
+    countMock.mockClear()
+    await canAddWord(true)
+    expect(countMock).not.toHaveBeenCalled()
+  })
+})

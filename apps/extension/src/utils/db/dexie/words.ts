@@ -33,7 +33,9 @@ export async function getWordCount(): Promise<number> {
   return db.words.count()
 }
 
-export async function canAddWord(): Promise<boolean> {
+export async function canAddWord(isPro = false): Promise<boolean> {
+  if (isPro)
+    return true
   const count = await getWordCount()
   return count < FREE_WORD_LIMIT
 }
