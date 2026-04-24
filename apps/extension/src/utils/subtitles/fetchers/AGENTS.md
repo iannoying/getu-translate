@@ -11,7 +11,7 @@ Defines the `SubtitlesFetcher` interface that the subtitle overlay polls for fra
 
 | File       | Description                                                                                                               |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts` | Barrel: re-exports the `SubtitlesFetcher` interface plus every platform fetcher (`Youtube`, `Bilibili`, `Ted`, `X`).       |
+| `index.ts` | Barrel: re-exports the `SubtitlesFetcher` interface plus every platform fetcher (`Youtube`, `Bilibili`, `Ted`, `X`).      |
 | `types.ts` | The `SubtitlesFetcher` interface: `fetch`, `cleanup`, `shouldUseSameTrack`, `getSourceLanguage`, `hasAvailableSubtitles`. |
 
 ## Subdirectories
@@ -20,8 +20,8 @@ Defines the `SubtitlesFetcher` interface that the subtitle overlay polls for fra
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `youtube/`  | YouTube implementation: `index.ts` (orchestrator + track selection priority), `format-detector.ts`, `noise-filter.ts`, `pot-token.ts`, `url-builder.ts`, `types.ts` (Zod-validated `youtubeSubtitlesResponseSchema`), and `parser/` (`standard-parser`, `scrolling-asr-parser`, `karaoke-parser`, `stylized-karaoke-parser`). |
 | `bilibili/` | Bilibili implementation — fetches CC track metadata via Bilibili's player API, handles AID/BVID resolution, parses the CC JSON payload into fragments.                                                                                                                                                                        |
-| `ted/`      | TED implementation — fetches the talk's subtitle manifest from TED's API and parses the JSON transcripts.                                                                                                                                                                                                                      |
-| `x/`        | X (Twitter) implementation — extracts inline video subtitle URLs from the timeline tweet payload and parses the subtitle track.                                                                                                                                                                                                |
+| `ted/`      | TED implementation — fetches the talk's subtitle manifest from TED's API and parses the JSON transcripts.                                                                                                                                                                                                                     |
+| `x/`        | X (Twitter) implementation — extracts inline video subtitle URLs from the timeline tweet payload and parses the subtitle track.                                                                                                                                                                                               |
 
 ## For AI Agents
 

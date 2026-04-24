@@ -9,16 +9,16 @@ Defines the extension's single IndexedDB database (`<AppName>DB`) via Dexie, exp
 
 ## Key Files
 
-| File                          | Description                                                                                                                                                         |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `db.ts`                       | Exports `db = new AppDB()` — the one-and-only Dexie instance the rest of the codebase imports.                                                                      |
-| `app-db.ts`                   | `AppDB extends Dexie` — typed `EntityTable<...>` properties, DB name `${upperCamelCase(APP_NAME)}DB`, append-only version blocks, `mapToClass` bindings per table.   |
-| `words.ts`                    | Wordbook table: saved words + SM-2 scheduler state (`due`, `interval`, `easiness`, `reps`). Consumed by SaveWordButton + review page.                               |
-| `pdf-translations.ts`         | Per-PDF paragraph-overlay translation state (hash keyed on doc + page + paragraph).                                                                                 |
-| `pdf-translation-usage.ts`    | Free-tier monthly quota counter for PDF translation (used by the paragraph-overlay gate).                                                                           |
-| `input-translation-usage.ts`  | Free-tier daily quota counter for input (selection/typing) translation.                                                                                             |
-| `entitlements.ts`             | Local mirror of the remote entitlement (tier + expiresAt), refreshed from the api; lets UI render Pro state without a network round-trip.                           |
-| `mock-data.ts`                | `generateMockBatchRequestRecords()` / `clearMockData()` — `@faker-js/faker` seed for dev/QA of the request-history dashboard.                                       |
+| File                         | Description                                                                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `db.ts`                      | Exports `db = new AppDB()` — the one-and-only Dexie instance the rest of the codebase imports.                                                                     |
+| `app-db.ts`                  | `AppDB extends Dexie` — typed `EntityTable<...>` properties, DB name `${upperCamelCase(APP_NAME)}DB`, append-only version blocks, `mapToClass` bindings per table. |
+| `words.ts`                   | Wordbook table: saved words + SM-2 scheduler state (`due`, `interval`, `easiness`, `reps`). Consumed by SaveWordButton + review page.                              |
+| `pdf-translations.ts`        | Per-PDF paragraph-overlay translation state (hash keyed on doc + page + paragraph).                                                                                |
+| `pdf-translation-usage.ts`   | Free-tier monthly quota counter for PDF translation (used by the paragraph-overlay gate).                                                                          |
+| `input-translation-usage.ts` | Free-tier daily quota counter for input (selection/typing) translation.                                                                                            |
+| `entitlements.ts`            | Local mirror of the remote entitlement (tier + expiresAt), refreshed from the api; lets UI render Pro state without a network round-trip.                          |
+| `mock-data.ts`               | `generateMockBatchRequestRecords()` / `clearMockData()` — `@faker-js/faker` seed for dev/QA of the request-history dashboard.                                      |
 
 ## Subdirectories
 

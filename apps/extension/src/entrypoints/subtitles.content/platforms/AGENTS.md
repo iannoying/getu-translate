@@ -11,20 +11,20 @@ Currently implemented: **YouTube**, **Bilibili**, **TED**, **X (Twitter)**.
 
 ## Key Files
 
-| File           | Description                                                                                                               |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`     | Declares the `ControlsConfig` and `PlatformConfig` interfaces consumed by `UniversalVideoAdapter` and `mountSubtitlesUI`. |
-| `registry.ts`  | Central platform registry — maps URL patterns to platform setup factories. `runtime.ts` uses this for dispatch.           |
-| `__tests__/`   | Coverage for the registry dispatch + per-platform selector fixtures.                                                      |
+| File          | Description                                                                                                               |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`    | Declares the `ControlsConfig` and `PlatformConfig` interfaces consumed by `UniversalVideoAdapter` and `mountSubtitlesUI`. |
+| `registry.ts` | Central platform registry — maps URL patterns to platform setup factories. `runtime.ts` uses this for dispatch.           |
+| `__tests__/`  | Coverage for the registry dispatch + per-platform selector fixtures.                                                      |
 
 ## Subdirectories
 
-| Directory   | Purpose                                                                                                                                                                                                                                    |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `youtube/`  | YouTube `PlatformConfig` + `setupYoutubeSubtitles()` factory (ytp selectors, `yt-navigate-*` SPA events).                                                                                                                                  |
-| `bilibili/` | Bilibili `PlatformConfig` + setup factory. Handles Bilibili's player DOM and SPA history navigation.                                                                                                                                       |
-| `ted/`      | TED `PlatformConfig` + setup factory. TED's talk pages have a simpler player with direct subtitle URLs.                                                                                                                                    |
-| `x/`        | X (Twitter) `PlatformConfig` + setup factory. Handles inline video players inside tweet timelines.                                                                                                                                         |
+| Directory   | Purpose                                                                                                   |
+| ----------- | --------------------------------------------------------------------------------------------------------- |
+| `youtube/`  | YouTube `PlatformConfig` + `setupYoutubeSubtitles()` factory (ytp selectors, `yt-navigate-*` SPA events). |
+| `bilibili/` | Bilibili `PlatformConfig` + setup factory. Handles Bilibili's player DOM and SPA history navigation.      |
+| `ted/`      | TED `PlatformConfig` + setup factory. TED's talk pages have a simpler player with direct subtitle URLs.   |
+| `x/`        | X (Twitter) `PlatformConfig` + setup factory. Handles inline video players inside tweet timelines.        |
 
 ## For AI Agents
 

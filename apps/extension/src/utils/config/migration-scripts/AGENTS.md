@@ -9,12 +9,12 @@ Holds one frozen `vN-to-v(N+1).ts` snapshot per `CONFIG_SCHEMA_VERSION` bump (cu
 
 ## Key Files
 
-| File                 | Description                                                                                                                                                                                                                                                                           |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `types.ts`           | `MigrationFunction = (oldConfig: any) => any`, `MigrationModule { migrate }`, `MigrationInfo { fromVersion, toVersion, description? }` — the only shared type surface, intentionally `any` to decouple from any live schema.                                                          |
-| `v001-to-v002.ts`    | Earliest example — adds `pageTranslate.range = 'mainContent'` via `deepmerge`.                                                                                                                                                                                                        |
-| `v070-to-v071.ts`    | Latest frozen migration at time of writing. Migrations remain FROZEN once released.                                                                                                                                                                                                   |
-| `v002-to-v070-...ts` | ~70 intermediate, frozen migrations — additive field changes, renames, prompt-token migrations, PDF + wordbook + billing config additions. Treat as historical artifacts.                                                                                                              |
+| File                 | Description                                                                                                                                                                                                                  |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `types.ts`           | `MigrationFunction = (oldConfig: any) => any`, `MigrationModule { migrate }`, `MigrationInfo { fromVersion, toVersion, description? }` — the only shared type surface, intentionally `any` to decouple from any live schema. |
+| `v001-to-v002.ts`    | Earliest example — adds `pageTranslate.range = 'mainContent'` via `deepmerge`.                                                                                                                                               |
+| `v070-to-v071.ts`    | Latest frozen migration at time of writing. Migrations remain FROZEN once released.                                                                                                                                          |
+| `v002-to-v070-...ts` | ~70 intermediate, frozen migrations — additive field changes, renames, prompt-token migrations, PDF + wordbook + billing config additions. Treat as historical artifacts.                                                    |
 
 ## Subdirectories
 

@@ -9,10 +9,10 @@ Standalone HTML page shown after a successful Paddle / Stripe checkout returns t
 
 ## Key Files
 
-| File           | Description                                                                                                |
-| -------------- | ---------------------------------------------------------------------------------------------------------- |
-| `index.html`   | WXT page entry (`upgrade-success.html` in the build).                                                      |
-| `main.tsx`     | React bootstrap: Jotai + QueryClient + Theme providers, re-fetches entitlement, renders success UI.        |
+| File         | Description                                                                                         |
+| ------------ | --------------------------------------------------------------------------------------------------- |
+| `index.html` | WXT page entry (`upgrade-success.html` in the build).                                               |
+| `main.tsx`   | React bootstrap: Jotai + QueryClient + Theme providers, re-fetches entitlement, renders success UI. |
 
 ## For AI Agents
 

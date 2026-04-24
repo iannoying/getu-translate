@@ -8,6 +8,7 @@
 Standalone WXT HTML entrypoint that renders a PDF inside the extension itself. The page reads a `?src=<url>` query parameter and hands it to `pdfjs-dist`'s `PDFViewer`, so the rest of the extension can redirect user navigations to PDF URLs into `chrome-extension://<id>/pdf-viewer.html?src=<url>` and keep the document inside an origin the extension fully controls.
 
 M3 landed in four PRs:
+
 - **B1** — translation-overlay scaffolding: `textlayerrendered` runs a pure BabelDOC-inspired paragraph detector over `TextItem[]` and mounts a per-page React root with `[...]` placeholder slots and push-down layout.
 - **B2** — translation pipeline: `TranslationScheduler` (concurrency 6, abort, dedup) enqueues each paragraph through `translate-segment.ts` (wrapping `translateTextForPage`) and writes results into `segmentStatusAtomFamily`. Slots subscribe via `useAtomValue` and progressively replace placeholders. Activation is gated by `activationMode` (`always` / `ask` / `manual`).
 - **B3** — file-hash cache, daily free-tier quota, `useProGuard` upgrade gate. Lives under `quota/`.

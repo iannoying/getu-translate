@@ -9,18 +9,18 @@ The in-place translator for editable `<input>` / `<textarea>` / `contenteditable
 
 ## Key Files
 
-| File                       | Description                                                                                                                                                                                                                                                                                                             |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File                       | Description                                                                                                                                                                                                                                                                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `use-input-translation.ts` | The `useInputTranslation()` hook — installs the active trigger, runs password-field skip, dispatches framework-compatible input events, undo-friendly text replacement, single-flight `isTranslatingRef` guard, post-translation race check that aborts if the user typed during the network call, and consults the quota gate before firing. |
 
 (Note: `index.ts` is a one-line re-export and is intentionally omitted.)
 
 ## Subdirectories
 
-| Directory   | Purpose                                                                                                                                            |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `triggers/` | Pluggable input-translation triggers (triple-space, hotkey). Each trigger module registers its detection pattern and yields a "fire" callback.     |
-| `quota/`    | Free-tier daily quota counter backed by the `inputTranslationUsage` Dexie table; blocks firing past the limit and surfaces the upgrade CTA.        |
+| Directory   | Purpose                                                                                                                                        |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `triggers/` | Pluggable input-translation triggers (triple-space, hotkey). Each trigger module registers its detection pattern and yields a "fire" callback. |
+| `quota/`    | Free-tier daily quota counter backed by the `inputTranslationUsage` Dexie table; blocks firing past the limit and surfaces the upgrade CTA.    |
 
 ## For AI Agents
 

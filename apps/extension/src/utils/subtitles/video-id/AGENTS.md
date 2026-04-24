@@ -9,13 +9,13 @@ Per-platform synchronous resolution of the current page's video identifier from 
 
 ## Key Files
 
-| File          | Description                                                                                                                                                                                                                                               |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`    | Barrel: re-exports `getYoutubeVideoId`, `getBilibiliVideoId`, `getTedVideoId`, `getXVideoId`.                                                                                                                                                              |
-| `youtube.ts`  | `getYoutubeVideoId()` — `?v=` → `/embed/<id>` → `youtu.be/<id>`. Returns `null` when no id is found. Uses pre-compiled regexes `EMBED_PATH_PATTERN` and `SHORT_URL_PATH_PATTERN`.                                                                          |
-| `bilibili.ts` | `getBilibiliVideoId()` — resolves BVID / AID from Bilibili's `/video/<id>` URLs and legacy `av<id>` forms.                                                                                                                                                  |
-| `ted.ts`      | `getTedVideoId()` — extracts the talk slug from `/talks/<slug>` URLs; trailing `/transcript` path strips cleanly.                                                                                                                                           |
-| `x.ts`        | `getXVideoId()` — resolves inline video status ids from X (Twitter) `/<user>/status/<id>` URLs.                                                                                                                                                            |
+| File          | Description                                                                                                                                                                       |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`    | Barrel: re-exports `getYoutubeVideoId`, `getBilibiliVideoId`, `getTedVideoId`, `getXVideoId`.                                                                                     |
+| `youtube.ts`  | `getYoutubeVideoId()` — `?v=` → `/embed/<id>` → `youtu.be/<id>`. Returns `null` when no id is found. Uses pre-compiled regexes `EMBED_PATH_PATTERN` and `SHORT_URL_PATH_PATTERN`. |
+| `bilibili.ts` | `getBilibiliVideoId()` — resolves BVID / AID from Bilibili's `/video/<id>` URLs and legacy `av<id>` forms.                                                                        |
+| `ted.ts`      | `getTedVideoId()` — extracts the talk slug from `/talks/<slug>` URLs; trailing `/transcript` path strips cleanly.                                                                 |
+| `x.ts`        | `getXVideoId()` — resolves inline video status ids from X (Twitter) `/<user>/status/<id>` URLs.                                                                                   |
 
 ## Subdirectories
 

@@ -21,7 +21,7 @@ Jotai atom factories for every piece of cross-context, persisted, or derived sta
 | `google-drive-sync.ts` | Conflict-resolution atoms: `unresolvedConfigsAtom`, `resolutionsAtom`, derived `diffConflictsResultAtom` / `resolvedConfigResultAtom` / `resolutionStatusAtom`, plus action atoms (`selectResolutionAtom`, `selectAllLocalAtom`, `selectAllRemoteAtom`). |
 | `last-sync-time.ts`    | Read-only `lastSyncTimeAtom` derived from the meta of `LAST_SYNCED_CONFIG_STORAGE_KEY`; subscribes to the WXT meta key (`local:…$`).                                                                                                                     |
 | `entitlements.ts`      | `entitlementAtom` — local mirror of the user's Pro tier / expiry, refreshed from the api oRPC `billing.getEntitlement` call. Backs `useEntitlements`, `<ProGate>`, and all quota UIs.                                                                    |
-| `pdf-translation.ts`   | Per-session atoms for the PDF viewer: activation mode, current file hash, paragraph counts, quota progress. Feeds the B2/B3 scheduler and quota display.                                                                                                |
+| `pdf-translation.ts`   | Per-session atoms for the PDF viewer: activation mode, current file hash, paragraph counts, quota progress. Feeds the B2/B3 scheduler and quota display.                                                                                                 |
 
 ## Subdirectories
 

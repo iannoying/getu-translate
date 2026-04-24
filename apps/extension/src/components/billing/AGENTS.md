@@ -9,12 +9,12 @@ Client-side UI primitives for the commercialization surface: gate children on Pr
 
 ## Key Files
 
-| File                              | Description                                                                                                     |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `pro-gate.tsx`                    | Wrapper that renders children only when the user is Pro; otherwise renders a fallback (often `<UpgradeDialog>` trigger). |
-| `upgrade-dialog.tsx`              | Dialog that renders locale-aware pricing and dispatches `billing.createCheckoutSession` via oRPC. Honors login state — unauthenticated users are redirected to `/log-in?redirect=...`. |
-| `__tests__/pro-gate.test.tsx`     | Asserts gate behaviour across Pro / free / loading states.                                                      |
-| `__tests__/upgrade-dialog.test.tsx` | Asserts pricing, provider selection (Paddle vs Stripe), and CNY/USD locale rules.                             |
+| File                                | Description                                                                                                                                                                            |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pro-gate.tsx`                      | Wrapper that renders children only when the user is Pro; otherwise renders a fallback (often `<UpgradeDialog>` trigger).                                                               |
+| `upgrade-dialog.tsx`                | Dialog that renders locale-aware pricing and dispatches `billing.createCheckoutSession` via oRPC. Honors login state — unauthenticated users are redirected to `/log-in?redirect=...`. |
+| `__tests__/pro-gate.test.tsx`       | Asserts gate behaviour across Pro / free / loading states.                                                                                                                             |
+| `__tests__/upgrade-dialog.test.tsx` | Asserts pricing, provider selection (Paddle vs Stripe), and CNY/USD locale rules.                                                                                                      |
 
 ## For AI Agents
 
