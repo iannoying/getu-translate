@@ -49,6 +49,7 @@ export type Messages = {
     billingNoteUsd: string
     billingNoteCny: string
     comingSoon: string
+    loginToSubscribe: string
     loading: string
     billingTitle: string
     billingBody: string
@@ -152,6 +153,7 @@ export const messages: Record<Locale, Messages> = {
       billingNoteUsd: "Subscription auto-renews each billing period. Cancel anytime via customer portal.",
       billingNoteCny: "一次性付款，到期后需重新购买。支持信用卡、支付宝、微信支付。",
       comingSoon: "Coming soon",
+      loginToSubscribe: "Log in to subscribe",
       loading: "Loading...",
       billingTitle: "Billing terms",
       billingBody: "Prices are listed in USD and taxes may apply based on your location. Payments, invoices, renewals, and subscription management are securely handled by Stripe.",
@@ -463,6 +465,7 @@ export const messages: Record<Locale, Messages> = {
       billingNoteUsd: "订阅按计费周期自动续费，随时可通过客户门户取消。",
       billingNoteCny: "一次性付款，到期后需重新购买。支持信用卡、支付宝、微信支付。",
       comingSoon: "即将推出",
+      loginToSubscribe: "登录后购买",
       loading: "加载中...",
       billingTitle: "账单条款",
       billingBody: "价格以人民币列出，可能会根据你的所在地收取税费。付款、发票和订单管理由 Stripe 安全处理。",
@@ -774,6 +777,7 @@ export const messages: Record<Locale, Messages> = {
       billingNoteUsd: "訂閱按計費週期自動續費，隨時可透過客戶入口取消。",
       billingNoteCny: "一次性付款，到期後需重新購買。支援信用卡、支付寶、微信支付。",
       comingSoon: "即將推出",
+      loginToSubscribe: "登入後購買",
       loading: "載入中...",
       billingTitle: "帳單條款",
       billingBody: "價格以人民幣列出，可能會依你的所在地收取稅費。付款、發票和訂單管理由 Stripe 安全處理。",

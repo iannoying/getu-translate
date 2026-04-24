@@ -1131,6 +1131,7 @@ billing:
     providerPaddle: Paddle
     loading: Loading...
     comingSoon: Coming soon
+    loginToSubscribe: Log in to subscribe
     priceUsdMonthly: $$5/mo
     priceUsdYearly: $$50/yr
     priceCnyMonthly: ¥29/月

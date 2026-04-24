@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { orpcClient } from "@/lib/orpc-client"
+import { authClient } from "@/lib/auth-client"
 import type { Locale } from "@/lib/i18n/locales"
 import type { Messages } from "@/lib/i18n/messages"
 import { SITE_ORIGIN } from "@/lib/i18n/routing"
@@ -27,11 +29,15 @@ export function UpgradeButton({
   const [enabled, setEnabled] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const { data: session, isPending: sessionLoading } = authClient.useSession()
+  const pathname = usePathname()
+
   useEffect(() => {
+    if (!session) return
     orpcClient.billing.getEntitlements({})
       .then(ent => setEnabled(ent.billingEnabled))
       .catch(() => setEnabled(false))
-  }, [])
+  }, [session])
 
   async function onClick() {
     setLoading(true)
@@ -50,6 +56,19 @@ export function UpgradeButton({
       setError(err instanceof Error ? err.message : errors.checkoutFailed)
       setLoading(false)
     }
+  }
+
+  if (sessionLoading) {
+    return <button className="button primary" disabled>{priceMessages.loading}</button>
+  }
+
+  if (!session) {
+    const redirectTarget = encodeURIComponent(pathname)
+    return (
+      <a className="button primary" href={`/${locale}/log-in?redirect=${redirectTarget}`}>
+        {priceMessages.loginToSubscribe}
+      </a>
+    )
   }
 
   if (!enabled) {

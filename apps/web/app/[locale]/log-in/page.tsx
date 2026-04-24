@@ -1,6 +1,7 @@
 "use client"
 
 import { use, useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
 import { PageHero, SiteShell } from "@/app/components"
 import { getMessages } from "@/lib/i18n/messages"

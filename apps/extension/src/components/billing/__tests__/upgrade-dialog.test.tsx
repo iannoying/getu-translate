@@ -106,6 +106,7 @@ describe("upgradeDialog", () => {
   })
 
   it("shows coming soon button when billingEnabled is false", () => {
+    useSessionMock.mockReturnValue({ data: { user: { id: "u1" } }, isPending: false })
     useEntitlementsMock.mockReturnValue({ data: FREE_ENTITLEMENTS, isLoading: false, isFromCache: false })
 
     render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
@@ -116,6 +117,7 @@ describe("upgradeDialog", () => {
   })
 
   it("shows cTA upgrade button when billingEnabled is true", () => {
+    useSessionMock.mockReturnValue({ data: { user: { id: "u1" } }, isPending: false })
     useEntitlementsMock.mockReturnValue({ data: BILLING_ENABLED_FREE, isLoading: false, isFromCache: false })
 
     render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
@@ -125,6 +127,7 @@ describe("upgradeDialog", () => {
   })
 
   it("calls startCheckout with yearly plan and usd currency when cTA is clicked", async () => {
+    useSessionMock.mockReturnValue({ data: { user: { id: "u1" } }, isPending: false })
     useEntitlementsMock.mockReturnValue({ data: BILLING_ENABLED_FREE, isLoading: false, isFromCache: false })
 
     render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)
@@ -137,6 +140,7 @@ describe("upgradeDialog", () => {
   })
 
   it("calls startCheckout with monthly plan when plan is switched then cTA clicked", async () => {
+    useSessionMock.mockReturnValue({ data: { user: { id: "u1" } }, isPending: false })
     useEntitlementsMock.mockReturnValue({ data: BILLING_ENABLED_FREE, isLoading: false, isFromCache: false })
 
     render(<UpgradeDialog open={true} onOpenChange={vi.fn()} />)

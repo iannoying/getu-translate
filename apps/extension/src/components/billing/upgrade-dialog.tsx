@@ -1,5 +1,6 @@
 import type { ReactElement } from "react"
 import { i18n } from "#i18n"
+import { browser } from "#imports"
 import { useState } from "react"
 import { Button } from "@/components/ui/base-ui/button"
 import {
@@ -15,6 +16,7 @@ import {
 import { useCheckout } from "@/hooks/use-checkout"
 import { useEntitlements } from "@/hooks/use-entitlements"
 import { authClient } from "@/utils/auth/auth-client"
+import { WEBSITE_URL } from "@/utils/constants/url"
 
 type Plan = "pro_monthly" | "pro_yearly"
 type Currency = "usd" | "cny"
@@ -97,17 +99,23 @@ export function UpgradeDialog({ trigger, open, onOpenChange }: UpgradeDialogProp
           <DialogClose render={<Button variant="outline" />}>
             {i18n.t("billing.upgrade.close")}
           </DialogClose>
-          {billingEnabled
+          {userId == null
             ? (
-                <Button onClick={handleUpgrade} disabled={isLoading}>
-                  {isLoading ? i18n.t("billing.upgrade.loading") : ctaLabel}
+                <Button onClick={() => browser.tabs.create({ url: `${WEBSITE_URL}/log-in?redirect=/` })}>
+                  {i18n.t("billing.upgrade.loginToSubscribe")}
                 </Button>
               )
-            : (
-                <Button disabled>
-                  {i18n.t("billing.upgrade.comingSoon")}
-                </Button>
-              )}
+            : billingEnabled
+              ? (
+                  <Button onClick={handleUpgrade} disabled={isLoading}>
+                    {isLoading ? i18n.t("billing.upgrade.loading") : ctaLabel}
+                  </Button>
+                )
+              : (
+                  <Button disabled>
+                    {i18n.t("billing.upgrade.comingSoon")}
+                  </Button>
+                )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
