@@ -2,8 +2,11 @@ import { i18n } from "#imports"
 import { getDefaultStore, useAtomValue } from "jotai"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
+import { useEntitlements } from "@/hooks/use-entitlements"
 import { isTranslateProviderConfig } from "@/types/config/provider"
+import { isPro } from "@/types/entitlements"
 import { configAtom } from "@/utils/atoms/config"
+import { authClient } from "@/utils/auth/auth-client"
 import { filterEnabledProvidersConfig } from "@/utils/config/helpers"
 import { addWord, canAddWord, updateWordTranslation } from "@/utils/db/dexie/words"
 import { translateTextCore } from "@/utils/host/translate/translate-text"
@@ -11,6 +14,7 @@ import { selectionContentAtom, selectionSessionAtom } from "../atoms"
 
 export function useSaveWord() {
   const [saved, setSaved] = useState(false)
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
   const selectionContent = useAtomValue(selectionContentAtom)
   const selectionSession = useAtomValue(selectionSessionAtom)
 
@@ -18,14 +22,19 @@ export function useSaveWord() {
     setSaved(false)
   }, [selectionContent])
 
+  const session = authClient.useSession()
+  const userId = session?.data?.user?.id ?? null
+  const { data: entitlements } = useEntitlements(userId)
+  const isProUser = isPro(entitlements)
+
   const handleSave = useCallback(async () => {
     if (!selectionContent) {
       return
     }
 
-    const allowed = await canAddWord()
+    const allowed = await canAddWord(isProUser)
     if (!allowed) {
-      toast.error(i18n.t("wordbook.limitReached"))
+      setUpgradeOpen(true)
       return
     }
 
@@ -66,11 +75,13 @@ export function useSaveWord() {
         console.warn("[wordbook] background translation failed", error)
       }
     })()
-  }, [selectionContent, selectionSession])
+  }, [selectionContent, selectionSession, isProUser])
 
   return {
+    save: handleSave,
     saved,
-    selectionContent,
-    handleSave,
+    hasSelection: Boolean(selectionContent?.trim()),
+    upgradeOpen,
+    setUpgradeOpen,
   }
 }
