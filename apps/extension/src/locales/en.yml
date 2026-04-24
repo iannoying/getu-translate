@@ -29,8 +29,6 @@ popup:
     dueTooltip: $1 words due for review
   hub:
     tooltip: Translate text with multiple models simultaneously
-  discord:
-    tooltip: Join Discord to connect with developers and get early access to new features
   blog:
     notification: What's new in GetU Translate
   aiSmartContext: AI Smart Context
@@ -38,9 +36,6 @@ popup:
   more:
     title: More
     translationHub: Translation Hub
-    joinDiscord: Join Discord
-    joinWechat: Join WeChat Group
-    starGithub: Star on Github
     rateUs: Rate Us
     ebook: Third-party E-book Reader
     tutorial: Tutorial

@@ -29,8 +29,6 @@ popup:
     dueTooltip: $1語が復習待ち
   hub:
     tooltip: 複数の翻訳モデルで同時にテキストを翻訳
-  discord:
-    tooltip: Discordに参加して開発者とつながり、新機能を先行体験しましょう
   blog:
     notification: GetU 翻訳の最新情報
   aiSmartContext: AI スマートコンテキスト
@@ -38,9 +36,6 @@ popup:
   more:
     title: その他
     translationHub: 翻訳ハブ
-    joinDiscord: Discordに参加
-    joinWechat: WeChatグループに参加
-    starGithub: Githubでスター
     rateUs: レビューを書く
     ebook: サードパーティ電子書籍リーダー
     tutorial: 使い方ガイド

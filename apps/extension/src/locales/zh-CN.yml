@@ -29,8 +29,6 @@ popup:
     dueTooltip: $1 个词待复习
   hub:
     tooltip: 一次性调用多个翻译模型翻译文本
-  discord:
-    tooltip: 加入 Discord 与开发者交流，抢先体验新功能
   blog:
     notification: 懂你翻译更新动态
   aiSmartContext: AI 智能上下文
@@ -38,9 +36,6 @@ popup:
   more:
     title: 更多
     translationHub: 翻译中心
-    joinDiscord: 加入 Discord
-    joinWechat: 加入微信群
-    starGithub: Github 加星
     rateUs: 好评支持
     ebook: 第三方电子书阅读器
     tutorial: 使用教程
