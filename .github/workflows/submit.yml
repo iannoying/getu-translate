@@ -46,15 +46,15 @@ jobs:
           WXT_POSTHOG_HOST: ${{ secrets.WXT_POSTHOG_HOST || vars.WXT_POSTHOG_HOST }}
 
       - name: Upload Extension Zip to Release
-        run: gh release upload "${{ inputs.tag }}" apps/extension/.output/*-chrome.zip --clobber
+        run: gh release upload "${{ inputs.tag }}" apps/extension/output/*-chrome.zip --clobber
         env:
           GH_TOKEN: ${{ github.token }}
 
       - name: Submit to Chrome & Edge Stores
         run: |
           pnpm wxt submit \
-            --chrome-zip apps/extension/.output/*-chrome.zip \
-            --edge-zip apps/extension/.output/*-chrome.zip
+            --chrome-zip apps/extension/output/*-chrome.zip \
+            --edge-zip apps/extension/output/*-chrome.zip
         env:
           DRY_RUN: ${{ inputs.dryRun }}
           CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
