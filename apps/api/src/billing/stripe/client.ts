@@ -106,6 +106,11 @@ export function createStripeClient({ apiKey, baseUrl }: StripeClientOpts) {
       input.paymentMethodTypes.forEach((m, i) => {
         params[`payment_method_types[${i}]`] = m
       })
+      // WeChat Pay in a web-based Stripe Checkout requires specifying the
+      // client as "web" so Stripe renders the QR code flow correctly.
+      if (input.paymentMethodTypes.includes("wechat_pay")) {
+        params["payment_method_options[wechat_pay][client]"] = "web"
+      }
       const body = encodeForm(params)
       const resp = await call<{ id: string; url: string }>("/v1/checkout/sessions", body)
       return { sessionId: resp.id, checkoutUrl: resp.url }
