@@ -1,6 +1,7 @@
 import "@/utils/zod-config"
 import { defineContentScript } from "#imports"
 import { getLocalConfig } from "@/utils/config/storage"
+import { hydrateI18nFromStorage } from "@/utils/i18n"
 
 declare global {
   interface Window {
@@ -31,6 +32,10 @@ export default defineContentScript({
     ctx.onInvalidated(() => {
       window.__READ_FROG_SUBTITLES_INJECTED__ = false
     })
+
+    // Prime the i18n module so subtitle-UI `i18n.t()` calls resolve against
+    // the user-chosen locale on first paint rather than the default detection.
+    await hydrateI18nFromStorage()
 
     const { bootstrapSubtitlesRuntime } = await import("./runtime")
     await bootstrapSubtitlesRuntime()

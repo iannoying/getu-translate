@@ -1,5 +1,4 @@
 import type { SubtitlesDisplayMode, SubtitlesTranslationPosition } from "@/types/config/subtitles"
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react"
 import { deepmerge } from "deepmerge-ts"
 import { useAtom } from "jotai"
@@ -12,6 +11,7 @@ import { Slider } from "@/components/ui/base-ui/slider"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/base-ui/tooltip"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { DEFAULT_BACKGROUND_OPACITY, DEFAULT_DISPLAY_MODE, DEFAULT_TRANSLATION_POSITION, MAX_BACKGROUND_OPACITY, MIN_BACKGROUND_OPACITY } from "@/utils/constants/subtitles"
+import { i18n } from "@/utils/i18n"
 
 const SLIDER_ROW_CLASS_NAME = "gap-0"
 const SLIDER_ROW_CONTENT_CLASS_NAME = "flex flex-col gap-2 @xs/field-group:grid @xs/field-group:grid-cols-[12rem_minmax(0,1fr)] @xs/field-group:items-center @xs/field-group:gap-x-4"

@@ -1,4 +1,3 @@
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react/dist/iconify.js"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
@@ -10,6 +9,7 @@ import { configAtom } from "@/utils/atoms/config"
 import { addBackup, getAllBackupsWithMetadata } from "@/utils/backup/storage"
 import { EXTENSION_VERSION } from "@/utils/constants/app"
 import { MAX_BACKUPS_COUNT } from "@/utils/constants/backup"
+import { i18n } from "@/utils/i18n"
 import { queryClient } from "@/utils/tanstack-query"
 import { BackupConfigItem } from "./components/backup-config-item"
 

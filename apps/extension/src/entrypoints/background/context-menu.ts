@@ -1,10 +1,13 @@
 import type { Browser } from "#imports"
 import type { Config } from "@/types/config/config"
-import { browser, i18n, storage } from "#imports"
+import type { UILocalePreference } from "@/utils/i18n"
+import { browser, storage } from "#imports"
 import { ANALYTICS_FEATURE, ANALYTICS_SURFACE } from "@/types/analytics"
 import { createFeatureUsageContext } from "@/utils/analytics"
 import { CONFIG_STORAGE_KEY } from "@/utils/constants/config"
 import { getTranslationStateKey, TRANSLATION_STATE_KEY_PREFIX } from "@/utils/constants/storage-keys"
+import { hydrateI18nFromStorage, i18n } from "@/utils/i18n"
+import { UI_LOCALE_STORAGE_KEY } from "@/utils/i18n/storage-keys"
 import { sendMessage } from "@/utils/message"
 import { ensureInitializedConfig } from "./config"
 
@@ -26,6 +29,20 @@ export function registerContextMenuListeners() {
   storage.watch<Config>(`local:${CONFIG_STORAGE_KEY}`, async (newConfig) => {
     if (newConfig) {
       await updateContextMenuItems(newConfig)
+    }
+  })
+
+  // Listen for UI locale changes so the context menu titles re-render in the
+  // newly chosen language. Without this, a user who switches UI language in
+  // Options would keep seeing the old-locale titles until the extension is
+  // reinstalled or the config is otherwise touched.
+  storage.watch<UILocalePreference>(`local:${UI_LOCALE_STORAGE_KEY}`, async () => {
+    // Refresh the module-level `currentLocale` used by `i18n.t()` in this
+    // background instance before we recreate the menu items.
+    await hydrateI18nFromStorage()
+    const config = await ensureInitializedConfig()
+    if (config) {
+      await updateContextMenuItems(config)
     }
   })
 
@@ -80,6 +97,10 @@ export async function initializeContextMenu() {
     return
   }
 
+  // Prime the i18n locale from storage so `i18n.t()` in `updateContextMenuItems`
+  // resolves against the user's chosen UI locale on first paint, not the
+  // browser-detected default.
+  await hydrateI18nFromStorage()
   await updateContextMenuItems(config)
 }
 

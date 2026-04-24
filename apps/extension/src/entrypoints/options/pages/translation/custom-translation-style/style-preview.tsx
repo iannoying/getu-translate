@@ -1,4 +1,3 @@
-import { i18n } from "#imports"
 import { LANG_CODE_ISO6391_OPTIONS } from "@getu/definitions"
 import { useAtomValue } from "jotai"
 import { useEffect, useRef, useState } from "react"
@@ -8,6 +7,7 @@ import { Textarea } from "@/components/ui/base-ui/textarea"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { BLOCK_CONTENT_CLASS, CONTENT_WRAPPER_CLASS } from "@/utils/constants/dom-labels"
 import { decorateTranslationNode } from "@/utils/host/translate/ui/decorate-translation"
+import { i18n } from "@/utils/i18n"
 
 export function StylePreview() {
   const { translationNodeStyle } = useAtomValue(configFieldsAtomMap.translate)

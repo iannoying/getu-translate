@@ -1,5 +1,4 @@
 import type { LangCodeISO6393 } from "@getu/definitions"
-import { i18n } from "#imports"
 import {
   LANG_CODE_TO_EN_NAME,
   LANG_CODE_TO_LOCALE_NAME,
@@ -9,6 +8,7 @@ import { useAtom } from "jotai"
 import { MultiLanguageCombobox } from "@/components/multi-language-combobox"
 import { Button } from "@/components/ui/base-ui/button"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
+import { i18n } from "@/utils/i18n"
 import { ConfigCard } from "../../components/config-card"
 
 export function SkipLanguages() {

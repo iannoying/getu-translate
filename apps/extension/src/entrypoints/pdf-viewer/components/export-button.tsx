@@ -1,3 +1,7 @@
+import { useAtomValue } from "jotai"
+import { useState } from "react"
+import { hasFeature, isPro } from "@/types/entitlements"
+import { entitlementsAtom } from "@/utils/atoms/entitlements"
 /**
  * Pro-gated "Download bilingual PDF" button (M3 PR#C Task 3).
  *
@@ -15,11 +19,7 @@
  *
  * i18n: labels are sourced from `pdfViewer.export.*` keys (M3 PR#C Task 6).
  */
-import { i18n } from "#imports"
-import { useAtomValue } from "jotai"
-import { useState } from "react"
-import { hasFeature, isPro } from "@/types/entitlements"
-import { entitlementsAtom } from "@/utils/atoms/entitlements"
+import { i18n } from "@/utils/i18n"
 import { exportBilingualPdf } from "../export/pdf-lib-writer"
 
 export interface ExportButtonProps {

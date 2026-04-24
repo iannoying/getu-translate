@@ -1,4 +1,4 @@
-import { browser, i18n } from "#imports"
+import { browser } from "#imports"
 import { Icon } from "@iconify/react"
 import { Link, useLocation } from "react-router"
 import {
@@ -9,6 +9,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/base-ui/sidebar"
+import { i18n } from "@/utils/i18n"
 
 export function ToolsNav() {
   const { pathname } = useLocation()

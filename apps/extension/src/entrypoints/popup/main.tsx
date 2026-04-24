@@ -1,6 +1,7 @@
 import "@/utils/zod-config"
 import type { Config } from "@/types/config/config"
 import type { ThemeMode } from "@/types/config/theme"
+import type { UILocalePreference } from "@/utils/i18n"
 import { browser } from "#imports"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { Provider as JotaiProvider } from "jotai"
@@ -14,6 +15,7 @@ import { configAtom } from "@/utils/atoms/config"
 import { baseThemeModeAtom } from "@/utils/atoms/theme"
 import { getLocalConfig } from "@/utils/config/storage"
 import { DEFAULT_CONFIG } from "@/utils/constants/config"
+import { baseUILocalePreferenceAtom, hydrateI18nFromStorage, I18nReactiveRoot } from "@/utils/i18n"
 import { sendMessage } from "@/utils/message"
 import { renderPersistentReactRoot } from "@/utils/react-root"
 import { queryClient } from "@/utils/tanstack-query"
@@ -37,6 +39,7 @@ function HydrateAtoms({
     [typeof isCurrentSiteInWhitelistAtom, boolean],
     [typeof isCurrentSiteInBlacklistAtom, boolean],
     [typeof baseThemeModeAtom, ThemeMode],
+    [typeof baseUILocalePreferenceAtom, UILocalePreference],
   ]
   children: React.ReactNode
 }) {
@@ -48,13 +51,14 @@ async function initApp() {
   const root = document.getElementById("root")!
   root.className = "text-base antialiased w-[320px] bg-background"
 
-  const [configValue, themeMode, activeTab] = await Promise.all([
+  const [configValue, themeMode, activeTab, uiLocalePref] = await Promise.all([
     getLocalConfig(),
     getLocalThemeMode(),
     browser.tabs.query({
       active: true,
       currentWindow: true,
     }),
+    hydrateI18nFromStorage(),
   ])
   const config = configValue ?? DEFAULT_CONFIG
 
@@ -94,13 +98,16 @@ async function initApp() {
               [isCurrentSiteInWhitelistAtom, isInWhitelist],
               [isCurrentSiteInBlacklistAtom, isInBlacklist],
               [baseThemeModeAtom, themeMode],
+              [baseUILocalePreferenceAtom, uiLocalePref],
             ]}
           >
             <ThemeProvider>
               <TooltipProvider>
                 <FrogToast />
                 <RecoveryBoundary>
-                  <App />
+                  <I18nReactiveRoot>
+                    <App />
+                  </I18nReactiveRoot>
                 </RecoveryBoundary>
               </TooltipProvider>
             </ThemeProvider>

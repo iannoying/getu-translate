@@ -1,5 +1,4 @@
 import type { ReactElement } from "react"
-import { i18n } from "#i18n"
 import { browser } from "#imports"
 import { useState } from "react"
 import { Button } from "@/components/ui/base-ui/button"
@@ -17,6 +16,7 @@ import { useCheckout } from "@/hooks/use-checkout"
 import { useEntitlements } from "@/hooks/use-entitlements"
 import { authClient } from "@/utils/auth/auth-client"
 import { WEBSITE_URL } from "@/utils/constants/url"
+import { i18n } from "@/utils/i18n"
 
 type Plan = "pro_monthly" | "pro_yearly"
 type Currency = "usd" | "cny"

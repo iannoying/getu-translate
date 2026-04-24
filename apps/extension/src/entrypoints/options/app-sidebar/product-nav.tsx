@@ -1,4 +1,3 @@
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
@@ -10,6 +9,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/base-ui/sidebar"
+import { i18n } from "@/utils/i18n"
 import { cn } from "@/utils/styles/utils"
 import { getLastViewedSurvey, hasNewSurvey, saveLastViewedSurvey } from "@/utils/survey"
 import { AnimatedIndicator } from "./animated-indicator"

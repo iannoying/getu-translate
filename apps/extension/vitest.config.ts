@@ -1,3 +1,4 @@
+import yaml from "@rollup/plugin-yaml"
 import react from "@vitejs/plugin-react"
 import { configDefaults, defineConfig } from "vitest/config"
 
@@ -5,7 +6,7 @@ import { WxtVitest } from "wxt/testing"
 
 export default defineConfig({
   // TODO: remove any
-  plugins: [WxtVitest() as any, react()],
+  plugins: [WxtVitest() as any, react(), yaml()],
   test: {
     exclude: [...configDefaults.exclude, "**/.claude/**", "**/repos/**"],
     environment: "node",

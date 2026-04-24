@@ -1,4 +1,3 @@
-import { i18n } from "#imports"
 import { Combobox as ComboboxPrimitive } from "@base-ui/react"
 import { IconChevronDown } from "@tabler/icons-react"
 import { useAtom } from "jotai"
@@ -15,6 +14,7 @@ import {
 } from "@/components/ui/base-ui/combobox"
 import { useSelectionPopoverOverlayProps } from "@/components/ui/selection-popover"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
+import { i18n } from "@/utils/i18n"
 
 export function TargetLanguageSelector() {
   const [language, setLanguage] = useAtom(configFieldsAtomMap.language)

@@ -1,5 +1,4 @@
 import type { TranslatePromptObj } from "@/types/config/translate"
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react"
 import { useAtom, useAtomValue } from "jotai"
 import { useState } from "react"
@@ -18,6 +17,7 @@ import {
 import { QuickInsertableTextarea } from "@/components/ui/insertable-textarea"
 import { DEFAULT_TRANSLATE_PROMPT_ID } from "@/utils/constants/prompt"
 import { getRandomUUID } from "@/utils/crypto-polyfill"
+import { i18n } from "@/utils/i18n"
 import { cn } from "@/utils/styles/utils"
 import { usePromptAtoms, usePromptInsertCells } from "./context"
 

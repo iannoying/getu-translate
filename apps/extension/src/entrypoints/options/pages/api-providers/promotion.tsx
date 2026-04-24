@@ -1,7 +1,7 @@
-import { i18n } from "#imports"
 import { useAtom, useSetAtom } from "jotai"
 import { Button } from "@/components/ui/base-ui/button"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
+import { i18n } from "@/utils/i18n"
 import { cn } from "@/utils/styles/utils"
 import { selectedProviderIdAtom } from "./atoms"
 import { addProvider } from "./utils"

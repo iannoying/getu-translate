@@ -4,12 +4,12 @@ import type {
   BilibiliResolvedTrack,
   BilibiliSubtitleTrack,
 } from "./types"
-import { i18n } from "#imports"
 import {
   BILIBILI_PLAYER_API_URL,
   BILIBILI_VIEW_API_URL,
 } from "@/utils/constants/subtitles"
 import { backgroundFetch } from "@/utils/content-script/background-fetch-client"
+import { i18n } from "@/utils/i18n"
 import { OverlaySubtitlesError } from "@/utils/subtitles/errors"
 import { getBilibiliVideoId } from "@/utils/subtitles/video-id"
 import {

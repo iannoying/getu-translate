@@ -1,7 +1,7 @@
-import { i18n } from "#imports"
 import { useAtom } from "jotai"
 import { Switch } from "@/components/ui/base-ui/switch"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
+import { i18n } from "@/utils/i18n"
 import { ConfigCard } from "../../components/config-card"
 
 export function BetaExperienceConfig() {

@@ -1,5 +1,4 @@
 import type { PromptConfigList } from "./utils/prompt-file"
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react/dist/iconify.js"
 import { useAtom } from "jotai"
 import { useId } from "react"
@@ -8,6 +7,7 @@ import { Button } from "@/components/ui/base-ui/button"
 import { Input } from "@/components/ui/base-ui/input"
 import { Label } from "@/components/ui/base-ui/label"
 import { getRandomUUID } from "@/utils/crypto-polyfill"
+import { i18n } from "@/utils/i18n"
 import { usePromptAtoms } from "./context"
 import { analysisJSONFile } from "./utils/prompt-file"
 

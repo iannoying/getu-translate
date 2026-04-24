@@ -1,6 +1,5 @@
 import type { APIProviderConfig, LLMProviderTypes } from "@/types/config/provider"
 import type { ConnectionOptionFieldDef } from "@/utils/constants/providers"
-import { i18n } from "#imports"
 import { useStore } from "@tanstack/react-form"
 import { useEffect, useEffectEvent, useMemo, useState } from "react"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/base-ui/field"
@@ -9,6 +8,7 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { isLLMProvider } from "@/types/config/provider"
 import { compactObject } from "@/types/utils"
 import { PROVIDER_CONNECTION_OPTIONS_FIELDS } from "@/utils/constants/providers"
+import { i18n } from "@/utils/i18n"
 import { withForm } from "./form"
 
 export const ConnectionOptionsField = withForm({

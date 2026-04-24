@@ -1,6 +1,7 @@
 import "@/utils/zod-config"
 import type { ContentScriptContext } from "#imports"
 import type { ThemeMode } from "@/types/config/theme"
+import type { UILocalePreference } from "@/utils/i18n"
 import { createShadowRootUi, defineContentScript } from "#imports"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { kebabCase } from "case-anything"
@@ -12,6 +13,7 @@ import { TooltipProvider } from "@/components/ui/base-ui/tooltip"
 import { baseThemeModeAtom } from "@/utils/atoms/theme"
 import { getLocalConfig } from "@/utils/config/storage"
 import { APP_NAME } from "@/utils/constants/app"
+import { baseUILocalePreferenceAtom, hydrateI18nFromStorage, I18nReactiveRoot } from "@/utils/i18n"
 import { ensureIconifyBackgroundFetch } from "@/utils/iconify/setup-background-fetch"
 import { protectSelectAllShadowRoot } from "@/utils/select-all"
 import { insertShadowRootUIWrapperInto } from "@/utils/shadow-root"
@@ -26,7 +28,10 @@ function HydrateAtoms({
   initialValues,
   children,
 }: {
-  initialValues: [[typeof baseThemeModeAtom, ThemeMode]]
+  initialValues: [
+    [typeof baseThemeModeAtom, ThemeMode],
+    [typeof baseUILocalePreferenceAtom, UILocalePreference],
+  ]
   children: React.ReactNode
 }) {
   useHydrateAtoms(initialValues)
@@ -51,7 +56,10 @@ declare global {
 async function mountSelectionUI(ctx: ContentScriptContext) {
   ensureIconifyBackgroundFetch()
 
-  const themeMode = await getLocalThemeMode()
+  const [themeMode, uiLocalePref] = await Promise.all([
+    getLocalThemeMode(),
+    hydrateI18nFromStorage(),
+  ])
 
   const ui = await createShadowRootUi(ctx, {
     name: `${kebabCase(APP_NAME)}-selection`,
@@ -68,10 +76,17 @@ async function mountSelectionUI(ctx: ContentScriptContext) {
       root.render(
         <QueryClientProvider client={queryClient}>
           <JotaiProvider>
-            <HydrateAtoms initialValues={[[baseThemeModeAtom, themeMode]]}>
+            <HydrateAtoms
+              initialValues={[
+                [baseThemeModeAtom, themeMode],
+                [baseUILocalePreferenceAtom, uiLocalePref],
+              ]}
+            >
               <ThemeProvider container={wrapper}>
                 <TooltipProvider>
-                  <App uiContainer={container} />
+                  <I18nReactiveRoot>
+                    <App uiContainer={container} />
+                  </I18nReactiveRoot>
                 </TooltipProvider>
               </ThemeProvider>
             </HydrateAtoms>

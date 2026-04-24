@@ -1,11 +1,11 @@
 import type { SelectionToolbarCustomAction } from "@/types/config/selection-toolbar"
-import { i18n } from "#imports"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/base-ui/button"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { authClient } from "@/utils/auth/auth-client"
+import { i18n } from "@/utils/i18n"
 import {
   buildNotebaseRowCells,
   isORPCNotFoundError,

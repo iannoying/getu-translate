@@ -1,5 +1,6 @@
 import type { Config } from "@/types/config/config"
 import type { ThemeMode } from "@/types/config/theme"
+import type { UILocalePreference } from "@/utils/i18n"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { Provider as JotaiProvider } from "jotai"
 import { useHydrateAtoms } from "jotai/utils"
@@ -12,6 +13,7 @@ import { configAtom } from "@/utils/atoms/config"
 import { baseThemeModeAtom } from "@/utils/atoms/theme"
 import { getLocalConfig } from "@/utils/config/storage"
 import { DEFAULT_CONFIG } from "@/utils/constants/config"
+import { baseUILocalePreferenceAtom, hydrateI18nFromStorage, I18nReactiveRoot } from "@/utils/i18n"
 import { renderPersistentReactRoot } from "@/utils/react-root"
 import { queryClient } from "@/utils/tanstack-query"
 import { applyTheme, getLocalThemeMode, isDarkMode } from "@/utils/theme"
@@ -22,6 +24,7 @@ interface HydrateAtomsProps {
   initialValues: [
     [typeof configAtom, Config],
     [typeof baseThemeModeAtom, ThemeMode],
+    [typeof baseUILocalePreferenceAtom, UILocalePreference],
   ]
   children: React.ReactNode
 }
@@ -35,9 +38,10 @@ async function initApp() {
   const root = document.getElementById("root")!
   root.className = "text-base antialiased min-h-screen bg-background"
 
-  const [configValue, themeMode] = await Promise.all([
+  const [configValue, themeMode, uiLocalePref] = await Promise.all([
     getLocalConfig(),
     getLocalThemeMode(),
+    hydrateI18nFromStorage(),
   ])
   const config = configValue ?? DEFAULT_CONFIG
 
@@ -47,12 +51,14 @@ async function initApp() {
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
         <JotaiProvider>
-          <HydrateAtoms initialValues={[[configAtom, config], [baseThemeModeAtom, themeMode]]}>
+          <HydrateAtoms initialValues={[[configAtom, config], [baseThemeModeAtom, themeMode], [baseUILocalePreferenceAtom, uiLocalePref]]}>
             <ThemeProvider>
               <TooltipProvider>
-                <App />
-                <FrogToast />
-                <HelpButton />
+                <I18nReactiveRoot>
+                  <App />
+                  <FrogToast />
+                  <HelpButton />
+                </I18nReactiveRoot>
               </TooltipProvider>
             </ThemeProvider>
           </HydrateAtoms>

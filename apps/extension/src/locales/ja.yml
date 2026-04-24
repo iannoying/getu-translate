@@ -57,6 +57,8 @@ errorRecovery:
     confirm: リセット
     cancel: キャンセル
 options:
+  loading: 設定を読み込み中...
+  documentTitle: 設定
   commandPalette:
     placeholder: 設定を検索...
     noResults: 設定が見つかりません
@@ -187,6 +189,10 @@ options:
       system: システム
       light: ライト
       dark: ダーク
+    uiLanguage:
+      title: インターフェース言語
+      description: 拡張機能の表示言語を選択します
+      auto: 自動
     featureProviders:
       title: 機能プロバイダー
       description: 各機能に使用するプロバイダーを選択

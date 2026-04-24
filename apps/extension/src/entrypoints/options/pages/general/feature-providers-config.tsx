@@ -1,6 +1,5 @@
 import type { ProviderConfig } from "@/types/config/provider"
 import type { FeatureKey } from "@/utils/constants/feature-providers"
-import { i18n } from "#imports"
 import { useAtomValue, useSetAtom } from "jotai"
 import { useMemo } from "react"
 import ProviderSelector from "@/components/llm-providers/provider-selector"
@@ -10,6 +9,7 @@ import { configAtom, configFieldsAtomMap, writeConfigAtom } from "@/utils/atoms/
 import { featureProviderConfigAtom } from "@/utils/atoms/provider"
 import { filterEnabledProvidersConfig, getProviderConfigById } from "@/utils/config/helpers"
 import { buildFeatureProviderPatch, FEATURE_PROVIDER_DEFS, getFeatureLabelI18nKey } from "@/utils/constants/feature-providers"
+import { i18n } from "@/utils/i18n"
 import { ConfigCard } from "../../components/config-card"
 import { SetApiKeyWarning } from "../../components/set-api-key-warning"
 

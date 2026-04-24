@@ -1,5 +1,4 @@
 import type { ConfigBackup, ConfigBackupMetadata } from "@/types/backup"
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react/dist/iconify.js"
 import { useMutation } from "@tanstack/react-query"
 import { useAtomValue, useSetAtom } from "jotai"
@@ -27,6 +26,7 @@ import { addBackup, isSameAsLatestBackup, removeBackup } from "@/utils/backup/st
 import { migrateConfig } from "@/utils/config/migration"
 import { EXTENSION_VERSION } from "@/utils/constants/app"
 import { CONFIG_SCHEMA_VERSION } from "@/utils/constants/config"
+import { i18n } from "@/utils/i18n"
 import { queryClient } from "@/utils/tanstack-query"
 import { ViewConfig } from "../../components/view-config"
 

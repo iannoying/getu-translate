@@ -1,5 +1,4 @@
 import type { APIProviderConfig } from "@/types/config/provider"
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react"
 import { useMutation } from "@tanstack/react-query"
 import { useEffect } from "react"
@@ -8,6 +7,7 @@ import { Button } from "@/components/ui/base-ui/button"
 import { getObjectWithoutAPIKeys } from "@/utils/config/api"
 import { DEFAULT_CONFIG } from "@/utils/constants/config"
 import { executeTranslate } from "@/utils/host/translate/execute-translate"
+import { i18n } from "@/utils/i18n"
 import { getTranslatePrompt } from "@/utils/prompts/translate"
 
 function ConnectionSuccessIcon() {

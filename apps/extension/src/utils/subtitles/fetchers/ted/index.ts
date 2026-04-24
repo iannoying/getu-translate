@@ -1,12 +1,12 @@
 import type { SubtitlesFragment } from "../../types"
 import type { SubtitlesFetcher } from "../types"
 import type { TedCue, TedResolvedTrack } from "./types"
-import { i18n } from "#imports"
 import {
   TED_FINAL_CUE_DURATION_MS,
   TED_TRANSCRIPT_API_BASE,
 } from "@/utils/constants/subtitles"
 import { backgroundFetch } from "@/utils/content-script/background-fetch-client"
+import { i18n } from "@/utils/i18n"
 import { OverlaySubtitlesError } from "@/utils/subtitles/errors"
 import { getTedTalkSlug } from "@/utils/subtitles/video-id"
 import { tedTranscriptResponseSchema } from "./types"

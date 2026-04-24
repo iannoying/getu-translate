@@ -1,6 +1,5 @@
 import type { Config } from "@/types/config/config"
 import type { ProvidersConfig } from "@/types/config/provider"
-import { i18n } from "#imports"
 import { useStore } from "@tanstack/react-form"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { useEffect, useState } from "react"
@@ -27,6 +26,7 @@ import {
   findFeatureMissingProvider,
 } from "@/utils/config/helpers"
 import { buildFeatureProviderPatch } from "@/utils/constants/feature-providers"
+import { i18n } from "@/utils/i18n"
 import { cn } from "@/utils/styles/utils"
 import { selectedProviderIdAtom } from "../atoms"
 import { APIKeyField } from "./api-key-field"

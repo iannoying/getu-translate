@@ -1,12 +1,12 @@
 import type { SubtitlesFragment } from "../../types"
 import type { SubtitlesFetcher } from "../types"
 import type { XResolvedTrack, XTextTrackLike, XVttCueLike } from "./types"
-import { i18n } from "#imports"
 import {
   X_TEXTTRACKS_POLL_INTERVAL_MS,
   X_TEXTTRACKS_POLL_TIMEOUT_MS,
   X_VIDEO_SELECTOR,
 } from "@/utils/constants/subtitles"
+import { i18n } from "@/utils/i18n"
 import { OverlaySubtitlesError } from "@/utils/subtitles/errors"
 import { getXTweetId } from "@/utils/subtitles/video-id"
 

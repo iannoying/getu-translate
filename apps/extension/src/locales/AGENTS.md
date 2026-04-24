@@ -39,7 +39,7 @@ None.
 ### Working In This Directory
 
 - Add new keys to `en.yml` first, then mirror the key path into every other locale (missing keys fall back to English at runtime but ship as visible English strings — that's a UX bug).
-- Look up keys with `i18n.t("path.to.key")` after `import { i18n } from "#imports"`. Never construct the key path with template literals — `@wxt-dev/i18n`'s codegen relies on static literal arguments for type-checking.
+- Look up keys with `i18n.t("path.to.key")` after `import { i18n } from "@/utils/i18n"`. (The legacy `#imports` / `#i18n` paths were migrated; do not reintroduce them.) Never construct the key path with template literals — `@wxt-dev/i18n`'s codegen still powers the `GeneratedI18nStructure` type, which relies on static literal arguments for type-checking.
 - Preserve the `%s` placeholder in `contextMenu.translateSelection` (Chrome substitutes the selected text) and any other ICU-style placeholders verbatim.
 - File format is YAML, not JSON — keep two-space indentation and avoid tabs. Quoted strings are needed only when the value starts with a YAML special char (`{`, `[`, `:`, `#`, `?`, `&`, `*`, `!`, `|`, `>`, `'`, `"`, `%`, `@`).
 - The locale code in the filename (`zh-CN`, `zh-TW`, `pt-BR`, etc.) is what Chrome's `chrome.i18n.getUILanguage()` returns; do not rename existing files without updating the WXT i18n manifest.

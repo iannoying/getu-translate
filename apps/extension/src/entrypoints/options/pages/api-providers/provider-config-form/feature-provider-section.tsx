@@ -1,5 +1,4 @@
 import type { APIProviderConfig } from "@/types/config/provider"
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react"
 import { useStore } from "@tanstack/react-form"
 import { useAtomValue, useSetAtom } from "jotai"
@@ -9,6 +8,7 @@ import { Switch } from "@/components/ui/base-ui/switch"
 import { isLLMProvider } from "@/types/config/provider"
 import { configAtom, writeConfigAtom } from "@/utils/atoms/config"
 import { buildFeatureProviderPatch, FEATURE_KEYS, FEATURE_PROVIDER_DEFS, getFeatureLabelI18nKey } from "@/utils/constants/feature-providers"
+import { i18n } from "@/utils/i18n"
 import { cn } from "@/utils/styles/utils"
 import { withForm } from "./form"
 

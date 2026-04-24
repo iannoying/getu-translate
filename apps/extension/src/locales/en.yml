@@ -57,6 +57,8 @@ errorRecovery:
     confirm: Reset
     cancel: Cancel
 options:
+  loading: Loading settings...
+  documentTitle: Settings
   commandPalette:
     placeholder: Search settings...
     noResults: No settings found
@@ -191,6 +193,10 @@ options:
       system: System
       light: Light
       dark: Dark
+    uiLanguage:
+      title: Interface language
+      description: Choose the display language for the extension UI
+      auto: Auto
     featureProviders:
       title: Feature Providers
       description: Choose which provider to use for each feature

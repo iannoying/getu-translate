@@ -1,5 +1,4 @@
 import type { JSONValue } from "ai"
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react"
 import { dequal } from "dequal"
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
@@ -13,6 +12,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/base-ui/popover"
 import { JSONCodeEditor } from "@/components/ui/json-code-editor"
+import { i18n } from "@/utils/i18n"
 import { getRecommendedProviderOptionsMatch } from "@/utils/providers/options"
 import { cn } from "@/utils/styles/utils"
 

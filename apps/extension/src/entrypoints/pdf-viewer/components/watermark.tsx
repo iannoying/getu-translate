@@ -1,3 +1,6 @@
+import { useAtomValue, useSetAtom } from "jotai"
+import { hasFeature, isPro } from "@/types/entitlements"
+import { entitlementsAtom } from "@/utils/atoms/entitlements"
 /**
  * Free-tier watermark (M3 PR#C Task 4).
  *
@@ -23,10 +26,7 @@
  * one below the export button (`z-index: 10`) so the button stays clickable
  * above the watermark on narrow viewports.
  */
-import { i18n } from "#imports"
-import { useAtomValue, useSetAtom } from "jotai"
-import { hasFeature, isPro } from "@/types/entitlements"
-import { entitlementsAtom } from "@/utils/atoms/entitlements"
+import { i18n } from "@/utils/i18n"
 import { hasAnyTranslatedPageAtom, showPdfUpgradeDialogAtom } from "../atoms"
 
 export function Watermark() {

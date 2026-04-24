@@ -1,12 +1,12 @@
 import type { ItemInstance } from "@headless-tree/core"
 import type { Config } from "@/types/config/config"
-import { i18n } from "#imports"
 import { syncDataLoaderFeature } from "@headless-tree/core"
 import { useTree } from "@headless-tree/react"
 import { useAtomValue } from "jotai"
 import { useMemo } from "react"
 import { Tree, TreeItem, TreeItemLabel } from "@/components/ui/tree"
 import { diffConflictsResultAtom } from "@/utils/atoms/google-drive-sync"
+import { i18n } from "@/utils/i18n"
 import { ConflictField } from "./unresolved-field"
 import { formatValue } from "./utils"
 

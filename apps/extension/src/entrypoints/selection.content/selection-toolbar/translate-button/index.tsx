@@ -1,6 +1,6 @@
-import { i18n } from "#imports"
 import { RiTranslate } from "@remixicon/react"
 import { SelectionPopover } from "@/components/ui/selection-popover"
+import { i18n } from "@/utils/i18n"
 import { SelectionToolbarTooltip } from "../../components/selection-tooltip"
 import { useSelectionTranslationPopover } from "./provider"
 

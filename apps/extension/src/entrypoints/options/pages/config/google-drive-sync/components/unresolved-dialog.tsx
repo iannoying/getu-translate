@@ -1,4 +1,3 @@
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react"
 import { useAtomValue, useSetAtom } from "jotai"
 import { Activity, useMemo, useState } from "react"
@@ -24,6 +23,7 @@ import {
   unresolvedConfigsAtom,
 } from "@/utils/atoms/google-drive-sync"
 import { syncMergedConfig } from "@/utils/google-drive/sync"
+import { i18n } from "@/utils/i18n"
 import { logger } from "@/utils/logger"
 import { JsonTreeView } from "./json-tree-view"
 

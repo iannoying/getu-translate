@@ -1,4 +1,5 @@
 import process from "node:process"
+import yaml from "@rollup/plugin-yaml"
 import { defineConfig } from "wxt"
 
 const WXT_API_KEY_PATTERN = /^WXT_.*API_KEY/
@@ -92,6 +93,7 @@ export default defineConfig({
   },
   vite: configEnv => ({
     plugins: [
+      yaml(),
       {
         name: "escape-raw-noncharacters",
         generateBundle(_, bundle) {

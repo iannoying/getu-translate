@@ -1,4 +1,3 @@
-import { i18n } from "#imports"
 import { useAtom } from "jotai"
 import { useEffect, useMemo, useRef } from "react"
 import { useLocation, useNavigate } from "react-router"
@@ -11,6 +10,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/base-ui/command"
+import { i18n } from "@/utils/i18n"
 import { commandPaletteOpenAtom } from "./atoms"
 import { SEARCH_ITEMS } from "./search-items"
 import {

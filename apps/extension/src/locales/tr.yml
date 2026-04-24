@@ -57,6 +57,8 @@ errorRecovery:
     confirm: Sıfırla
     cancel: İptal
 options:
+  loading: Ayarlar yükleniyor...
+  documentTitle: Ayarlar
   commandPalette:
     placeholder: Ayarları ara...
     noResults: Ayar bulunamadı
@@ -187,6 +189,10 @@ options:
       system: Sistem
       light: Açık
       dark: Koyu
+    uiLanguage:
+      title: Arayüz dili
+      description: Uzantı arayüzünün görüntüleme dilini seçin
+      auto: Otomatik
     featureProviders:
       title: Özellik Sağlayıcıları
       description: Her özellik için kullanılacak sağlayıcıyı seçin
