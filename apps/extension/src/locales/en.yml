@@ -69,6 +69,7 @@ options:
     product: Product
   tools:
     translationHub: Translation Hub
+    wordbook: Wordbook
   setAPIKeyWarning:
     please: Please set API Key on
     page: page

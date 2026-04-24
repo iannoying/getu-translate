@@ -69,6 +69,7 @@ options:
     product: 製品
   tools:
     translationHub: 翻訳ハブ
+    wordbook: 単語帳
   setAPIKeyWarning:
     please: 設定ページで
     page: APIキーを設定してください

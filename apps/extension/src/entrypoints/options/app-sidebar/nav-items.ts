@@ -13,4 +13,6 @@ export const ROUTE_DEFS = [
   ...(import.meta.env.BROWSER === "firefox" ? [] : [{ path: "/tts" }]),
   { path: "/statistics" },
   { path: "/config" },
+  { path: "/wordbook" },
+  { path: "/review" },
 ] as const

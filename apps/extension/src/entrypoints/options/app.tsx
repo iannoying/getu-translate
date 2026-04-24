@@ -19,6 +19,8 @@ const PdfTranslationPage = lazy(() => import("./pages/pdf-translation").then(mod
 const TextToSpeechPage = lazy(() => import("./pages/text-to-speech").then(module => ({ default: module.TextToSpeechPage })))
 const StatisticsPage = lazy(() => import("./pages/statistics").then(module => ({ default: module.StatisticsPage })))
 const ConfigPage = lazy(() => import("./pages/config").then(module => ({ default: module.ConfigPage })))
+const WordbookPage = lazy(() => import("./pages/wordbook").then(module => ({ default: module.WordbookPage })))
+const ReviewPage = lazy(() => import("./pages/review").then(module => ({ default: module.ReviewPage })))
 
 const ROUTE_COMPONENTS: Record<RoutePath, ComponentType> = {
   "/account": AccountPage,
@@ -35,6 +37,8 @@ const ROUTE_COMPONENTS: Record<RoutePath, ComponentType> = {
   "/tts": TextToSpeechPage,
   "/statistics": StatisticsPage,
   "/config": ConfigPage,
+  "/wordbook": WordbookPage,
+  "/review": ReviewPage,
 }
 
 function RouteLoadingFallback() {

@@ -69,6 +69,7 @@ options:
     product: Sản phẩm
   tools:
     translationHub: Trung tâm Dịch thuật
+    wordbook: Từ điển
   setAPIKeyWarning:
     please: Vui lòng đặt API Key trên trang
     page: cài đặt

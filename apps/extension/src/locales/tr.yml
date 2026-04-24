@@ -69,6 +69,7 @@ options:
     product: Ürün
   tools:
     translationHub: Çeviri Merkezi
+    wordbook: Kelime Defteri
   setAPIKeyWarning:
     please: Lütfen API Anahtarını
     page: sayfasında ayarlayın

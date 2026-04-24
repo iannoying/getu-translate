@@ -69,6 +69,7 @@ options:
     product: Продукт
   tools:
     translationHub: Центр переводов
+    wordbook: Словарь
   setAPIKeyWarning:
     please: Пожалуйста, установите API-ключ на странице
     page: настроек

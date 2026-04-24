@@ -69,6 +69,7 @@ options:
     product: 产品
   tools:
     translationHub: 翻译中心
+    wordbook: 生词本
   setAPIKeyWarning:
     please: 请在
     page: 页设置 API Key
