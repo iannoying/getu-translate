@@ -7,6 +7,19 @@ import { SelectionToolbar } from "../index"
 
 const MOCK_SELECTED_TEXT = "Selected Text"
 
+// Mock hooks used by SaveWordButton
+vi.mock("@/hooks/use-entitlements", () => ({
+  useEntitlements: () => ({
+    data: { tier: "free", features: [], quota: {}, expiresAt: null, graceUntil: null, billingEnabled: false, billingProvider: null },
+  }),
+}))
+
+vi.mock("@/utils/auth/auth-client", () => ({
+  authClient: {
+    useSession: () => ({ data: null }),
+  },
+}))
+
 // Mock child components
 vi.mock("../translate-button", () => ({
   TranslateButton: () => null,
