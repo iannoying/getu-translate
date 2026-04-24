@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { authClient } from "@/lib/auth-client"
 import { LOCALE_LABELS, LOCALE_STORAGE_KEY, SUPPORTED_LOCALES, type Locale } from "@/lib/i18n/locales"
 import { localeHref, switchLocalePath } from "@/lib/i18n/routing"
 import type { Messages, PolicySectionMessage } from "@/lib/i18n/messages"
@@ -15,16 +16,21 @@ export function SiteShell({
   locale?: Locale
   messages?: Messages["common"]
 }) {
+  const session = authClient.useSession()
+  const user = session.data?.user
+
   const footerLinks = [
     { href: localeHref(locale, "/price"), label: messages.nav.pricing },
     { href: localeHref(locale, "/terms-and-conditions"), label: messages.nav.terms },
     { href: localeHref(locale, "/privacy"), label: messages.nav.privacy },
     { href: localeHref(locale, "/refund"), label: messages.nav.refunds },
   ]
-  const topNavLinks = [
-    ...footerLinks,
-    { href: localeHref(locale, "/log-in"), label: messages.nav.logIn },
-  ]
+  // Top nav swaps "Log in" for the user's email (linked to /settings) once a session resolves.
+  // While the session is still loading we render the login link so the slot doesn't flash empty.
+  const accountLink = user
+    ? { href: localeHref(locale, "/settings"), label: user.email ?? user.name ?? "" }
+    : { href: localeHref(locale, "/log-in"), label: messages.nav.logIn }
+  const topNavLinks = [...footerLinks, accountLink]
 
   return (
     <main className="site-shell">
