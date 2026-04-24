@@ -1,5 +1,5 @@
 ---
-"@read-frog/extension": patch
+"@getu/extension": patch
 ---
 
 fix(subtitles): support stylized YouTube karaoke parsing and source export

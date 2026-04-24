@@ -1,5 +1,5 @@
 ---
-"@read-frog/extension": patch
+"@getu/extension": patch
 ---
 
 fix: floating button style

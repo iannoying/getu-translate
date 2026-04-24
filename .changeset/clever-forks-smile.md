@@ -1,5 +1,5 @@
 ---
-"@read-frog/extension": patch
+"@getu/extension": patch
 ---
 
 fix: keep floating button close menu aligned after reopening
