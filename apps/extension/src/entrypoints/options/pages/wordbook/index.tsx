@@ -1,6 +1,11 @@
 import type Word from "@/utils/db/dexie/tables/word"
+import { IconDownload } from "@tabler/icons-react"
 import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/base-ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/base-ui/dropdown-menu"
 import { deleteWord, listWords } from "@/utils/db/dexie/words"
+import { downloadCSV } from "@/utils/export/words-csv"
+import { downloadMarkdown } from "@/utils/export/words-markdown"
 
 export function WordbookPage() {
   const [words, setWords] = useState<Word[] | null>(null)
@@ -32,6 +37,20 @@ export function WordbookPage() {
           {words.length}
           )
         </h1>
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+            <IconDownload className="size-4 mr-1.5" strokeWidth={1.6} />
+            Export
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => downloadCSV(words)}>
+              Export as CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => downloadMarkdown(words)}>
+              Export as Markdown
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <div className="divide-y">
         {words.map(w => (
