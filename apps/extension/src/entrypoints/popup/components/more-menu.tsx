@@ -1,4 +1,4 @@
-import { browser, i18n } from "#imports"
+import { browser } from "#imports"
 import { Icon } from "@iconify/react"
 import {
   DropdownMenu,
@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/base-ui/dropdown-menu"
+import { i18n } from "@/utils/i18n"
 import { getReviewUrl } from "@/utils/utils"
 
 export function MoreMenu() {

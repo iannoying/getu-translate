@@ -1,10 +1,10 @@
 import type { SelectionToolbarCustomAction } from "@/types/config/selection-toolbar"
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react"
 import { useStore } from "@tanstack/react-form"
 import { Field, FieldLabel } from "@/components/ui/base-ui/field"
 import { Input } from "@/components/ui/base-ui/input"
 import { ICON_PATTERN } from "@/utils/constants/custom-action"
+import { i18n } from "@/utils/i18n"
 import { withForm } from "./form"
 
 export const IconField = withForm({

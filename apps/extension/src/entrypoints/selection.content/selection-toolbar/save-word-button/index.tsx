@@ -1,6 +1,6 @@
-import { i18n } from "#imports"
 import { IconBookmark, IconBookmarkFilled } from "@tabler/icons-react"
 import { UpgradeDialog } from "@/components/billing/upgrade-dialog"
+import { i18n } from "@/utils/i18n"
 import { SelectionToolbarTooltip } from "../../components/selection-tooltip"
 import { useSaveWord } from "./provider"
 

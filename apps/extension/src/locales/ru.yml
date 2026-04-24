@@ -57,6 +57,8 @@ errorRecovery:
     confirm: Сбросить
     cancel: Отмена
 options:
+  loading: Загрузка настроек...
+  documentTitle: Настройки
   commandPalette:
     placeholder: Поиск настроек...
     noResults: Настройки не найдены
@@ -187,6 +189,10 @@ options:
       system: Системная
       light: Светлая
       dark: Тёмная
+    uiLanguage:
+      title: Язык интерфейса
+      description: Выберите язык отображения расширения
+      auto: Авто
     featureProviders:
       title: Провайдеры функций
       description: Выберите провайдера для каждой функции

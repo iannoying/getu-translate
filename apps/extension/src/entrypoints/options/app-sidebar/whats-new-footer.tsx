@@ -1,4 +1,3 @@
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useCallback, useEffect, useEffectEvent, useState } from "react"
@@ -24,6 +23,7 @@ import {
   saveLastViewedBlogDate,
 } from "@/utils/blog"
 import { WEBSITE_URL } from "@/utils/constants/url"
+import { i18n } from "@/utils/i18n"
 import { version } from "../../../../package.json"
 
 export function WhatsNewFooter() {

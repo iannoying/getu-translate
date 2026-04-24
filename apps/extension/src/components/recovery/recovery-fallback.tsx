@@ -1,4 +1,3 @@
-import { i18n } from "#imports"
 import { IconAlertCircle } from "@tabler/icons-react"
 import { useAtomValue, useSetAtom } from "jotai"
 import { useState } from "react"
@@ -18,6 +17,7 @@ import { Button } from "@/components/ui/base-ui/button"
 import { useExportConfig } from "@/hooks/use-export-config"
 import { configAtom, writeConfigAtom } from "@/utils/atoms/config"
 import { CONFIG_SCHEMA_VERSION, DEFAULT_CONFIG } from "@/utils/constants/config"
+import { i18n } from "@/utils/i18n"
 import { Alert, AlertDescription, AlertTitle } from "../ui/base-ui/alert"
 
 interface RecoveryFallbackProps {

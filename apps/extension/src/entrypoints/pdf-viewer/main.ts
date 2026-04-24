@@ -2,7 +2,6 @@ import type { Paragraph } from "./paragraph/types"
 import type { SegmentKey } from "./translation/atoms"
 import type { EnqueuePolicy } from "./translation/enqueue-policy"
 import type { PdfQuotaGate } from "./translation/pdf-quota-gate"
-import { i18n } from "#imports"
 import { FREE_PDF_PAGES_PER_DAY } from "@getu/definitions"
 import { createStore } from "jotai"
 import { hasFeature, isPro } from "@/types/entitlements"
@@ -20,6 +19,7 @@ import {
   putCachedPage,
   touchCachedPage,
 } from "@/utils/db/dexie/pdf-translations"
+import { hydrateI18nFromStorage, i18n } from "@/utils/i18n"
 import { fingerprintForPdf } from "@/utils/pdf/fingerprint"
 import { hasAnyTranslatedPageAtom, showPdfUpgradeDialogAtom } from "./atoms"
 import { parseSrcParam } from "./parse-src-param"
@@ -147,6 +147,11 @@ const retroEnqueueRef: { current: () => void } = {
 }
 
 async function boot() {
+  // Prime the i18n module before any `i18n.t()` call so the overlay, toast,
+  // upgrade dialog, export button, and watermark all render in the chosen
+  // UI locale on first paint.
+  await hydrateI18nFromStorage()
+
   const src = parseSrcParam(location.search)
   if (!src) {
     document.body.textContent = i18n.t("pdfViewer.error.missingSrc")

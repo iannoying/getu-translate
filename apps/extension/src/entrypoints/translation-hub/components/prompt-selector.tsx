@@ -1,4 +1,3 @@
-import { i18n } from "#imports"
 import { useAtom, useAtomValue } from "jotai"
 import {
   Select,
@@ -11,6 +10,7 @@ import {
 import { isLLMProvider } from "@/types/config/provider"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { DEFAULT_TRANSLATE_PROMPT_ID } from "@/utils/constants/prompt"
+import { i18n } from "@/utils/i18n"
 import { selectedProvidersAtom } from "../atoms"
 
 export function PromptSelector() {

@@ -1,9 +1,10 @@
-import { browser, i18n } from "#imports"
+import { browser } from "#imports"
 import { IconCards } from "@tabler/icons-react"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/base-ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/base-ui/tooltip"
 import { getDueWords } from "@/utils/db/dexie/words"
+import { i18n } from "@/utils/i18n"
 
 export function ReviewEntryButton() {
   const [dueCount, setDueCount] = useState(0)

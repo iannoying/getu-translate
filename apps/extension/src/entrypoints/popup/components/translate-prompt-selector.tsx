@@ -1,4 +1,3 @@
-import { i18n } from "#imports"
 import { useAtom, useAtomValue } from "jotai"
 import { HelpTooltip } from "@/components/help-tooltip"
 import {
@@ -13,6 +12,7 @@ import { isLLMProvider } from "@/types/config/provider"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { featureProviderConfigAtom } from "@/utils/atoms/provider"
 import { DEFAULT_TRANSLATE_PROMPT_ID } from "@/utils/constants/prompt"
+import { i18n } from "@/utils/i18n"
 
 export default function TranslatePromptSelector() {
   const translateProviderConfig = useAtomValue(featureProviderConfigAtom("translate"))

@@ -1,4 +1,3 @@
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react"
 import { useAtomValue, useSetAtom } from "jotai"
 import { Activity, useState } from "react"
@@ -9,6 +8,7 @@ import { resolutionsAtom, unresolvedConfigsAtom } from "@/utils/atoms/google-dri
 import { lastSyncTimeAtom } from "@/utils/atoms/last-sync-time"
 import { clearAccessToken } from "@/utils/google-drive/auth"
 import { syncConfig } from "@/utils/google-drive/sync"
+import { i18n } from "@/utils/i18n"
 import { logger } from "@/utils/logger"
 import { ConfigCard } from "../../../components/config-card"
 import { UnresolvedDialog } from "./components/unresolved-dialog"

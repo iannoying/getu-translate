@@ -1,4 +1,3 @@
-import { i18n } from "#imports"
 import { useAtom, useAtomValue } from "jotai"
 import { useMemo } from "react"
 import ProviderSelector from "@/components/llm-providers/provider-selector"
@@ -11,6 +10,7 @@ import { Label } from "@/components/ui/base-ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/base-ui/radio-group"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { getEnabledLLMProvidersConfig, resolveLanguageDetectionConfigForModeChange } from "@/utils/config/helpers"
+import { i18n } from "@/utils/i18n"
 import { ConfigCard } from "../../components/config-card"
 
 export default function LanguageDetectionConfig() {

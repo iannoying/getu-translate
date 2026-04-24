@@ -1,5 +1,4 @@
 import type { ThemeMode } from "@/types/config/theme"
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react"
 import { useTheme } from "@/components/providers/theme-provider"
 import {
@@ -11,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/base-ui/select"
 import { themeModes } from "@/types/config/theme"
+import { i18n } from "@/utils/i18n"
 import { ConfigCard } from "../../components/config-card"
 
 const MODE_ICON: Record<ThemeMode, string> = {

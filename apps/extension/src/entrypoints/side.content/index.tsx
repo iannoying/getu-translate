@@ -1,6 +1,7 @@
 import "@/utils/zod-config"
 import type { Config } from "@/types/config/config"
 import type { ThemeMode } from "@/types/config/theme"
+import type { UILocalePreference } from "@/utils/i18n"
 import { createShadowRootUi, defineContentScript } from "#imports"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { kebabCase } from "case-anything"
@@ -15,6 +16,7 @@ import { baseThemeModeAtom } from "@/utils/atoms/theme"
 import { getLocalConfig } from "@/utils/config/storage"
 import { APP_NAME } from "@/utils/constants/app"
 import { DEFAULT_CONFIG } from "@/utils/constants/config"
+import { baseUILocalePreferenceAtom, hydrateI18nFromStorage, I18nReactiveRoot } from "@/utils/i18n"
 import { protectSelectAllShadowRoot } from "@/utils/select-all"
 import { insertShadowRootUIWrapperInto } from "@/utils/shadow-root"
 import { isSiteEnabled } from "@/utils/site-control"
@@ -37,6 +39,7 @@ function HydrateAtoms({
   initialValues: [
     [typeof configAtom, Config],
     [typeof baseThemeModeAtom, ThemeMode],
+    [typeof baseUILocalePreferenceAtom, UILocalePreference],
   ]
   children: React.ReactNode
 }) {
@@ -58,7 +61,10 @@ export default defineContentScript({
       return
     }
 
-    const themeMode = await getLocalThemeMode()
+    const [themeMode, uiLocalePref] = await Promise.all([
+      getLocalThemeMode(),
+      hydrateI18nFromStorage(),
+    ])
 
     const ui = await createShadowRootUi(ctx, {
       name: kebabCase(APP_NAME),
@@ -94,11 +100,14 @@ export default defineContentScript({
                 initialValues={[
                   [configAtom, config],
                   [baseThemeModeAtom, themeMode],
+                  [baseUILocalePreferenceAtom, uiLocalePref],
                 ]}
               >
                 <ThemeProvider container={wrapper}>
                   <TooltipProvider>
-                    <App />
+                    <I18nReactiveRoot>
+                      <App />
+                    </I18nReactiveRoot>
                   </TooltipProvider>
                 </ThemeProvider>
               </HydrateAtoms>

@@ -1,4 +1,3 @@
-import { i18n } from "#imports"
 import { useAtom } from "jotai"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -6,6 +5,7 @@ import { Input } from "@/components/ui/base-ui/input"
 import { Label } from "@/components/ui/base-ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/base-ui/radio-group"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
+import { i18n } from "@/utils/i18n"
 import { ConfigCard } from "../../components/config-card"
 
 const MIN_PREFIX = 1

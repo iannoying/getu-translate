@@ -1,4 +1,3 @@
-import { i18n } from "#i18n"
 import { Icon } from "@iconify/react"
 import { useSetAtom } from "jotai"
 import { Badge } from "@/components/ui/base-ui/badge"
@@ -21,6 +20,7 @@ import { entitlementsAtom } from "@/utils/atoms/entitlements"
 import { authClient } from "@/utils/auth/auth-client"
 import { WEBSITE_URL } from "@/utils/constants/url"
 import { deleteCachedEntitlements } from "@/utils/db/dexie/entitlements"
+import { i18n } from "@/utils/i18n"
 import { logger } from "@/utils/logger"
 import { PageLayout } from "../../components/page-layout"
 

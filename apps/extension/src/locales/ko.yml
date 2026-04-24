@@ -57,6 +57,8 @@ errorRecovery:
     confirm: 초기화
     cancel: 취소
 options:
+  loading: 설정 로딩 중...
+  documentTitle: 설정
   commandPalette:
     placeholder: 설정 검색...
     noResults: 설정을 찾을 수 없습니다
@@ -187,6 +189,10 @@ options:
       system: 시스템
       light: 라이트
       dark: 다크
+    uiLanguage:
+      title: 인터페이스 언어
+      description: 확장 프로그램의 표시 언어를 선택하세요
+      auto: 자동
     featureProviders:
       title: 기능 제공업체
       description: 각 기능에 사용할 제공업체를 선택

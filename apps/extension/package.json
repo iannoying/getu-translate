@@ -123,6 +123,7 @@
     "@eslint-react/eslint-plugin": "^3.0.0",
     "@faker-js/faker": "^10.4.0",
     "@iconify/react": "^6.0.2",
+    "@rollup/plugin-yaml": "^4.1.2",
     "@tailwindcss/postcss": "^4.2.2",
     "@tanstack/eslint-plugin-query": "^5.99.0",
     "@tanstack/react-query-devtools": "^5.99.0",

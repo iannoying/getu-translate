@@ -1,4 +1,3 @@
-import { i18n } from "#imports"
 import { Combobox as ComboboxPrimitive } from "@base-ui/react"
 import { Icon } from "@iconify/react"
 import { useMutation } from "@tanstack/react-query"
@@ -13,6 +12,7 @@ import {
   ComboboxList,
 } from "@/components/ui/base-ui/combobox"
 import { extractErrorMessage } from "@/utils/error/extract-message"
+import { i18n } from "@/utils/i18n"
 
 interface ModelsResponse {
   object: string

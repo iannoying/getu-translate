@@ -1,7 +1,7 @@
-import { i18n } from "#imports"
 import * as React from "react"
 import { useEffect, useRef } from "react"
 import { Button } from "@/components/ui/base-ui/button"
+import { i18n } from "@/utils/i18n"
 
 export interface FirstUseToastProps {
   /**

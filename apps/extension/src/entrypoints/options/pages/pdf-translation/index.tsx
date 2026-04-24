@@ -1,4 +1,4 @@
-import { browser, i18n } from "#imports"
+import { browser } from "#imports"
 import { FREE_PDF_PAGES_PER_DAY } from "@getu/definitions"
 import { Icon } from "@iconify/react"
 import { liveQuery } from "dexie"
@@ -15,6 +15,7 @@ import { entitlementsAtom } from "@/utils/atoms/entitlements"
 import { db } from "@/utils/db/dexie/db"
 import { getPdfPageUsage } from "@/utils/db/dexie/pdf-translation-usage"
 import { clearPdfTranslations } from "@/utils/db/dexie/pdf-translations"
+import { i18n } from "@/utils/i18n"
 import { ConfigCard } from "../../components/config-card"
 import { PageLayout } from "../../components/page-layout"
 

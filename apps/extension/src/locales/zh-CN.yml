@@ -57,6 +57,8 @@ errorRecovery:
     confirm: 重置
     cancel: 取消
 options:
+  loading: 正在加载设置...
+  documentTitle: 设置
   commandPalette:
     placeholder: 搜索设置...
     noResults: 未找到设置
@@ -189,6 +191,10 @@ options:
       system: 跟随系统
       light: 浅色
       dark: 深色
+    uiLanguage:
+      title: 界面语言
+      description: 选择扩展界面显示的语言
+      auto: 自动
     featureProviders:
       title: 功能提供商
       description: 为每个功能选择使用的提供商

@@ -1,6 +1,5 @@
 import type { LangCodeISO6393 } from "@getu/definitions"
 import type { LanguageItem } from "./language-combobox-options"
-import { i18n } from "#imports"
 import { useMemo } from "react"
 import {
   Combobox,
@@ -10,6 +9,7 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/components/ui/base-ui/combobox"
+import { i18n } from "@/utils/i18n"
 import { filterLanguage, getLanguageItems } from "./language-combobox-options"
 
 function AutoBadge() {

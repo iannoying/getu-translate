@@ -1,4 +1,3 @@
-import { i18n } from "#imports"
 import { deepmerge } from "deepmerge-ts"
 import { useAtom } from "jotai"
 import { useMemo } from "react"
@@ -8,6 +7,7 @@ import { Switch } from "@/components/ui/base-ui/switch"
 import { isLLMProviderConfig } from "@/types/config/provider"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { getProviderConfigById } from "@/utils/config/helpers"
+import { i18n } from "@/utils/i18n"
 import { LLMStatusIndicator } from "../../../../components/llm-status-indicator"
 import { ConfigCard } from "../../components/config-card"
 

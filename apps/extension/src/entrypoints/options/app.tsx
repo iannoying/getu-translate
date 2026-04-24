@@ -1,6 +1,7 @@
 import type { ComponentType } from "react"
 import { lazy, Suspense } from "react"
 import { Route, Routes } from "react-router"
+import { i18n } from "@/utils/i18n"
 import { ROUTE_DEFS } from "./app-sidebar/nav-items"
 import { GeneralPage } from "./pages/general"
 
@@ -44,7 +45,7 @@ const ROUTE_COMPONENTS: Record<RoutePath, ComponentType> = {
 function RouteLoadingFallback() {
   return (
     <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">
-      Loading settings...
+      {i18n.t("options.loading")}
     </div>
   )
 }

@@ -8,7 +8,6 @@ import type {
   SelectionToolbarCustomActionNotebaseMapping,
   SelectionToolbarCustomActionOutputField,
 } from "@/types/config/selection-toolbar"
-import { i18n } from "#imports"
 import { IconChevronsRight, IconPlus, IconRefresh, IconTrash } from "@tabler/icons-react"
 import { useStore } from "@tanstack/react-form"
 import { useQuery } from "@tanstack/react-query"
@@ -31,6 +30,7 @@ import {
 } from "@/components/ui/base-ui/select"
 import { authClient } from "@/utils/auth/auth-client"
 import { WEBSITE_URL } from "@/utils/constants/url"
+import { i18n } from "@/utils/i18n"
 import {
   createNotebaseMapping,
   isNotebaseMappingCompatible,

@@ -57,6 +57,8 @@ errorRecovery:
     confirm: 重置
     cancel: 取消
 options:
+  loading: 正在載入設定...
+  documentTitle: 設定
   commandPalette:
     placeholder: 搜尋設定...
     noResults: 找不到設定
@@ -187,6 +189,10 @@ options:
       system: 跟隨系統
       light: 淺色
       dark: 深色
+    uiLanguage:
+      title: 介面語言
+      description: 選擇擴充功能介面顯示的語言
+      auto: 自動
     featureProviders:
       title: 功能提供商
       description: 為每個功能選擇使用的提供商

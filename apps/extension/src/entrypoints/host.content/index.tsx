@@ -1,6 +1,7 @@
 import "@/utils/zod-config"
 import { defineContentScript } from "#imports"
 import { getLocalConfig } from "@/utils/config/storage"
+import { hydrateI18nFromStorage } from "@/utils/i18n"
 import { clearEffectiveSiteControlUrl, getEffectiveSiteControlUrl, isSiteEnabled } from "@/utils/site-control"
 
 declare global {
@@ -27,6 +28,10 @@ export default defineContentScript({
       clearEffectiveSiteControlUrl()
       return
     }
+
+    // Prime the i18n module before the host runtime renders any user-facing
+    // translation UI (spinner, inline errors, etc.).
+    await hydrateI18nFromStorage()
 
     const { bootstrapHostContent } = await import("./runtime")
     await bootstrapHostContent(ctx, initialConfig)

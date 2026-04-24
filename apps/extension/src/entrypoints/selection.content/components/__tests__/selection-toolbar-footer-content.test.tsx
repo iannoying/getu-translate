@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import type { ProviderConfig } from "@/types/config/provider"
-import { i18n } from "#imports"
 import { act, fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import { TooltipProvider } from "@/components/ui/base-ui/tooltip"
+import { i18n } from "@/utils/i18n"
 import { SelectionToolbarFooterContent } from "../selection-toolbar-footer-content"
 
 vi.mock("@/components/llm-providers/provider-selector", () => ({

@@ -1,5 +1,4 @@
 import type { BatchQueueConfig } from "@/types/config/translate"
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react"
 import { useAtom } from "jotai"
 import { Link } from "react-router"
@@ -12,6 +11,7 @@ import { batchQueueConfigSchema } from "@/types/config/translate"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { calculateAverageSavePercentage } from "@/utils/batch-request-record"
 import { MIN_BATCH_CHARACTERS, MIN_BATCH_ITEMS } from "@/utils/constants/translate"
+import { i18n } from "@/utils/i18n"
 import { sendMessage } from "@/utils/message"
 import { ConfigCard } from "../../components/config-card"
 

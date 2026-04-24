@@ -1,8 +1,8 @@
 import type { CustomActionTemplate } from "@/utils/constants/custom-action-templates"
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react"
 import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/base-ui/dialog"
 import { CUSTOM_ACTION_TEMPLATES } from "@/utils/constants/custom-action-templates"
+import { i18n } from "@/utils/i18n"
 
 type TemplateI18nKey = Parameters<typeof i18n.t>[0]
 

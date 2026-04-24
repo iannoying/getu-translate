@@ -1,7 +1,6 @@
 import type { LangCodeISO6393 } from "@getu/definitions"
 import type { FocusEvent } from "react"
 import type { TTSVoice } from "@/types/config/tts"
-import { i18n } from "#imports"
 import { IconLoader2, IconPlayerPlayFilled } from "@tabler/icons-react"
 import { useAtom } from "jotai"
 import { useState } from "react"
@@ -40,6 +39,7 @@ import {
   ttsVolumeSchema,
 } from "@/types/config/tts"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
+import { i18n } from "@/utils/i18n"
 import { ConfigCard } from "../../components/config-card"
 
 interface TtsNumberFieldProps {

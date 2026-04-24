@@ -1,7 +1,7 @@
 import type { GeneratedI18nStructure } from "#i18n"
 import type { SelectionToolbarCustomAction } from "@/types/config/selection-toolbar"
-import { i18n } from "#imports"
 import { getRandomUUID } from "@/utils/crypto-polyfill"
+import { i18n } from "@/utils/i18n"
 import { createOutputSchemaField } from "./custom-action"
 
 const T_PREFIX = "options.floatingButtonAndToolbar.selectionToolbar.customActions.templates"

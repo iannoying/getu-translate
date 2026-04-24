@@ -1,4 +1,3 @@
-import { i18n } from "#imports"
 import { getDefaultStore, useAtomValue } from "jotai"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -10,6 +9,7 @@ import { authClient } from "@/utils/auth/auth-client"
 import { filterEnabledProvidersConfig } from "@/utils/config/helpers"
 import { addWord, canAddWord, updateWordTranslation } from "@/utils/db/dexie/words"
 import { translateTextCore } from "@/utils/host/translate/translate-text"
+import { i18n } from "@/utils/i18n"
 import { selectionContentAtom, selectionSessionAtom } from "../atoms"
 
 export function useSaveWord() {

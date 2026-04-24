@@ -1,5 +1,4 @@
 import type { ProviderConfig } from "@/types/config/provider"
-import { i18n } from "#imports"
 import { IconAspectRatio, IconRefresh } from "@tabler/icons-react"
 import { useCallback } from "react"
 import ProviderSelector from "@/components/llm-providers/provider-selector"
@@ -16,6 +15,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/base-ui/popover"
 import { SelectionPopover, useSelectionPopoverOverlayProps } from "@/components/ui/selection-popover"
+import { i18n } from "@/utils/i18n"
 import { cn } from "@/utils/styles/utils"
 import {
   SelectionPopoverTooltip,

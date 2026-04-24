@@ -1,5 +1,4 @@
 import type { LangCodeISO6393 } from "@getu/definitions"
-import { i18n } from "#imports"
 import {
   LANG_CODE_TO_EN_NAME,
   LANG_CODE_TO_LOCALE_NAME,
@@ -17,6 +16,7 @@ import {
 } from "@/components/ui/base-ui/select"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { detectedCodeAtom } from "@/utils/atoms/detected-code"
+import { i18n } from "@/utils/i18n"
 
 function langCodeLabel(langCode: LangCodeISO6393) {
   return `${LANG_CODE_TO_EN_NAME[langCode]} (${LANG_CODE_TO_LOCALE_NAME[langCode]})`

@@ -1,5 +1,4 @@
 import type { RequestQueueConfig } from "@/types/config/translate"
-import { i18n } from "#imports"
 import { useAtom } from "jotai"
 import { toast } from "sonner"
 import { HelpTooltip } from "@/components/help-tooltip"
@@ -8,6 +7,7 @@ import { Input } from "@/components/ui/base-ui/input"
 import { requestQueueConfigSchema } from "@/types/config/translate"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { MIN_TRANSLATE_CAPACITY, MIN_TRANSLATE_RATE } from "@/utils/constants/translate"
+import { i18n } from "@/utils/i18n"
 import { sendMessage } from "@/utils/message"
 import { ConfigCard } from "../../components/config-card"
 

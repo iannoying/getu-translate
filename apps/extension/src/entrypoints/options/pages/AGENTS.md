@@ -48,7 +48,7 @@ This directory has no top-level files — only subdirectories.
 
 ### Common Patterns
 
-- Page entry shape: `import { i18n } from "#imports"; import { PageLayout } from "../../components/page-layout"; export function XxxPage() { return <PageLayout title={i18n.t("…")} innerClassName="…">…</PageLayout> }`.
+- Page entry shape: `import { i18n } from "@/utils/i18n"; import { PageLayout } from "../../components/page-layout"; export function XxxPage() { return <PageLayout title={i18n.t("…")} innerClassName="…">…</PageLayout> }`.
 - Master/detail pages (api-providers, custom-actions): `EntityEditorLayout` + `EntityListRail` for the rail, with selection state in a page-local atom; the right pane renders the form module.
 - Form pages (provider-config-form, action-config-form): factor each field into its own file (`api-key-field.tsx`, `name-field.tsx`, etc.) and an aggregate `index.tsx` + `form.ts` (Zod schema + helpers). Validation is via Zod.
 - Statistics: chart implementation lives under `charts/<name>/` with its own `atom.ts`, `chart.tsx`, `metrics.tsx`, `aside.tsx`, and a barrel `charts/index.ts`.

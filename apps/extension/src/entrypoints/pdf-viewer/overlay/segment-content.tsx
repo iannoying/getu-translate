@@ -15,9 +15,9 @@
  * component is the sole reader for slot content.
  */
 import type { SegmentKey } from "../translation/atoms"
-import { i18n } from "#imports"
 import { useAtomValue } from "jotai"
 import * as React from "react"
+import { i18n } from "@/utils/i18n"
 import { segmentStatusAtomFamily } from "../translation/atoms"
 
 const PENDING_PLACEHOLDER = "[...]"

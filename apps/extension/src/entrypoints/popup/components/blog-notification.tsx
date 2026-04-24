@@ -1,10 +1,10 @@
-import { i18n } from "#imports"
 import { Icon } from "@iconify/react/dist/iconify.js"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/base-ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/base-ui/tooltip"
 import { getBlogLocaleFromUILanguage, getLastViewedBlogDate, getLatestBlogDate, hasNewBlogPost, saveLastViewedBlogDate } from "@/utils/blog"
 import { WEBSITE_URL } from "@/utils/constants/url"
+import { i18n } from "@/utils/i18n"
 import { version } from "../../../../package.json"
 
 export default function BlogNotification() {

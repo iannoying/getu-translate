@@ -1,5 +1,4 @@
 import type { SelectionToolbarCustomAction } from "@/types/config/selection-toolbar"
-import { i18n } from "#imports"
 import { useAtomValue } from "jotai"
 import { useMemo } from "react"
 import ProviderSelector from "@/components/llm-providers/provider-selector"
@@ -7,6 +6,7 @@ import { Field, FieldLabel } from "@/components/ui/base-ui/field"
 import { isLLMProviderConfig } from "@/types/config/provider"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { filterEnabledProvidersConfig } from "@/utils/config/helpers"
+import { i18n } from "@/utils/i18n"
 import { withForm } from "./form"
 
 export const ProviderField = withForm({
