@@ -23,7 +23,6 @@ i18n message catalogs consumed by `@wxt-dev/i18n` (registered as `@wxt-dev/i18n/
 YAML structure (representative top-level keys, see `en.yml` for the full tree):
 
 - `name`, `extName`, `extDescription` — extension manifest strings
-- `uninstallSurveyUrl` — non-translated URL
 - `dataTypes` — UI labels for primitive output types (`string`, `number`)
 - `contextMenu` — Chrome context-menu entries (uses `%s` placeholder for selection text)
 - `popup` — toolbar popup UI: theme toggle, language selectors, blacklist/whitelist actions, `more` submenu, `hub.tooltip`, `discord.tooltip`, `blog.notification`

@@ -1,7 +1,6 @@
 name: GetU Translate
 extName: GetU Translate
 extDescription: GetU Translate is an open source browser extension designed to help you understand any webpage in your native language.
-uninstallSurveyUrl: https://tally.so/r/nPK6Ob
 dataTypes:
   string: Text
   number: Number

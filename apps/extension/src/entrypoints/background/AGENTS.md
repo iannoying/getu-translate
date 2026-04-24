@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Implements the MV3 service worker exported by `index.ts` via `defineBackground({ type: "module" })`. The `main()` function wires up every cross-cutting feature the extension needs at the privileged level: config bootstrap, periodic alarms (cache cleanup + config backup), the two translation queues (web page + subtitles), AI streaming over long-lived `runtime.Port`s, context-menu lifecycle, proxy `fetch` for content scripts, Edge TTS synthesis, offscreen TTS playback orchestration, programmatic content-script injection into missed iframes, analytics relay (PostHog), and the install/update flow (open tutorial, clear blog cache, register uninstall survey URL).
+Implements the MV3 service worker exported by `index.ts` via `defineBackground({ type: "module" })`. The `main()` function wires up every cross-cutting feature the extension needs at the privileged level: config bootstrap, periodic alarms (cache cleanup + config backup), the two translation queues (web page + subtitles), AI streaming over long-lived `runtime.Port`s, context-menu lifecycle, proxy `fetch` for content scripts, Edge TTS synthesis, offscreen TTS playback orchestration, programmatic content-script injection into missed iframes, analytics relay (PostHog), and the install/update flow (open tutorial, clear blog cache).
 
 ## Key Files
 
@@ -29,7 +29,6 @@ Implements the MV3 service worker exported by `index.ts` via `defineBackground({
 | `tts-playback.ts`           | Manages the Chrome offscreen document lifecycle (`createDocument`, `getContexts`) and forwards `ttsPlaybackStart`/`ttsPlaybackStop` to it; retries once on missing-receiver errors.                                                                   |
 | `analytics.ts`              | PostHog client factory bound to `WXT_POSTHOG_*` env, persists install ID in `local:` storage, filters captured properties to a strict allowlist, exposes `trackFeatureUsedEvent` message handler.                                                     |
 | `new-user-guide.ts`         | Polls `browser.action.getUserSettings()` (or listens to `onUserSettingsChanged`) and broadcasts `pinStateChanged` to tabs on `OFFICIAL_SITE_URL_PATTERNS`.                                                                                            |
-| `uninstall-survey.ts`       | Builds a per-user uninstall URL with version/browser/os/locale query params and calls `runtime.setUninstallURL`.                                                                                                                                      |
 | `mock-data.ts`              | Dev-only seeding (gated by `import.meta.env.DEV && WXT_MOCK_DATA === "true"`) populating `batchRequestRecord`.                                                                                                                                        |
 
 ## Subdirectories

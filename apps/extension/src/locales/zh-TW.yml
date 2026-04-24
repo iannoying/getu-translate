@@ -1,7 +1,6 @@
 name: 懂你翻譯
 extName: 懂你翻譯
 extDescription: 懂你翻譯是一款開放源代碼的瀏覽器插件，幫助您用母語理解任何網頁。
-uninstallSurveyUrl: https://tally.so/r/3E9XDL
 dataTypes:
   string: 文字
   number: 數字
