@@ -37,6 +37,11 @@ app.get("/health", c => c.json({ ok: true, service: "getu-api" }))
 app.get("/api/identity/providers", c => c.json({
   google: !!c.env.GOOGLE_CLIENT_ID,
   github: !!c.env.GITHUB_CLIENT_ID,
+  // emailOtp + passkey + emailPassword are always wired; expose flags so the UI
+  // can render the right controls.
+  emailPassword: true,
+  emailOtp: true,
+  passkey: true,
 }))
 
 app.all("/api/identity/*", async (c) => {

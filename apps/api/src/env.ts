@@ -33,6 +33,11 @@ export interface WorkerEnv {
   GOOGLE_CLIENT_SECRET?: string
   GITHUB_CLIENT_ID?: string
   GITHUB_CLIENT_SECRET?: string
+  // Phase 6: passwordless (email OTP via Resend) + passkeys (WebAuthn)
+  RESEND_API_KEY?: string
+  EMAIL_FROM?: string
+  WEBAUTHN_RP_ID?: string
+  WEBAUTHN_ORIGINS?: string
 }
 
 export const SecretsSchema = z.object({
@@ -53,4 +58,17 @@ export function parseSecrets(env: WorkerEnv) {
     BIANXIE_BASE_URL: env.BIANXIE_BASE_URL,
     AI_JWT_SECRET: env.AI_JWT_SECRET,
   })
+}
+
+/** Resolve WebAuthn relying-party config.
+ *  rpID defaults to "localhost" so dev works without setup; prod must set WEBAUTHN_RP_ID.
+ *  origin list defaults to ALLOWED_EXTENSION_ORIGINS minus the chrome-extension entries. */
+export function parseWebauthnConfig(env: WorkerEnv): { rpID: string; rpName: string; origin: string[] } {
+  const rpID = env.WEBAUTHN_RP_ID ?? "localhost"
+  const rpName = "GetU Translate"
+  const origin = (env.WEBAUTHN_ORIGINS ?? env.ALLOWED_EXTENSION_ORIGINS)
+    .split(",")
+    .map(s => s.trim())
+    .filter(s => s && !s.startsWith("chrome-extension://"))
+  return { rpID, rpName, origin }
 }

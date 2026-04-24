@@ -1,6 +1,6 @@
 "use client"
 
-import { use, useEffect, useState } from "react"
+import { Suspense, use, useEffect, useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
 import { PageHero, SiteShell } from "@/app/components"
@@ -10,19 +10,55 @@ import { isSupportedLocale, type Locale } from "@/lib/i18n/locales"
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8788"
 
 type Mode = "signin" | "signup"
-type Providers = { google: boolean; github: boolean }
+type Method = "password" | "code"
+type Providers = {
+  google: boolean
+  github: boolean
+  emailPassword?: boolean
+  emailOtp?: boolean
+  passkey?: boolean
+}
+
+const RESEND_COOLDOWN_SECONDS = 60
+
+/** Same-origin redirect guard: must start with "/" but not "//" (prevents protocol-relative
+ *  open-redirects like `//evil.com`). Falls back to the default when invalid or missing. */
+function safeRedirect(raw: string | null, fallback: string): string {
+  if (!raw) return fallback
+  if (!raw.startsWith("/") || raw.startsWith("//")) return fallback
+  return raw
+}
 
 export default function LogInPage({ params }: { params: Promise<{ locale: string }> }) {
+  // useSearchParams() bails out of static prerendering unless wrapped in a Suspense
+  // boundary; Next.js 15 enforces this. Keep the actual page client logic in a child.
+  return (
+    <Suspense fallback={null}>
+      <LogInPageInner params={params} />
+    </Suspense>
+  )
+}
+
+function LogInPageInner({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: rawLocale } = use(params)
   const locale: Locale = isSupportedLocale(rawLocale) ? rawLocale : "en"
   const t = getMessages(locale)
+  const searchParams = useSearchParams()
+  const redirectTarget = safeRedirect(searchParams?.get("redirect") ?? null, `/${locale}/`)
+
   const [mode, setMode] = useState<Mode>("signin")
+  const [method, setMethod] = useState<Method>("password")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [code, setCode] = useState("")
   const [name, setName] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [sendingCode, setSendingCode] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
   const [providers, setProviders] = useState<Providers>({ google: false, github: false })
+  const passkeyConditionalStarted = useRef(false)
 
   useEffect(() => {
     fetch(`${API_BASE}/api/identity/providers`, { credentials: "include" })
@@ -31,9 +67,55 @@ export default function LogInPage({ params }: { params: Promise<{ locale: string
       .catch(() => setProviders({ google: false, github: false }))
   }, [])
 
+  // Conditional UI: when the email field is focused/autofilled the browser surfaces
+  // any registered passkey for this site. Safe to call even if no passkeys exist.
+  useEffect(() => {
+    if (passkeyConditionalStarted.current) return
+    if (typeof window === "undefined") return
+    const PKC = window.PublicKeyCredential as (typeof window.PublicKeyCredential & { isConditionalMediationAvailable?: () => Promise<boolean> }) | undefined
+    if (!PKC || !PKC.isConditionalMediationAvailable) return
+    PKC.isConditionalMediationAvailable().then((ok) => {
+      if (!ok) return
+      passkeyConditionalStarted.current = true
+      void authClient.signIn.passkey({ autoFill: true }).then((res) => {
+        if (res && !res.error) window.location.href = redirectTarget
+      }).catch(() => {})
+    }).catch(() => {})
+  }, [redirectTarget])
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const id = setTimeout(() => setCooldown(c => c - 1), 1000)
+    return () => clearTimeout(id)
+  }, [cooldown])
+
+  function resetMessages() {
+    setError(null)
+    setInfo(null)
+  }
+
+  async function handleSendCode() {
+    resetMessages()
+    if (!email) return
+    setSendingCode(true)
+    try {
+      const res = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" })
+      if (res.error) {
+        setError(res.error.message ?? t.auth.sendCodeFailed)
+        return
+      }
+      setInfo(t.auth.codeSent)
+      setCooldown(RESEND_COOLDOWN_SECONDS)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.auth.sendCodeFailed)
+    } finally {
+      setSendingCode(false)
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
-    setError(null)
+    resetMessages()
     setLoading(true)
 
     try {
@@ -43,6 +125,12 @@ export default function LogInPage({ params }: { params: Promise<{ locale: string
           setError(res.error.message ?? t.errors.signUpFailed)
           return
         }
+      } else if (method === "code") {
+        const res = await authClient.signIn.emailOtp({ email, otp: code })
+        if (res.error) {
+          setError(res.error.message ?? t.errors.signInFailed)
+          return
+        }
       } else {
         const res = await authClient.signIn.email({ email, password })
         if (res.error) {
@@ -50,7 +138,7 @@ export default function LogInPage({ params }: { params: Promise<{ locale: string
           return
         }
       }
-      window.location.href = `/${locale}/`
+      window.location.href = redirectTarget
     } catch (err) {
       setError(err instanceof Error ? err.message : t.errors.unexpected)
     } finally {
@@ -62,7 +150,7 @@ export default function LogInPage({ params }: { params: Promise<{ locale: string
     try {
       await authClient.signIn.social({
         provider,
-        callbackURL: `${window.location.origin}/${locale}/`,
+        callbackURL: `${window.location.origin}${redirectTarget}`,
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : t.errors.unexpected)
@@ -71,6 +159,10 @@ export default function LogInPage({ params }: { params: Promise<{ locale: string
 
   const title = mode === "signin" ? t.auth.signInTitle : t.auth.signUpTitle
   const intro = mode === "signin" ? t.auth.signInIntro : t.auth.signUpIntro
+  const submitLabel = mode === "signup" ? t.auth.submitSignUp : t.auth.submit
+  const showMethodToggle = mode === "signin"
+  const showPassword = mode === "signup" || method === "password"
+  const showCode = mode === "signin" && method === "code"
 
   return (
     <SiteShell locale={locale} messages={t.common}>
@@ -85,10 +177,7 @@ export default function LogInPage({ params }: { params: Promise<{ locale: string
               role="tab"
               aria-selected={mode === "signin"}
               className={`toggle-btn${mode === "signin" ? " active" : ""}`}
-              onClick={() => {
-                setMode("signin")
-                setError(null)
-              }}
+              onClick={() => { setMode("signin"); resetMessages() }}
             >
               {t.auth.signInTab}
             </button>
@@ -96,40 +185,11 @@ export default function LogInPage({ params }: { params: Promise<{ locale: string
               role="tab"
               aria-selected={mode === "signup"}
               className={`toggle-btn${mode === "signup" ? " active" : ""}`}
-              onClick={() => {
-                setMode("signup")
-                setError(null)
-              }}
+              onClick={() => { setMode("signup"); resetMessages() }}
             >
               {t.auth.signUpTab}
             </button>
           </div>
-
-          <div className="auth-social">
-            <p className="auth-divider-label">{t.auth.continueWith}</p>
-            <div className="auth-social-btns">
-              <button
-                className="button secondary auth-social-btn"
-                disabled={!providers.google || loading}
-                onClick={() => providers.google && handleSocial("google")}
-                title={providers.google ? t.auth.google : t.auth.googleComingSoon}
-              >
-                <GoogleIcon />
-                {providers.google ? t.auth.google : t.auth.googleComingSoon}
-              </button>
-              <button
-                className="button secondary auth-social-btn"
-                disabled={!providers.github || loading}
-                onClick={() => providers.github && handleSocial("github")}
-                title={providers.github ? t.auth.github : t.auth.githubComingSoon}
-              >
-                <GitHubIcon />
-                {providers.github ? t.auth.github : t.auth.githubComingSoon}
-              </button>
-            </div>
-          </div>
-
-          <div className="auth-or"><span>{t.auth.or}</span></div>
 
           <form onSubmit={handleSubmit} className="auth-form">
             {mode === "signup" && (
@@ -152,26 +212,124 @@ export default function LogInPage({ params }: { params: Promise<{ locale: string
                 value={email}
                 onChange={event => setEmail(event.target.value)}
                 required
-                autoComplete="email"
+                autoComplete="email webauthn"
                 placeholder={t.auth.emailPlaceholder}
               />
             </label>
-            <label className="auth-field">
-              <span>{t.auth.password}</span>
-              <input
-                type="password"
-                value={password}
-                onChange={event => setPassword(event.target.value)}
-                required
-                autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                placeholder={mode === "signup" ? t.auth.newPasswordPlaceholder : t.auth.passwordPlaceholder}
-              />
-            </label>
+
+            {showMethodToggle && (
+              <div className="auth-method-toggle" role="tablist" aria-label="Sign-in method">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={method === "password"}
+                  className={`method-btn${method === "password" ? " active" : ""}`}
+                  onClick={() => { setMethod("password"); resetMessages() }}
+                >
+                  {t.auth.methodPasswordTab}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={method === "code"}
+                  className={`method-btn${method === "code" ? " active" : ""}`}
+                  onClick={() => { setMethod("code"); resetMessages() }}
+                >
+                  {t.auth.methodCodeTab}
+                </button>
+              </div>
+            )}
+
+            {showPassword && (
+              <label className="auth-field">
+                <span>{t.auth.password}</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={event => setPassword(event.target.value)}
+                  required={showPassword}
+                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                  placeholder={mode === "signup" ? t.auth.newPasswordPlaceholder : t.auth.passwordPlaceholder}
+                />
+              </label>
+            )}
+
+            {showCode && (
+              <label className="auth-field">
+                <span>{t.auth.code}</span>
+                <div className="auth-code-row">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="\d{6}"
+                    maxLength={6}
+                    value={code}
+                    onChange={event => setCode(event.target.value.replace(/\D/g, ""))}
+                    required={showCode}
+                    autoComplete="one-time-code"
+                    placeholder={t.auth.codePlaceholder}
+                  />
+                  <button
+                    type="button"
+                    className="button secondary auth-send-code"
+                    disabled={!email || sendingCode || cooldown > 0}
+                    onClick={handleSendCode}
+                  >
+                    {sendingCode
+                      ? t.auth.sendingCode
+                      : cooldown > 0
+                        ? t.auth.resendCodeIn.replace("{seconds}", String(cooldown))
+                        : t.auth.sendCode}
+                  </button>
+                </div>
+              </label>
+            )}
+
+            {info != null && <p className="auth-info" role="status">{info}</p>}
             {error != null && <p className="auth-error" role="alert">{error}</p>}
+
             <button type="submit" className="button primary auth-submit" disabled={loading}>
-              {loading ? t.auth.submitLoading : title}
+              {loading ? t.auth.submitLoading : submitLabel}
             </button>
+
+            {mode === "signin" && method === "password" && (
+              <p className="auth-forgot">
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => { setMethod("code"); resetMessages() }}
+                >
+                  {t.auth.forgotPassword}
+                </button>
+              </p>
+            )}
           </form>
+
+          <div className="auth-or"><span>{t.auth.or}</span></div>
+
+          <div className="auth-social">
+            <div className="auth-social-btns">
+              <button
+                className="button secondary auth-social-btn"
+                disabled={!providers.google || loading}
+                onClick={() => providers.google && handleSocial("google")}
+                title={providers.google ? t.auth.google : t.auth.googleComingSoon}
+              >
+                <GoogleIcon />
+                {providers.google ? t.auth.google : t.auth.googleComingSoon}
+              </button>
+              <button
+                className="button secondary auth-social-btn"
+                disabled={!providers.github || loading}
+                onClick={() => providers.github && handleSocial("github")}
+                title={providers.github ? t.auth.github : t.auth.githubComingSoon}
+              >
+                <GitHubIcon />
+                {providers.github ? t.auth.github : t.auth.githubComingSoon}
+              </button>
+            </div>
+            <p className="auth-passkey-hint">{t.auth.passkeyHint}</p>
+          </div>
         </div>
       </section>
     </SiteShell>

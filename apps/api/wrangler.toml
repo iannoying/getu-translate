@@ -24,6 +24,12 @@ BIANXIE_BASE_URL = "https://api.bianxie.ai/v1"
 BILLING_ENABLED = "false"
 PADDLE_BASE_URL = "https://sandbox-api.paddle.com"
 STRIPE_BASE_URL = "https://api.stripe.com"
+# Phase 6: passwordless + passkey
+# RESEND_API_KEY is a secret — set via `wrangler secret put RESEND_API_KEY`.
+# Without it sendEmail logs the OTP to the worker console (dev fallback).
+EMAIL_FROM = "GetU Translate <noreply@getutranslate.com>"
+WEBAUTHN_RP_ID = "localhost"
+WEBAUTHN_ORIGINS = "http://localhost:3000,http://localhost:8788"
 
 # Production deploy — invoked via `wrangler deploy --env production`
 [env.production]
@@ -44,3 +50,7 @@ BILLING_ENABLED = "true"
 # stays on sandbox until paddle vendor approval — flip to https://api.paddle.com then
 PADDLE_BASE_URL = "https://sandbox-api.paddle.com"
 STRIPE_BASE_URL = "https://api.stripe.com"
+# Phase 6: passwordless + passkey (set RESEND_API_KEY via `wrangler secret put RESEND_API_KEY --env production`)
+EMAIL_FROM = "GetU Translate <noreply@getutranslate.com>"
+WEBAUTHN_RP_ID = "getutranslate.com"
+WEBAUTHN_ORIGINS = "https://getutranslate.com,https://www.getutranslate.com"

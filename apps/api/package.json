@@ -13,6 +13,7 @@
     "grant-pro": "tsx scripts/grant-pro.ts"
   },
   "dependencies": {
+    "@better-auth/passkey": "1.6.3",
     "@getu/contract": "workspace:*",
     "@getu/db": "workspace:*",
     "@orpc/server": "^1.13.14",
