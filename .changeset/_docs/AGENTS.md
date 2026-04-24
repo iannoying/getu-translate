@@ -1,4 +1,4 @@
-<!-- Parent: ../AGENTS.md -->
+<!-- Parent: ../../AGENTS.md -->
 <!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # .changeset

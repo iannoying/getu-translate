@@ -39,7 +39,7 @@ Distributed under GNU GPLv3 with an additional commercial license grant to FEELI
 | `apps/`                                    | Deployable applications: `extension` (MV3), `api` (Cloudflare Workers), `web` (Next.js on Pages). See `apps/AGENTS.md`.                        |
 | `packages/`                                | Shared internal packages: `contract` (oRPC), `db` (Drizzle/D1), `definitions` (constants). See `packages/AGENTS.md`.                           |
 | `.github/`                                 | GitHub config: workflows, issue/PR templates, dependabot, FUNDING (see `.github/AGENTS.md`).                                                   |
-| `.changeset/`                              | Pending changesets + Changesets config. Drives versioning and `CHANGELOG.md` generation (see `.changeset/AGENTS.md`).                          |
+| `.changeset/`                              | Pending changesets + Changesets config. Drives versioning and `CHANGELOG.md` generation (see `.changeset/_docs/AGENTS.md` — docs live in `_docs/` so the Changesets CLI doesn't try to parse them as changesets).                          |
 | `.husky/`                                  | Git hooks (`commit-msg`, `pre-commit`, `pre-push`) (see `.husky/AGENTS.md`).                                                                   |
 | `docs/`                                    | Implementation plans (`plans/`), contract docs (`contracts/`), infra runbooks (`infra/`), agent memory (`agents/memory/`).                     |
 | `.vscode/`, `.zed/`                        | Editor settings — agents should not modify unless asked.                                                                                       |

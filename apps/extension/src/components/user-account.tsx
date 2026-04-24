@@ -13,7 +13,7 @@ export function UserAccount() {
         alt="User"
         className={cn("rounded-full border size-6", !data?.user.image && "p-1", isPending && "animate-pulse")}
       />
-      {isPending ? "Loading..." : data?.user.name ?? "Guest"}
+      {isPending ? "Loading..." : data?.user.name || data?.user.email?.split("@")[0] || "Guest"}
       {!isPending && !data && (
         <Button
           size="xs"
