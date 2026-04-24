@@ -1,11 +1,11 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # migration-scripts
 
 ## Purpose
 
-Holds one frozen `vN-to-v(N+1).ts` snapshot per `CONFIG_SCHEMA_VERSION` bump (currently `v001-to-v002.ts` through `v066-to-v067.ts`). Each module exports a pure `migrate(oldConfig: any): any` function that receives the previous version's shape and returns the next version's shape. `../migration.ts` discovers them via `import.meta.glob('./migration-scripts/v*-to-v*.ts')` and runs them sequentially.
+Holds one frozen `vN-to-v(N+1).ts` snapshot per `CONFIG_SCHEMA_VERSION` bump (currently `v001-to-v002.ts` through `v070-to-v071.ts`). Each module exports a pure `migrate(oldConfig: any): any` function that receives the previous version's shape and returns the next version's shape. `../migration.ts` discovers them via `import.meta.glob('./migration-scripts/v*-to-v*.ts')` and runs them sequentially. Recent bumps cover PDF translation config, wordbook schema, billing/entitlement fields, subtitle platform settings.
 
 ## Key Files
 
@@ -13,8 +13,8 @@ Holds one frozen `vN-to-v(N+1).ts` snapshot per `CONFIG_SCHEMA_VERSION` bump (cu
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `types.ts`           | `MigrationFunction = (oldConfig: any) => any`, `MigrationModule { migrate }`, `MigrationInfo { fromVersion, toVersion, description? }` — the only shared type surface, intentionally `any` to decouple from any live schema.                                                          |
 | `v001-to-v002.ts`    | Earliest example — adds `pageTranslate.range = 'mainContent'` via `deepmerge`.                                                                                                                                                                                                        |
-| `v066-to-v067.ts`    | Latest example at time of writing — renames `{{webTitle}} → {{videoTitle}}` / `{{webSummary}} → {{videoSummary}}` inside `videoSubtitles.customPromptsConfig.patterns`; the inline doc-comment explicitly reminds future authors that values are hardcoded and migrations are frozen. |
-| `v002-to-v066-...ts` | 65 intermediate, frozen migrations — additive field changes, renames, prompt-token migrations, etc. Treat as historical artifacts.                                                                                                                                                    |
+| `v070-to-v071.ts`    | Latest frozen migration at time of writing. Migrations remain FROZEN once released.                                                                                                                                                                                                   |
+| `v002-to-v070-...ts` | ~70 intermediate, frozen migrations — additive field changes, renames, prompt-token migrations, PDF + wordbook + billing config additions. Treat as historical artifacts.                                                                                                              |
 
 ## Subdirectories
 

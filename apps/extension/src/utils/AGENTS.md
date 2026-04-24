@@ -1,11 +1,11 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # utils
 
 ## Purpose
 
-The non-component logic surface for Read Frog: state atoms, AI/translation pipelines, cross-context messaging, oRPC client, storage adapters, prompt templates, request queues, DOM/shadow helpers, theme handling, analytics, and small utility helpers. Modules here are imported by every entrypoint (background, popup, options, content scripts, offscreen) and are the canonical place for any logic that does not live inside a React component or a WXT entrypoint.
+The non-component logic surface for GetU Translate: state atoms, AI/translation pipelines, cross-context messaging, oRPC client, storage adapters, prompt templates, request queues, DOM/shadow helpers, theme handling, analytics, auth (better-auth), billing/entitlement helpers, PDF/wordbook export, and small utility helpers. Modules here are imported by every entrypoint (background, popup, options, content scripts, offscreen, pdf-viewer, upgrade-success) and are the canonical place for any logic that does not live inside a React component or a WXT entrypoint.
 
 ## Key Files (grouped by topic)
 
@@ -72,6 +72,7 @@ The non-component logic surface for Read Frog: state atoms, AI/translation pipel
 | `atoms/`             | Jotai atom factories for config, theme, providers, analytics, sync conflicts, etc. (see `atoms/AGENTS.md`)                        |
 | `auth/`              | better-auth React client wired through the background fetch proxy (see `auth/AGENTS.md`)                                          |
 | `backup/`            | Config backup history persisted in WXT storage (see `backup/AGENTS.md`)                                                           |
+| `billing/`           | Client-side helpers for entitlements, quota counters (input/PDF/wordbook), checkout dispatch to Paddle/Stripe.                    |
 | `config/`            | Config schema lookups, migration runner, local/sync storage adapters (see `config/AGENTS.md`)                                     |
 | `constants/`         | All app-wide constants and default values (see `constants/AGENTS.md`)                                                             |
 | `content/`           | Article extraction, language detection, summary generation for the active page (see `content/AGENTS.md`)                          |
@@ -80,6 +81,7 @@ The non-component logic surface for Read Frog: state atoms, AI/translation pipel
 | `db/`                | Dexie schema + migrations + table classes (translation cache, custom prompts, history, batch-request audit).                      |
 | `dom/`               | Generic DOM helpers shared by content scripts (see `dom/AGENTS.md`)                                                               |
 | `error/`             | Error message extraction/normalization helpers (see `error/AGENTS.md`)                                                            |
+| `export/`            | Wordbook / PDF export formatters — CSV, Obsidian Markdown, bilingual PDF. Shared by the options wordbook page and PDF viewer's Pro export. |
 | `google-drive/`      | Google Drive AppData OAuth + sync engine (see `google-drive/AGENTS.md`)                                                           |
 | `host/`              | Host-page DOM walking / mutation pipeline used by the bilingual translator entrypoint.                                            |
 | `iconify/`           | Lazy iconify fetch redirected through background (see `iconify/AGENTS.md`)                                                        |

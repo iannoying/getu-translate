@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # components
 
@@ -34,6 +34,7 @@ Cross-entrypoint React component library for the Read Frog extension. Combines l
 | Directory              | Purpose                                                                                                     |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `badges/`              | Status / variant badges built on `ui/base-ui/badge`. (see `badges/AGENTS.md`)                               |
+| `billing/`             | Pro-gate wrapper + upgrade dialog shared across quota-gated UIs. (see `billing/AGENTS.md`)                  |
 | `form/`                | `@tanstack/react-form` field adapters bound to `ui/base-ui` primitives. (see `form/AGENTS.md`)              |
 | `frog-toast/`          | `sonner` Toaster wrapper using the Read Frog icon and shadow-DOM-safe z-index. (see `frog-toast/AGENTS.md`) |
 | `icons/`               | Custom SVG icon components (e.g. animated thinking dots). (see `icons/AGENTS.md`)                           |

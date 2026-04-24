@@ -1,11 +1,11 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-21 | Updated: 2026-04-21 -->
+<!-- Generated: 2026-04-21 | Updated: 2026-04-24 -->
 
 # definitions (@getu/definitions)
 
 ## Purpose
 
-The `@getu/definitions` package provides shared type definitions, constants, and Zod schemas that are consumed across the GetU Translate monorepo. It is a fork of `@read-frog/definitions`, re-exporting the upstream content while overriding URL/domain constants with GetU-specific values (`GETU_DOMAIN`, `WEBSITE_PROD_URL`, `WEBSITE_CADDY_DEV_URL`, `AUTH_DOMAINS`).
+The `@getu/definitions` package provides shared type definitions, constants, and Zod schemas that are consumed across the GetU Translate monorepo. It is a fork of `@read-frog/definitions`, re-exporting the upstream content while overriding brand/URL/domain constants with GetU-specific values (`APP_NAME = "GetU Translate"`, `GETU_DOMAIN`, `WEBSITE_PROD_URL`, `WEBSITE_CADDY_DEV_URL`, `AUTH_DOMAINS`).
 
 **No build step** — `package.json` points `main`/`types`/`exports` directly at raw TypeScript (`./src/index.ts`). Resolution relies on the consuming bundler (WXT/Vite + tsconfig paths).
 
@@ -30,8 +30,7 @@ The `@getu/definitions` package provides shared type definitions, constants, and
 ### Working In This Directory
 
 - **Always import from `@getu/definitions`**, never from the old `@read-frog/definitions` — they differ in URL constants.
-- **GetU overrides** are in `src/index.ts`: `GETU_DOMAIN`, `WEBSITE_PROD_URL`, `WEBSITE_CADDY_DEV_URL`, `AUTH_DOMAINS`. These shadow the upstream values.
-- **`APP_NAME`** is still `"Read Frog"` pending Phase 1 Task 5 (brand rename PR). Do not change until that task lands.
+- **GetU overrides** are in `src/index.ts`: `APP_NAME = "GetU Translate"`, `GETU_DOMAIN`, `WEBSITE_PROD_URL`, `WEBSITE_CADDY_DEV_URL`, `AUTH_DOMAINS`. These shadow the upstream values. Note: the extension still has its own local `APP_NAME` constant under `apps/extension/src/utils/constants/app.ts` that lags behind — that's intentional (it controls the IndexedDB name and renaming it would orphan every user's database).
 - **Do not edit `src/base.js` or `src/base.d.ts`** — generated artifacts from upstream fork.
 - To add new shared definitions: add them directly to `src/index.ts` as new exports.
 

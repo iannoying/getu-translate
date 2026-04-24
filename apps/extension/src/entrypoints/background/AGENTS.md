@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # background
 
@@ -22,6 +22,7 @@ Implements the MV3 service worker exported by `index.ts` via `defineBackground({
 | `proxy-fetch.ts`            | `backgroundFetch` handler — runs cross-origin `fetch` with optional session cache (via `SessionCacheGroupRegistry`), invalidates cache on auth-cookie changes for `AUTH_DOMAINS`/`AUTH_COOKIE_PATTERNS`.                                              |
 | `context-menu.ts`           | Sync registration of `contextMenus`/`tabs`/`storage.session` listeners; rebuilds menu items on config/tab/storage changes; handles translate, selection translate, and per-action selection custom-action clicks.                                     |
 | `db-cleanup.ts`             | Three periodic alarms (`cache-cleanup`, `request-record-cleanup`, `summary-cache-cleanup`) plus exported `cleanupAll*` helpers for manual purges.                                                                                                     |
+| `pdf-redirect.ts`           | `webRequest.onBeforeRequest` handler that redirects `.pdf` navigations to the bundled PDF.js viewer under `/pdf-viewer/`, gated on the PDF-translation feature toggle.                                                                                |
 | `iframe-injection.ts`       | Watches `webNavigation.onCompleted` for non-main frames and re-injects `/content-scripts/host.js` + `/content-scripts/selection.js` via `scripting.executeScript` when manifest `all_frames` misses them; deduplicates by `tabId:frameId:documentId`. |
 | `iframe-injection-utils.ts` | `resolveSiteControlUrl` — walks parent frames to find the nearest http(s)/file URL used as the site-control identity for iframe injections.                                                                                                           |
 | `edge-tts.ts`               | Bridges `edgeTtsSynthesize`/`edgeTtsListVoices`/`edgeTtsHealthCheck` messages to `@/utils/server/edge-tts` and Base64-encodes the audio for the message channel.                                                                                      |

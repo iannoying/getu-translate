@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # types
 
@@ -18,6 +18,7 @@ Shared TypeScript declarations and Zod schemas used across content scripts, back
 | `content.ts`                  | Content-script article extraction types (`ExtractedContent`) plus Zod schemas `articleAnalysisSchema`, `articleExplanationSchema`, `partOfSpeechAbbr`, and prompt context interfaces (`WebPagePromptContext`, `SubtitlePromptContext`).                                                      |
 | `dom.ts`                      | Tiny DOM helpers — `Point` and `TransNode = HTMLElement \| Text`.                                                                                                                                                                                                                            |
 | `edge-tts.ts`                 | Edge TTS message envelope types: `EDGE_TTS_ERROR_CODES`, `EdgeTTSSynthesizeRequest/Response`, `EdgeTTSSynthesizeWireResponse` (base64 over the bridge), and `EdgeTTSHealthStatus`.                                                                                                           |
+| `entitlements.ts`             | `Entitlement`, `Tier` (`"free" \| "pro" \| "enterprise"`) types + Zod schema for the remote billing state mirrored locally in Dexie and consumed by `<ProGate>`, `useEntitlements`, and every quota surface.                                                                                 |
 | `proxy-fetch.ts`              | `ProxyRequest` / `ProxyResponse` shapes for the background-side fetch proxy with optional `CacheConfig` (group key + TTL).                                                                                                                                                                   |
 | `reset.d.ts`                  | Imports `@total-typescript/ts-reset/array-includes` so `Array.includes` accepts wider types.                                                                                                                                                                                                 |
 | `translation-state.ts`        | `translationStateSchema` (`{ enabled: boolean }`) — per-tab translation toggle.                                                                                                                                                                                                              |

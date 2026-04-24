@@ -1,11 +1,11 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # selection-toolbar
 
 ## Purpose
 
-The floating action bar shown after a text selection, plus the two popovers it can open: the streaming-translation popover (`translate-button/`) and the structured-output custom-action popover (`custom-action-button/`). Owns the selection state model (immutable `SelectionSession` atoms + `selectionSessionAtom`/`selectionAtom`/`contextAtom`/`isSelectionToolbarVisibleAtom`), pointer/keyboard listeners that detect when a real selection occurred (vs. clicks inside our overlay or interactive elements like buttons/links), direction-aware tooltip positioning relative to the cursor, and bridges to the background script for context-menu-driven openings (`openSelectionTranslationFromContextMenu`, `openSelectionCustomActionFromContextMenu`).
+The floating action bar shown after a text selection, plus the popovers / buttons it hosts: streaming translation (`translate-button/`), structured custom actions (`custom-action-button/`), text-to-speech (`speak-button.tsx`), and wordbook save (`save-word-button/`). Owns the selection state model (immutable `SelectionSession` atoms + `selectionSessionAtom`/`selectionAtom`/`contextAtom`/`isSelectionToolbarVisibleAtom`), pointer/keyboard listeners that detect when a real selection occurred (vs. clicks inside our overlay or interactive elements like buttons/links), direction-aware tooltip positioning relative to the cursor, and bridges to the background script for context-menu-driven openings (`openSelectionTranslationFromContextMenu`, `openSelectionCustomActionFromContextMenu`).
 
 ## Key Files
 
@@ -26,6 +26,7 @@ The floating action bar shown after a text selection, plus the two popovers it c
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `translate-button/`     | The translate trigger + `<SelectionTranslationProvider>` popover: streams LLM/standard translations via `streamBackgroundText`, manages run keys / abort controllers / target-language combobox / regenerate / context-menu opening. (No nested AGENTS.md — descend if you add files.) |
 | `custom-action-button/` | Custom-action triggers + `<SelectionCustomActionProvider>` popover: per-action `buildCustomActionExecutionPlan`, `streamBackgroundStructuredObject`-driven execution with thinking display, `SaveToNotebaseButton` integration. (No nested AGENTS.md — descend if you add files.)      |
+| `save-word-button/`     | Wordbook save action (M5). Persists the selected word + context + optional translation into the `words` Dexie table. Free tier caps at 100 saved words — past that, opens `<UpgradeDialog>` via `useProGuard`.                                                                         |
 
 ## For AI Agents
 

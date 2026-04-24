@@ -1,17 +1,19 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-21 | Updated: 2026-04-21 -->
+<!-- Generated: 2026-04-21 | Updated: 2026-04-24 -->
 
 # apps
 
 ## Purpose
 
-Container directory for all deployable applications in the GetU Translate monorepo. Each subdirectory is a standalone pnpm workspace package with its own `package.json`, build pipeline, and test suite.
+Container directory for all deployable applications in the GetU Translate monorepo. Each subdirectory is a standalone pnpm workspace package with its own `package.json`, build pipeline, and test suite. Three apps ship today: the MV3 browser extension, the Cloudflare Workers API, and the Next.js marketing/account website.
 
 ## Subdirectories
 
-| Directory     | Purpose                                                                          |
-| ------------- | -------------------------------------------------------------------------------- |
-| `extension/`  | The `@getu/extension` WXT browser extension (see `extension/AGENTS.md`).        |
+| Directory     | Purpose                                                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `extension/`  | `@getu/extension` — WXT browser extension for Chrome / Edge / Firefox MV3 (see `extension/AGENTS.md`).                        |
+| `api/`        | `@getu/api` — Cloudflare Worker: Hono + better-auth + oRPC, Paddle/Stripe webhooks, AI proxy, D1 (see `api/AGENTS.md`).       |
+| `web/`        | `@getu/web` — Next.js 15 static export deployed to Cloudflare Pages at `getutranslate.com` (see `web/AGENTS.md`).             |
 
 ## For AI Agents
 

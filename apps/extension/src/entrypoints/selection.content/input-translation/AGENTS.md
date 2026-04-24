@@ -1,23 +1,26 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # input-translation
 
 ## Purpose
 
-The triple-space-bar in-place translator for editable fields. When the user presses the spacebar three times in rapid succession (within `inputTranslationConfig.timeThreshold`) inside an `<input>`, `<textarea>`, or `contenteditable` element, this hook intercepts the third press, replaces the field's text with its translation using `document.execCommand("insertText", ...)` (which preserves native Ctrl+Z undo), and shows a small CSS spinner pinned to the right edge of the field. Optional cycle mode swaps `fromLang`/`toLang` on every other run, persisted via `sessionStorage` so consecutive cycles ping-pong between languages.
+The in-place translator for editable `<input>` / `<textarea>` / `contenteditable` fields. Triggered via pluggable triggers (triple-space, configurable hotkey, etc. — see `triggers/`). On fire, the hook replaces the field's text with its translation using `document.execCommand("insertText", ...)` (preserving native Ctrl+Z undo) and shows a small CSS spinner pinned to the right edge of the field. Optional cycle mode swaps `fromLang`/`toLang` on every other run, persisted via `sessionStorage` so consecutive cycles ping-pong between languages. Free-tier users are quota-limited via `quota/`.
 
 ## Key Files
 
 | File                       | Description                                                                                                                                                                                                                                                                                                             |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `use-input-translation.ts` | The `useInputTranslation()` hook — `keydown` capture-phase listener, triple-press detection, password-field skip, framework-compatible input event dispatch, undo-friendly text replacement, single-flight `isTranslatingRef` guard, post-translation race check that aborts if the user typed during the network call. |
+| `use-input-translation.ts` | The `useInputTranslation()` hook — installs the active trigger, runs password-field skip, dispatches framework-compatible input events, undo-friendly text replacement, single-flight `isTranslatingRef` guard, post-translation race check that aborts if the user typed during the network call, and consults the quota gate before firing. |
 
 (Note: `index.ts` is a one-line re-export and is intentionally omitted.)
 
 ## Subdirectories
 
-None.
+| Directory   | Purpose                                                                                                                                            |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `triggers/` | Pluggable input-translation triggers (triple-space, hotkey). Each trigger module registers its detection pattern and yields a "fire" callback.     |
+| `quota/`    | Free-tier daily quota counter backed by the `inputTranslationUsage` Dexie table; blocks firing past the limit and surfaces the upgrade CTA.        |
 
 ## For AI Agents
 

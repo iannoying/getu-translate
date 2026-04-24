@@ -1,11 +1,11 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # workflows
 
 ## Purpose
 
-GitHub Actions workflows that automate testing, PR hygiene, contributor-trust gating, release management, and Web Store submission for the extension.
+GitHub Actions workflows that automate testing, PR hygiene, contributor-trust gating, release management, Web Store submission, and AI-driven documentation refresh for the repo.
 
 ## Key Files
 
@@ -17,6 +17,7 @@ GitHub Actions workflows that automate testing, PR hygiene, contributor-trust ga
 | `release.yml`                 | Changesets release workflow — opens / merges version PRs and tags releases.          |
 | `submit.yml`                  | Builds and submits zips to Chrome Web Store, Edge Add-ons, and Firefox Add-ons.      |
 | `changeset-major-warning.yml` | Warns reviewers when a PR includes a major-version changeset.                        |
+| `refresh-agents-md.yml`       | Scheduled workflow that refreshes the AGENTS.md tree via Claude `/deepinit` when the codebase drifts. |
 | `claude.yml`                  | Claude / Anthropic-driven helper workflow (e.g. PR review automation).               |
 | `stale-issue-pr.yml`          | Auto-closes stale issues / PRs after a quiet period.                                 |
 

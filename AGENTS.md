@@ -1,14 +1,17 @@
-<!-- Generated: 2026-04-19 | Updated: 2026-04-21 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
 
 # getu-translate
 
 ## Purpose
 
-GetU Translate is an open-source AI-powered browser extension for language learning, distributed as a **pnpm monorepo**. It provides immersive bilingual page translation, selection translation, subtitle translation (YouTube/Netflix/etc.), text-to-speech, article reading assistance, and a configurable prompt/AI provider system.
+GetU Translate is an open-source AI-powered browser extension + SaaS for language learning, distributed as a **pnpm monorepo**. It provides immersive bilingual page translation, selection translation, PDF translation, subtitle translation (YouTube / Bilibili / TED / X / Netflix), text-to-speech, a wordbook with SM-2 review, a configurable prompt/AI provider system, and a paid "Pro" tier with quota + auth.
 
 The monorepo contains:
 - **`apps/extension`** — The WXT browser extension (`@getu/extension`), shipping to Chrome, Edge, and Firefox (MV3).
-- **`packages/contract`** — oRPC API contract (`@getu/contract`) shared with the backend.
+- **`apps/api`** — The Cloudflare Workers backend (`@getu/api`): Hono + better-auth + oRPC + D1 + Paddle/Stripe webhooks + AI proxy (JWT-gated).
+- **`apps/web`** — The Next.js marketing / account / pricing site (`@getu/web`), statically exported to Cloudflare Pages at `getutranslate.com`.
+- **`packages/contract`** — oRPC API contract (`@getu/contract`) shared between api and client code.
+- **`packages/db`** — Drizzle schema + client factory (`@getu/db`) over Cloudflare D1 (SQLite), shared by api and tests.
 - **`packages/definitions`** — Shared type/data definitions (`@getu/definitions`) with GetU-specific URL/domain overrides.
 
 Distributed under GNU GPLv3 with an additional commercial license grant to FEELIO TECHNOLOGIES LTD.
@@ -33,12 +36,12 @@ Distributed under GNU GPLv3 with an additional commercial license grant to FEELI
 
 | Directory                                  | Purpose                                                                                                                                        |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/`                                    | Deployable applications. Currently contains only the browser extension (see `apps/AGENTS.md`).                                                |
-| `packages/`                                | Shared internal packages consumed by apps (see `packages/AGENTS.md`).                                                                         |
+| `apps/`                                    | Deployable applications: `extension` (MV3), `api` (Cloudflare Workers), `web` (Next.js on Pages). See `apps/AGENTS.md`.                        |
+| `packages/`                                | Shared internal packages: `contract` (oRPC), `db` (Drizzle/D1), `definitions` (constants). See `packages/AGENTS.md`.                           |
 | `.github/`                                 | GitHub config: workflows, issue/PR templates, dependabot, FUNDING (see `.github/AGENTS.md`).                                                   |
 | `.changeset/`                              | Pending changesets + Changesets config. Drives versioning and `CHANGELOG.md` generation (see `.changeset/AGENTS.md`).                          |
 | `.husky/`                                  | Git hooks (`commit-msg`, `pre-commit`, `pre-push`) (see `.husky/AGENTS.md`).                                                                   |
-| `docs/`                                    | Implementation plans and developer documentation.                                                                                              |
+| `docs/`                                    | Implementation plans (`plans/`), contract docs (`contracts/`), infra runbooks (`infra/`), agent memory (`agents/memory/`).                     |
 | `.vscode/`, `.zed/`                        | Editor settings — agents should not modify unless asked.                                                                                       |
 | `.claude/`, `.codex/`, `.omc/`, `.agents/` | AI agent tooling (skills, commands, plans, notepad, worktrees). Out of scope for AGENTS.md generation.                                         |
 
@@ -92,6 +95,7 @@ These files travel with the repo; keep them updated as you discover new durable 
 ### Internal
 
 - `@getu/contract` (`packages/contract/`) — oRPC contract shared with backend.
+- `@getu/db` (`packages/db/`) — Drizzle schema + D1 client factory.
 - `@getu/definitions` (`packages/definitions/`) — Shared type/data definitions with GetU-branded URL constants.
 
 ### External (highlights, root devDeps only)
