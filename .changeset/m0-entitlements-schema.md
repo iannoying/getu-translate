@@ -1,5 +1,5 @@
 ---
-"@read-frog/extension": patch
+"@getu/extension": patch
 ---
 
 feat(types): add entitlements schema for upcoming billing (M0 Task 1)

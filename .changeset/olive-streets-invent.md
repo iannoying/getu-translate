@@ -1,5 +1,5 @@
 ---
-"@read-frog/extension": patch
+"@getu/extension": patch
 ---
 
 fix(subtitles): stabilize YouTube subtitle navigation and popup mounting
