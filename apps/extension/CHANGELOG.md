@@ -1,5 +1,11 @@
 # @getu/extension
 
+## 1.33.1
+
+### Patch Changes
+
+- [#160](https://github.com/iannoying/getu-translate/pull/160) [`6934284`](https://github.com/iannoying/getu-translate/commit/6934284a756cd9683fd5b5817a6a461384e5c822) Thanks [@iannoying](https://github.com/iannoying)! - chore(ui): remove Discord, WeChat group, and Star-on-GitHub entries from the popup header + "More" menu
+
 ## 1.33.0
 
 ### Minor Changes
