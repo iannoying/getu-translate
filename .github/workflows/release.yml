@@ -73,8 +73,11 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TAG="${{ github.event.inputs.tag }}"
           else
+            # Changesets uses `<pkg-name>@<version>` tags when `privatePackages.tag: true`
+            # is set in .changeset/config.json — not `v<version>`.
+            NAME=$(echo '${{ steps.changesets.outputs.publishedPackages }}' | jq -r '.[0].name')
             VERSION=$(echo '${{ steps.changesets.outputs.publishedPackages }}' | jq -r '.[0].version')
-            TAG="v$VERSION"
+            TAG="$NAME@$VERSION"
           fi
 
           gh release upload "$TAG" apps/extension/output/*-chrome.zip apps/extension/output/*-edge.zip apps/extension/output/*-firefox.zip apps/extension/output/*-sources.zip --clobber
