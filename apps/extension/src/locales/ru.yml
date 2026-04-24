@@ -1,7 +1,6 @@
 name: GetU Translate
 extName: GetU Translate
 extDescription: GetU Translate — расширение браузера с открытым исходным кодом, которое поможет вам понять содержание любого сайта на родном языке.
-uninstallSurveyUrl: https://tally.so/r/nPK6Ob
 dataTypes:
   string: Текст
   number: Число

@@ -1,7 +1,6 @@
 name: GetU Translate
 extName: GetU Translate
 extDescription: GetU Translate là tiện ích mở rộng trình duyệt mã nguồn mở được thiết kế để giúp bạn hiểu bất kỳ trang web nào bằng ngôn ngữ mẹ đẻ của mình.
-uninstallSurveyUrl: https://tally.so/r/nPK6Ob
 dataTypes:
   string: Văn bản
   number: Số

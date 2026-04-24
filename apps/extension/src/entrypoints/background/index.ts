@@ -21,7 +21,6 @@ import { proxyFetch } from "./proxy-fetch"
 import { setUpSubtitlesTranslationQueue, setUpWebPageTranslationQueue } from "./translation-queues"
 import { translationMessage } from "./translation-signal"
 import { setupTTSPlaybackMessageHandlers } from "./tts-playback"
-import { setupUninstallSurvey } from "./uninstall-survey"
 
 export default defineBackground({
   type: "module",
@@ -94,7 +93,6 @@ export default defineBackground({
     void setUpSubtitlesTranslationQueue()
     void setUpDatabaseCleanup()
     setUpConfigBackup()
-    void setupUninstallSurvey()
 
     proxyFetch()
     setupEdgeTTSMessageHandlers()

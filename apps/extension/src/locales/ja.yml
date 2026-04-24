@@ -1,7 +1,6 @@
 name: GetU 翻訳
 extName: GetU 翻訳
 extDescription: GetU 翻訳はあらゆるウェブサイトのコンテンツをあなたの母国語で理解できるようにするオープンソースのブラウザ拡張機能です。
-uninstallSurveyUrl: https://tally.so/r/nPK6Ob
 dataTypes:
   string: テキスト
   number: 数値

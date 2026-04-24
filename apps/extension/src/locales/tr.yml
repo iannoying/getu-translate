@@ -1,7 +1,6 @@
 name: GetU Translate
 extName: GetU Translate
 extDescription: GetU Translate, herhangi bir web sitesini ana dilinizde anlamanıza yardımcı olmak için tasarlanmış açık kaynaklı bir tarayıcı uzantısıdır.
-uninstallSurveyUrl: https://tally.so/r/nPK6Ob
 dataTypes:
   string: Metin
   number: Sayı

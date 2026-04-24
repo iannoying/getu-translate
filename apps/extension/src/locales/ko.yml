@@ -1,7 +1,6 @@
 name: GetU 번역
 extName: GetU 번역
 extDescription: GetU 번역은 모든 웹사이트에서 여러분의 모국어로 내용을 이해할 수 있도록 도와주는 오픈 소스 브라우저 확장 프로그램입니다.
-uninstallSurveyUrl: https://tally.so/r/nPK6Ob
 dataTypes:
   string: 텍스트
   number: 숫자
