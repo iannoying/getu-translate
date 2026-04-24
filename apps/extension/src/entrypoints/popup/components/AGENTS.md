@@ -23,10 +23,9 @@ Compact React widgets that compose the popup body and footer. Each is a single-r
 | `node-translation-hotkey-selector.tsx` | `Select` over `HOTKEYS` constants with `HOTKEY_ICONS` rendering; binds `translate.node.hotkey`.                                                                                                           |
 | `ai-smart-context.tsx`                 | Switch for `translate.enableAIContentAware`, persisted via `deepmerge`.                                                                                                                                   |
 | `translation-hub-button.tsx`           | Header icon button — `browser.tabs.create` with `runtime.getURL("/translation-hub.html")`.                                                                                                                |
-| `discord-button.tsx`                   | Header icon opening `https://discord.gg/ej45e3PezJ`.                                                                                                                                                      |
 | `blog-notification.tsx`                | Bell button driven by TanStack Query — fetches `${WEBSITE_URL}/api/blog/latest`, compares against `getLastViewedBlogDate`, shows indicator via `hasNewBlogPost`.                                          |
 | `floating-button.tsx`                  | Switch for `floatingButton.enabled` (used in non-popup contexts; lives here for shared atom binding).                                                                                                     |
-| `more-menu.tsx`                        | Footer dropdown — Discord, WeChat group image, store-review URL via `getReviewUrl`.                                                                                                                       |
+| `more-menu.tsx`                        | Footer dropdown — store-review URL via `getReviewUrl`, translation hub, ebook reader, tutorial link.                                                                                                      |
 
 ## Subdirectories
 

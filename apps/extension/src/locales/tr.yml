@@ -29,8 +29,6 @@ popup:
     dueTooltip: $1 kelime tekrar bekliyor
   hub:
     tooltip: Birden fazla çeviri modeliyle aynı anda metin çevirin
-  discord:
-    tooltip: Geliştiricilerle bağlantı kurmak ve yeni özelliklere erken erişim sağlamak için Discord'a katılın
   blog:
     notification: GetU Translate'de yenilikler
   aiSmartContext: AI Akıllı Bağlam
@@ -38,9 +36,6 @@ popup:
   more:
     title: Daha Fazla
     translationHub: Çeviri Merkezi
-    joinDiscord: Discord'a Katıl
-    joinWechat: WeChat Grubuna Katıl
-    starGithub: Github'da Yıldız Ver
     rateUs: Bizi Değerlendirin
     ebook: Üçüncü Taraf E-kitap Okuyucu
     tutorial: Rehber

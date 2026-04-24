@@ -29,8 +29,6 @@ popup:
     dueTooltip: $1 từ cần ôn tập
   hub:
     tooltip: Dịch văn bản với nhiều mô hình đồng thời
-  discord:
-    tooltip: Tham gia Discord để kết nối với các nhà phát triển và truy cập sớm các tính năng mới
   blog:
     notification: Có gì mới trong GetU Translate
   aiSmartContext: Ngữ cảnh thông minh AI
@@ -38,9 +36,6 @@ popup:
   more:
     title: Thêm
     translationHub: Trung tâm Dịch thuật
-    joinDiscord: Tham gia Discord
-    joinWechat: Tham gia nhóm WeChat
-    starGithub: Đánh dấu sao trên Github
     rateUs: Đánh giá chúng tôi
     ebook: Trình đọc sách điện tử bên thứ ba
     tutorial: Hướng dẫn

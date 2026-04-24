@@ -29,8 +29,6 @@ popup:
     dueTooltip: $1 слов для повторения
   hub:
     tooltip: Переводите текст несколькими моделями одновременно
-  discord:
-    tooltip: Присоединяйтесь к Discord, чтобы связаться с разработчиками и получить ранний доступ к новым функциям
   blog:
     notification: Что нового в GetU Translate
   aiSmartContext: Умный контекст ИИ
@@ -38,9 +36,6 @@ popup:
   more:
     title: Ещё
     translationHub: Центр переводов
-    joinDiscord: Присоединиться к Discord
-    joinWechat: Присоединиться к группе WeChat
-    starGithub: Поставить звезду на Github
     rateUs: Оценить нас
     ebook: Сторонняя читалка электронных книг
     tutorial: Руководство
