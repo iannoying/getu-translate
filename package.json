@@ -12,10 +12,13 @@
     "lint": "pnpm -r lint",
     "lint:fix": "pnpm -r lint:fix",
     "type-check": "pnpm -r type-check",
+    "release": "changeset tag && git push origin --tags",
     "prepare": "husky"
   },
   "devDependencies": {
     "husky": "^9.1.7",
+    "@changesets/changelog-github": "^0.6.0",
+    "@changesets/cli": "^2.30.0",
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
     "lint-staged": "^16.4.0",
