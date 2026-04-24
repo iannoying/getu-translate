@@ -87,3 +87,6 @@ Format: `type(scope): description`
 
 - PR Template: `.github/PULL_REQUEST_TEMPLATE.md`
 - Project Guidelines: `CLAUDE.md`
+
+- 用中文写commit message
+- **严禁在 commit 信息中包含任何与项目文件改动无关的内容**，包括但不限于：AI/大模型相关标记（如 Claude、GPT、Copilot、Co-Authored-By 等）、编辑器/工具标记（如 Cursor、VSCode 等）。commit 信息只能描述代码变更本身。
