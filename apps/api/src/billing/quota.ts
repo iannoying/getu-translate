@@ -13,18 +13,28 @@ export const QUOTA_LIMITS = {
     pdf_translate_daily: 50,
     vocab_count: 100,
     ai_translate_monthly: 0,
+    // M6 — see docs/plans/2026-04-25-web-translate-document-design.md § 配额表
+    web_text_translate_monthly: 100,
+    web_text_translate_token_monthly: 0,
+    web_pdf_translate_monthly: 10,
   },
   pro: {
     input_translate_daily: null,
     pdf_translate_daily: null,
     vocab_count: null,
     ai_translate_monthly: 100_000,
+    web_text_translate_monthly: null,
+    web_text_translate_token_monthly: 2_000_000,
+    web_pdf_translate_monthly: 500,
   },
   enterprise: {
     input_translate_daily: null,
     pdf_translate_daily: null,
     vocab_count: null,
     ai_translate_monthly: null,
+    web_text_translate_monthly: null,
+    web_text_translate_token_monthly: null,
+    web_pdf_translate_monthly: null,
   },
 } as const satisfies Record<"free" | "pro" | "enterprise", Record<QuotaBucket, number | null>>
 

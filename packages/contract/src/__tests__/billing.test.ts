@@ -126,6 +126,21 @@ describe("billing.consumeQuota contract", () => {
   it("QUOTA_BUCKETS enumerates all contract-defined buckets", () => {
     expect(QUOTA_BUCKETS).toEqual(expect.arrayContaining([
       "input_translate_daily", "pdf_translate_daily", "vocab_count", "ai_translate_monthly",
+      // M6 web /translate & /document
+      "web_text_translate_monthly",
+      "web_text_translate_token_monthly",
+      "web_pdf_translate_monthly",
     ]))
+  })
+  it("input accepts M6 web translate buckets", () => {
+    for (const bucket of [
+      "web_text_translate_monthly",
+      "web_text_translate_token_monthly",
+      "web_pdf_translate_monthly",
+    ] as const) {
+      expect(() => consumeQuotaInputSchema.parse({
+        bucket, amount: 1, request_id: "01929b2e-7a94-7c9e-9f3a-8b4c5d6e7f80",
+      })).not.toThrow()
+    }
   })
 })
