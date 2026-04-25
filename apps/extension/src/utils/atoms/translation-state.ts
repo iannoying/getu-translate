@@ -1,7 +1,7 @@
 import type { TranslationState } from "@/types/translation-state"
 import { atom } from "jotai"
 import { translationStateSchema } from "@/types/translation-state"
-import { logger } from "../logger"
+import { swallowExtensionLifecycleError } from "../extension-lifecycle"
 import { onMessage, sendMessage } from "../message"
 
 export function createTranslationStateAtomForContentScript(defaultValue: TranslationState) {
@@ -16,9 +16,7 @@ export function createTranslationStateAtomForContentScript(defaultValue: Transla
           setAtom(parsed.data)
         }
       })
-      .catch((error) => {
-        logger.error("Error getting initial translation state:", error)
-      })
+      .catch(swallowExtensionLifecycleError("translationStateAtom initial sendMessage"))
 
     // Watch for changes
     return onMessage("notifyTranslationStateChanged", (msg) => {

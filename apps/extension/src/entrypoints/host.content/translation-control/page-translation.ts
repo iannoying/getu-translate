@@ -7,6 +7,7 @@ import { getLocalConfig } from "@/utils/config/storage"
 import { CONTENT_WRAPPER_CLASS } from "@/utils/constants/dom-labels"
 import { resolveProviderConfig } from "@/utils/constants/feature-providers"
 import { getRandomUUID } from "@/utils/crypto-polyfill"
+import { swallowExtensionLifecycleError } from "@/utils/extension-lifecycle"
 import { hasNoWalkAncestor, isDontWalkIntoButTranslateAsChildElement, isHTMLElement } from "@/utils/host/dom/filter"
 import { deepQueryTopLevelSelector } from "@/utils/host/dom/find"
 import { walkAndLabelElement } from "@/utils/host/dom/traversal"
@@ -185,7 +186,7 @@ export class PageTranslationManager implements IPageTranslationManager {
 
     void sendMessage("setAndNotifyPageTranslationStateChangedByManager", {
       enabled: false,
-    })
+    }).catch(swallowExtensionLifecycleError("PageTranslationManager.stop"))
 
     this.isPageTranslating = false
     this.walkId = null

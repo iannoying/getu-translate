@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/base-ui/button"
 import { ANALYTICS_FEATURE, ANALYTICS_SURFACE } from "@/types/analytics"
 import { createFeatureUsageContext } from "@/utils/analytics"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
+import { swallowExtensionLifecycleError } from "@/utils/extension-lifecycle"
 import { i18n } from "@/utils/i18n"
 import { sendMessage } from "@/utils/message"
 import { formatHotkey } from "@/utils/os.ts"
@@ -35,7 +36,7 @@ export default function TranslateButton({ className }: { className?: string }) {
         analyticsContext: nextEnabled
           ? createFeatureUsageContext(ANALYTICS_FEATURE.PAGE_TRANSLATION, ANALYTICS_SURFACE.POPUP)
           : undefined,
-      })
+      }).catch(swallowExtensionLifecycleError("popup translate-button click"))
 
       setIsPageTranslated(prev => !prev)
     }

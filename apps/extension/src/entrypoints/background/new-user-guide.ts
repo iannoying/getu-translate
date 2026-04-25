@@ -1,5 +1,6 @@
 import { browser } from "#imports"
 import { OFFICIAL_SITE_URL_PATTERNS } from "@/utils/constants/url"
+import { swallowExtensionLifecycleError } from "@/utils/extension-lifecycle"
 import { onMessage, sendMessage } from "@/utils/message"
 
 let lastIsPinned = false
@@ -33,6 +34,7 @@ async function checkPinnedAndNotify() {
   browser.tabs.query({ url: OFFICIAL_SITE_URL_PATTERNS }, (tabs) => {
     for (const tab of tabs) {
       void sendMessage("pinStateChanged", { isPinned: isOnToolbar }, tab.id)
+        .catch(swallowExtensionLifecycleError("new-user-guide pinStateChanged"))
     }
   })
 }

@@ -4,8 +4,9 @@ import { atom } from "jotai"
 import { selectAtom } from "jotai/utils"
 import { configSchema } from "@/types/config/config"
 import { CONFIG_STORAGE_KEY, DEFAULT_CONFIG } from "../constants/config"
+import { isExtensionContextInvalidatedError, swallowInvalidatedStorageRead } from "../extension-lifecycle"
 import { logger } from "../logger"
-import { isExtensionContextInvalidatedError, storageAdapter, swallowInvalidatedStorageRead } from "./storage-adapter"
+import { storageAdapter } from "./storage-adapter"
 
 export const configAtom = atom<Config>(DEFAULT_CONFIG)
 

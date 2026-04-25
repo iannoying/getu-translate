@@ -5,6 +5,7 @@ import { ANALYTICS_FEATURE, ANALYTICS_SURFACE } from "@/types/analytics"
 import { createFeatureUsageContext } from "@/utils/analytics"
 import { CONFIG_STORAGE_KEY } from "@/utils/constants/config"
 import { getTranslationStateKey } from "@/utils/constants/storage-keys"
+import { swallowExtensionLifecycleError } from "@/utils/extension-lifecycle"
 import { shouldEnableAutoTranslation } from "@/utils/host/translate/auto-translation"
 import { logger } from "@/utils/logger"
 import { onMessage, sendMessage } from "@/utils/message"
@@ -27,6 +28,7 @@ export function translationMessage() {
   onMessage("tryToSetEnablePageTranslationByTabId", async (msg) => {
     const { tabId, enabled, analyticsContext } = msg.data
     void sendMessage("askManagerToTogglePageTranslation", { enabled, analyticsContext }, tabId)
+      .catch(swallowExtensionLifecycleError("translation-signal askManagerToTogglePageTranslation (tryToSetByTabId)"))
   })
 
   onMessage("tryToSetEnablePageTranslationOnContentScript", async (msg) => {
@@ -53,7 +55,7 @@ export function translationMessage() {
         void sendMessage("askManagerToTogglePageTranslation", {
           enabled: true,
           analyticsContext: createFeatureUsageContext(ANALYTICS_FEATURE.PAGE_TRANSLATION, ANALYTICS_SURFACE.PAGE_AUTO),
-        }, tabId)
+        }, tabId).catch(swallowExtensionLifecycleError("translation-signal askManagerToTogglePageTranslation (auto)"))
       }
     }
   })
@@ -67,6 +69,7 @@ export function translationMessage() {
         { enabled },
       )
       void sendMessage("notifyTranslationStateChanged", { enabled }, tabId)
+        .catch(swallowExtensionLifecycleError("translation-signal notifyTranslationStateChanged"))
     }
     else {
       logger.error("tabId is not a number", msg)

@@ -1,8 +1,9 @@
 import { atom } from "jotai"
 import { z } from "zod"
 import { ANALYTICS_ENABLED_STORAGE_KEY, DEFAULT_ANALYTICS_ENABLED } from "@/utils/constants/analytics"
+import { swallowInvalidatedStorageRead } from "../extension-lifecycle"
 import { logger } from "../logger"
-import { storageAdapter, swallowInvalidatedStorageRead } from "./storage-adapter"
+import { storageAdapter } from "./storage-adapter"
 
 const analyticsEnabledSchema = z.boolean()
 

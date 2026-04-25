@@ -1,6 +1,7 @@
 import type { UILocale, UILocalePreference } from "./locales"
 import { storage } from "#imports"
 import { atom, getDefaultStore } from "jotai"
+import { swallowInvalidatedStorageRead } from "@/utils/extension-lifecycle"
 import { logger } from "@/utils/logger"
 import { detectBrowserUILocale } from "./detect"
 import { DEFAULT_UI_LOCALE_PREFERENCE, isUILocalePreference } from "./locales"
@@ -41,7 +42,7 @@ export const effectiveUILocaleAtom = atom<UILocale>((get) => {
 baseUILocalePreferenceAtom.onMount = (setAtom) => {
   void storage.getItem<UILocalePreference>(storageKey).then((value) => {
     setAtom(isUILocalePreference(value) ? value : DEFAULT_UI_LOCALE_PREFERENCE)
-  })
+  }).catch(swallowInvalidatedStorageRead("baseUILocalePreferenceAtom initial"))
   const unwatch = storage.watch<UILocalePreference>(storageKey, (value) => {
     // A `null` value here means the key was cleared (e.g. user wiped extension
     // data); reset to the default so downstream consumers stop seeing the
@@ -53,7 +54,7 @@ baseUILocalePreferenceAtom.onMount = (setAtom) => {
     if (typeof document !== "undefined" && document.visibilityState === "visible") {
       void storage.getItem<UILocalePreference>(storageKey).then((value) => {
         setAtom(isUILocalePreference(value) ? value : DEFAULT_UI_LOCALE_PREFERENCE)
-      })
+      }).catch(swallowInvalidatedStorageRead("baseUILocalePreferenceAtom visibilitychange"))
     }
   }
   if (typeof document !== "undefined")

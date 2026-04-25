@@ -2,7 +2,7 @@ import type { LastSyncedConfigMeta } from "@/types/config/meta"
 import { storage } from "#imports"
 import { atom } from "jotai"
 import { LAST_SYNCED_CONFIG_STORAGE_KEY } from "../constants/config"
-import { swallowInvalidatedStorageRead } from "./storage-adapter"
+import { swallowInvalidatedStorageRead } from "../extension-lifecycle"
 
 // internal atom for storing last sync time (from lastSyncedConfig meta)
 const _lastSyncTimeBaseAtom = atom<number | null>(null)

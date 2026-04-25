@@ -2,8 +2,9 @@ import type { LangCodeISO6393 } from "@getu/definitions"
 import { langCodeISO6393Schema } from "@getu/definitions"
 import { atom } from "jotai"
 import { DEFAULT_DETECTED_CODE, DETECTED_CODE_STORAGE_KEY } from "../constants/config"
+import { swallowInvalidatedStorageRead } from "../extension-lifecycle"
 import { logger } from "../logger"
-import { storageAdapter, swallowInvalidatedStorageRead } from "./storage-adapter"
+import { storageAdapter } from "./storage-adapter"
 
 // Private base atom - not exported to prevent direct writes
 const baseDetectedCodeAtom = atom<LangCodeISO6393>(DEFAULT_DETECTED_CODE)
