@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-21 | Updated: 2026-04-24 -->
+<!-- Generated: 2026-04-21 | Updated: 2026-04-25 -->
 
 # definitions (@getu/definitions)
 
@@ -18,6 +18,8 @@ The `@getu/definitions` package provides shared type definitions, constants, and
 | `src/index.ts`    | Barrel export. Re-exports everything from `base.js` and adds GetU-specific URL constant overrides.                               |
 | `src/base.d.ts`   | Generated type declarations for all upstream definitions (language constants, column types, auth, URL constants, schemas, utils). |
 | `src/base.js`     | Compiled JS bundle (pre-built from upstream fork; do not edit manually).                                                         |
+| `src/translate-models.ts` | M6 — registry of the 11 web `/translate` comparison models (2 free + 9 Pro), discriminated union: `translate-api` columns are character-billed (no token cost), `llm` columns carry `costCoefficients` normalized to gpt-4o-mini = 1 (matches `@getu/contract`'s convention; final values calibrated at #M6.7). |
+| `vitest.config.ts` | Vitest config (node environment) for the package's `__tests__/`.                                                              |
 
 ## Subdirectories
 
@@ -36,7 +38,8 @@ The `@getu/definitions` package provides shared type definitions, constants, and
 
 ### Testing Requirements
 
-- No dedicated tests. Schema correctness is validated by TypeScript.
+- Most upstream re-exports rely on TypeScript for correctness — no runtime tests.
+- New constants/registries with derived data (e.g. `src/translate-models.ts`) get a focused `__tests__/*.test.ts` covering the invariants (counts, kind/free flags, lookup maps). Run with `pnpm --filter @getu/definitions test`.
 
 ### Common Patterns
 

@@ -8,7 +8,13 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "test": "vitest run"
+  },
   "dependencies": {
     "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.4"
   }
 }

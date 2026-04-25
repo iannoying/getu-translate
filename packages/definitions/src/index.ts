@@ -62,3 +62,22 @@ export const AUTH_DOMAINS = ["getutranslate.com", "localhost"] as const
 
 // Override: GetU Translate rebranded APP_NAME (Phase 1 Task 5)
 export const APP_NAME = "GetU Translate"
+
+// Web /translate model registry (M6 — see docs/plans/2026-04-25-web-translate-document-design.md)
+export {
+  FREE_TRANSLATE_MODEL_IDS,
+  PRO_TRANSLATE_MODEL_IDS,
+  TRANSLATE_MODELS,
+  TRANSLATE_MODEL_BY_ID,
+  isFreeTranslateModel,
+  isLlmTranslateModel,
+  isTranslateModelId,
+  normalizeTranslateTokens,
+} from "./translate-models"
+export type {
+  TranslateModel,
+  TranslateModelId,
+  TranslateModelKind,
+  TranslateModelLlm,
+  TranslateModelTranslateApi,
+} from "./translate-models"
