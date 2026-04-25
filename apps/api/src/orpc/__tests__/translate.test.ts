@@ -75,7 +75,8 @@ beforeEach(async () => {
   })
 })
 
-const SAMPLE_CLICK_ID = "click-01929b2e-7a94-7c9e"
+const SAMPLE_CLICK_ID = "01929b2e-7a94-7c9e-9f3a-8b4c5d6e7f80"
+const SHARED_CLICK_ID = "01929b2e-7a94-7c9e-9f3a-8b4c5d6e7f81"
 
 describe("translate.text — auth & gating", () => {
   it("rejects unauthenticated callers with UNAUTHORIZED", async () => {
@@ -198,6 +199,23 @@ describe("translate.text — auth & gating", () => {
     expect(out.tokens).toEqual({ input: 0, output: 0 })
   })
 
+  it("rejects non-UUID clickId at the schema layer", async () => {
+    // Regression: clickId used to be `min(8).max(128)` only, so a careless
+    // client could pass `"00000000"` and silently skip quota decrement on
+    // every subsequent legitimate click (self-harm, but a free-quota leak).
+    const client = createRouterClient(router, { context: ctx(freeSession) })
+    await expect(
+      client.translate.translate({
+        text: "hello",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+        modelId: "google",
+        columnId: "c1",
+        clickId: "00000000",
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" })
+  })
+
   it("multi-column click: every column shares the same requestId so consumeQuota dedupes", async () => {
     // Regression: previously requestId used columnId, so 11 columns burned
     // 11 quota units instead of 1. Now keyed by clickId.
@@ -205,7 +223,7 @@ describe("translate.text — auth & gating", () => {
     const ent = await import("../../billing/entitlements")
     ;(ent.loadEntitlements as any).mockResolvedValue({ ...FREE_ENTITLEMENTS, tier: "pro" })
     const client = createRouterClient(router, { context: ctx(proSession) })
-    const sharedClickId = "click-shared-12345678"
+    const sharedClickId = SHARED_CLICK_ID
     await Promise.all([
       client.translate.translate({
         text: "hi",
@@ -306,6 +324,27 @@ describe("translate.document.create", () => {
     await expect(
       client.translate.document.create({
         sourceKey: "pdfs/other-user-id/secret.pdf",
+        sourcePages: 5,
+        sourceBytes: 100_000,
+        modelId: "google",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+      }),
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      data: { code: "SOURCE_KEY_OUT_OF_SCOPE" },
+    })
+  })
+
+  it("rejects sourceKey with `..` path traversal even when prefix matches", async () => {
+    // Regression: `pdfs/u-free/../other/x.pdf` startsWith `pdfs/u-free/`
+    // but R2 keys don't auto-normalize, so the worker would fetch
+    // `pdfs/other/x.pdf` (foreign user's file) if we relied on startsWith
+    // alone.
+    const client = createRouterClient(router, { context: ctx(freeSession) })
+    await expect(
+      client.translate.document.create({
+        sourceKey: "pdfs/u-free/../other-user/secret.pdf",
         sourcePages: 5,
         sourceBytes: 100_000,
         modelId: "google",

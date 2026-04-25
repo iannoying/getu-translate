@@ -55,8 +55,15 @@ export const documentCreate = authed
     // upload (see #M6.8). Enforce that the key lives under this user's
     // namespace so a malicious caller can't queue a job against another
     // user's PDF and burn their own quota processing it.
+    //
+    // R2/S3 object keys are opaque — they DO NOT auto-normalize `..` —
+    // so a raw startsWith check can be bypassed by `pdfs/u-free/../other/x.pdf`.
+    // We must (a) reject any key containing path-traversal segments, then
+    // (b) verify the prefix.
     const expectedPrefix = `pdfs/${userId}/`
-    if (!input.sourceKey.startsWith(expectedPrefix)) {
+    const segments = input.sourceKey.split("/")
+    const hasTraversal = segments.some(seg => seg === "" || seg === "." || seg === "..")
+    if (hasTraversal || !input.sourceKey.startsWith(expectedPrefix)) {
       throw new ORPCError("FORBIDDEN", {
         message: "sourceKey 不在用户命名空间内",
         data: { code: "SOURCE_KEY_OUT_OF_SCOPE", expectedPrefix },

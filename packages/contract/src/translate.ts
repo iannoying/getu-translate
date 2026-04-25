@@ -32,11 +32,20 @@ export const TRANSLATE_TEXT_MAX_CHARS = 50_000
  * Per-button-press identifier shared by every column issued from one click.
  * The server uses it as `consumeQuota`'s requestId so 11 concurrent column
  * calls collapse to exactly **one** monthly-bucket decrement (idempotency
- * key). The client must generate a fresh value (e.g. `crypto.randomUUID()`)
+ * key). The client must generate a fresh value via `crypto.randomUUID()`
  * **once per Translate-button click** and pass the same value to every
  * column's call.
+ *
+ * Format is enforced as RFC 4122 UUID (v4 or v7) so a careless or
+ * adversarial client can't reuse a constant string like `"00000000"` and
+ * skip quota decrements on subsequent legitimate clicks.
  */
-const clickIdSchema = z.string().min(8).max(128)
+const clickIdSchema = z
+  .string()
+  .regex(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    "clickId must be a UUID (use crypto.randomUUID() per Translate click)",
+  )
 
 export const translateTextInputSchema = z
   .object({
