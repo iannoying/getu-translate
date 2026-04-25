@@ -1,6 +1,7 @@
 import { browser } from "#imports"
 import { useAtom, useAtomValue } from "jotai"
 import { Button } from "@/components/ui/base-ui/button"
+import { useIsCurrentTabPdf } from "@/hooks/use-is-current-tab-pdf"
 import { ANALYTICS_FEATURE, ANALYTICS_SURFACE } from "@/types/analytics"
 import { createFeatureUsageContext } from "@/utils/analytics"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
@@ -21,6 +22,14 @@ export default function TranslateButton({ className }: { className?: string }) {
   const { mode } = useAtomValue(configFieldsAtomMap.siteControl)
   const isCurrentSiteInWhitelist = useAtomValue(isCurrentSiteInWhitelistAtom)
   const isCurrentSiteInBlacklist = useAtomValue(isCurrentSiteInBlacklistAtom)
+  const { loading: pdfDetectLoading, isPdf } = useIsCurrentTabPdf()
+
+  // On PDF tabs the popup swaps in `TranslateCurrentPdfButton` (web shortcut)
+  // instead of the regular page-translation button — render nothing here so
+  // we don't show two buttons. While detection is in flight, also render
+  // nothing to avoid a flash of the wrong button on slow popups.
+  if (pdfDetectLoading || isPdf)
+    return null
 
   const toggleTranslation = async () => {
     const [currentTab] = await browser.tabs.query({
