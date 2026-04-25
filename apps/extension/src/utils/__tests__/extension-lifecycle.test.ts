@@ -1,5 +1,7 @@
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
+  __resetLifecycleGuardForTests,
+  installContentScriptLifecycleGuard,
   isExtensionContextInvalidatedError,
   isExtensionLifecycleError,
   isMessagingDisconnectError,
@@ -19,6 +21,15 @@ describe("isExtensionContextInvalidatedError", () => {
   it("returns true for the WXT 0.20+ storage guard message after browser.runtime is null", () => {
     expect(isExtensionContextInvalidatedError(new Error(
       "'wxt/storage' must be loaded in a web extension environment\n - If thrown during a build, see https://github.com/wxt-dev/wxt/issues/371",
+    ))).toBe(true)
+  })
+
+  it("returns true for the WXT 0.20+ storage-permission guard (browser.storage null post-reload)", () => {
+    // The manifest *does* declare 'storage'; this message is misleading.
+    // Chromium nulls chrome.storage post-reload while keeping chrome.runtime
+    // in a stale state, so WXT's `browser.storage == null` branch fires.
+    expect(isExtensionContextInvalidatedError(new Error(
+      "You must add the 'storage' permission to your manifest to use 'wxt/storage'",
     ))).toBe(true)
   })
 
@@ -61,12 +72,90 @@ describe("isExtensionLifecycleError", () => {
   it("matches both invalidated-context and messaging-disconnect families", () => {
     expect(isExtensionLifecycleError(new Error("Extension context invalidated."))).toBe(true)
     expect(isExtensionLifecycleError(new Error("'wxt/storage' must be loaded in a web extension environment"))).toBe(true)
+    expect(isExtensionLifecycleError(new Error("You must add the 'storage' permission to your manifest to use 'wxt/storage'"))).toBe(true)
     expect(isExtensionLifecycleError(new Error("Could not establish connection. Receiving end does not exist."))).toBe(true)
     expect(isExtensionLifecycleError(new Error("The message port closed before a response was received."))).toBe(true)
   })
 
   it("returns false for unrelated errors", () => {
     expect(isExtensionLifecycleError(new Error("disk full"))).toBe(false)
+  })
+})
+
+describe("installContentScriptLifecycleGuard", () => {
+  const handlers: Array<(e: PromiseRejectionEvent) => void> = []
+  const mockWindow = {
+    addEventListener: vi.fn((event: string, listener: (e: PromiseRejectionEvent) => void) => {
+      if (event === "unhandledrejection")
+        handlers.push(listener)
+    }),
+  }
+
+  beforeEach(() => {
+    handlers.length = 0
+    mockWindow.addEventListener.mockClear()
+    vi.stubGlobal("window", mockWindow)
+    __resetLifecycleGuardForTests()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    __resetLifecycleGuardForTests()
+  })
+
+  it("registers an unhandledrejection listener that swallows lifecycle errors and prevents default", async () => {
+    installContentScriptLifecycleGuard("test.content")
+
+    expect(handlers).toHaveLength(1)
+    const listener = handlers[0] as (e: PromiseRejectionEvent) => void
+
+    const preventDefault = vi.fn()
+    const fakeEvent = {
+      reason: new Error("Extension context invalidated."),
+      preventDefault,
+    } as unknown as PromiseRejectionEvent
+    listener(fakeEvent)
+
+    expect(preventDefault).toHaveBeenCalledOnce()
+  })
+
+  it("ignores non-lifecycle rejections (real bugs still surface)", async () => {
+    installContentScriptLifecycleGuard("test.content")
+
+    const listener = handlers[0] as (e: PromiseRejectionEvent) => void
+    const preventDefault = vi.fn()
+    listener({
+      reason: new Error("schema mismatch"),
+      preventDefault,
+    } as unknown as PromiseRejectionEvent)
+
+    expect(preventDefault).not.toHaveBeenCalled()
+  })
+
+  it("matches the WXT storage-permission flavour (regression for issue reported on en.wikipedia)", async () => {
+    installContentScriptLifecycleGuard("test.content")
+
+    const listener = handlers[0] as (e: PromiseRejectionEvent) => void
+    const preventDefault = vi.fn()
+    listener({
+      reason: new Error("You must add the 'storage' permission to your manifest to use 'wxt/storage'"),
+      preventDefault,
+    } as unknown as PromiseRejectionEvent)
+
+    expect(preventDefault).toHaveBeenCalledOnce()
+  })
+
+  it("is idempotent (only registers a single listener regardless of call count)", async () => {
+    installContentScriptLifecycleGuard("first")
+    installContentScriptLifecycleGuard("second")
+    installContentScriptLifecycleGuard("third")
+
+    expect(handlers).toHaveLength(1)
+  })
+
+  // Reference unused import so TS doesn't strip it.
+  it("keeps the named export available", () => {
+    expect(typeof installContentScriptLifecycleGuard).toBe("function")
   })
 })
 
