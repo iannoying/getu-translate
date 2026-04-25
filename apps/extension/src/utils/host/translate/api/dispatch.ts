@@ -77,14 +77,9 @@ export const defaultImpls: Partial<Record<ProviderKind, FreeTranslateImpl>> = {
   microsoft: microsoftAdapter,
   bing: input => translateBing(input),
   yandex: input => translateYandex(input),
-  // libre and deeplx need runtime config — caller supplies them
 }
 
 /**
  * Default provider try-order for free translation.
- *
- * LibreTranslate and DeepLX require runtime configuration (endpoint / api key)
- * and must be explicitly added by the caller when configured, e.g.
- * `[...DEFAULT_ORDER, 'libre']` after injecting `libre` into impls.
  */
 export const DEFAULT_ORDER: ProviderKind[] = ["google", "microsoft", "bing", "yandex"]

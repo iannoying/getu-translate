@@ -55,26 +55,26 @@ describe("createHealthTracker", () => {
     const tracker = createHealthTracker({ now: () => t, windowMs: 60_000, threshold: 3, cooldownMs: 30_000 })
 
     // Trip the breaker
-    tracker.recordFailure("libre")
-    tracker.recordFailure("libre")
-    tracker.recordFailure("libre")
-    expect(tracker.isHealthy("libre")).toBe(false)
+    tracker.recordFailure("yandex")
+    tracker.recordFailure("yandex")
+    tracker.recordFailure("yandex")
+    expect(tracker.isHealthy("yandex")).toBe(false)
 
     // Advance past cooldown — provider recovers and failures map is cleared
     t = 30_000
-    expect(tracker.isHealthy("libre")).toBe(true)
+    expect(tracker.isHealthy("yandex")).toBe(true)
 
     // One new failure after recovery should not re-trip (needs threshold=3 fresh failures)
-    tracker.recordFailure("libre")
-    expect(tracker.isHealthy("libre")).toBe(true)
+    tracker.recordFailure("yandex")
+    expect(tracker.isHealthy("yandex")).toBe(true)
 
     // A second failure is still below threshold
-    tracker.recordFailure("libre")
-    expect(tracker.isHealthy("libre")).toBe(true)
+    tracker.recordFailure("yandex")
+    expect(tracker.isHealthy("yandex")).toBe(true)
 
     // Third fresh failure re-trips
-    tracker.recordFailure("libre")
-    expect(tracker.isHealthy("libre")).toBe(false)
+    tracker.recordFailure("yandex")
+    expect(tracker.isHealthy("yandex")).toBe(false)
   })
 
   it("old failures outside the sliding window do not count toward the threshold", () => {
@@ -82,19 +82,19 @@ describe("createHealthTracker", () => {
     const tracker = createHealthTracker({ now: () => t, windowMs: 60_000, threshold: 3, cooldownMs: 30_000 })
 
     // Two failures at t=0
-    tracker.recordFailure("yandex")
-    tracker.recordFailure("yandex")
+    tracker.recordFailure("google")
+    tracker.recordFailure("google")
 
     // Advance past the window
     t = 60_001
 
     // One fresh failure — only 1 in the window, below threshold
-    tracker.recordFailure("yandex")
-    expect(tracker.isHealthy("yandex")).toBe(true)
+    tracker.recordFailure("google")
+    expect(tracker.isHealthy("google")).toBe(true)
 
     // Two more bring it to threshold within the window
-    tracker.recordFailure("yandex")
-    tracker.recordFailure("yandex")
-    expect(tracker.isHealthy("yandex")).toBe(false)
+    tracker.recordFailure("google")
+    tracker.recordFailure("google")
+    expect(tracker.isHealthy("google")).toBe(false)
   })
 })

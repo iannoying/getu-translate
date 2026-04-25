@@ -1,9 +1,22 @@
 import { describe, expect, it } from "vitest"
-import { DEFAULT_PROVIDER_CONFIG, DEFAULT_PROVIDER_CONFIG_LIST } from "@/utils/constants/providers"
+import { DEFAULT_PROVIDER_CONFIG, DEFAULT_PROVIDER_CONFIG_LIST, PROVIDER_GROUPS } from "@/utils/constants/providers"
 import { getObjectWithoutAPIKeys, hasAPIKey } from "../api"
 import { LATEST_SCHEMA_VERSION } from "../migration"
 
 describe("config utilities", () => {
+  describe("default translation providers", () => {
+    it("does not preinstall DeepLX or LibreTranslate for new users", () => {
+      const defaultProviderTypes = DEFAULT_PROVIDER_CONFIG_LIST.map(config => config.provider)
+
+      expect(defaultProviderTypes).not.toContain("deeplx")
+      expect(defaultProviderTypes).not.toContain("libre-translate")
+    })
+
+    it("does not offer DeepLX or LibreTranslate in the pure translation provider group", () => {
+      expect(PROVIDER_GROUPS.pureTranslationProviders.types).toEqual(["deepl"])
+    })
+  })
+
   describe("getObjectWithoutAPIKeys", () => {
     for (let version = 2; version <= LATEST_SCHEMA_VERSION; version++) {
       const currentVersionStr = String(version).padStart(3, "0")
