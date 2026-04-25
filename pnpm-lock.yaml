@@ -41,6 +41,9 @@ importers:
       '@getu/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@getu/definitions':
+        specifier: workspace:*
+        version: link:../../packages/definitions
       '@orpc/server':
         specifier: ^1.13.14
         version: 1.13.14(@opentelemetry/api@1.9.1)
