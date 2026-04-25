@@ -75,6 +75,8 @@ beforeEach(async () => {
   })
 })
 
+const SAMPLE_CLICK_ID = "click-01929b2e-7a94-7c9e"
+
 describe("translate.text — auth & gating", () => {
   it("rejects unauthenticated callers with UNAUTHORIZED", async () => {
     const client = createRouterClient(router, { context: ctx(null) })
@@ -85,6 +87,7 @@ describe("translate.text — auth & gating", () => {
         targetLang: "zh-CN",
         modelId: "google",
         columnId: "c1",
+        clickId: SAMPLE_CLICK_ID,
       }),
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" })
   })
@@ -98,6 +101,7 @@ describe("translate.text — auth & gating", () => {
         targetLang: "zh-CN",
         modelId: "nonexistent-model",
         columnId: "c1",
+        clickId: SAMPLE_CLICK_ID,
       }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" })
   })
@@ -111,6 +115,7 @@ describe("translate.text — auth & gating", () => {
         targetLang: "zh-CN",
         modelId: "claude-sonnet-4-6",
         columnId: "c1",
+        clickId: SAMPLE_CLICK_ID,
       }),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
@@ -127,6 +132,7 @@ describe("translate.text — auth & gating", () => {
         targetLang: "zh-CN",
         modelId: "google",
         columnId: "c1",
+        clickId: SAMPLE_CLICK_ID,
       }),
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -147,6 +153,7 @@ describe("translate.text — auth & gating", () => {
         targetLang: "zh-CN",
         modelId: "google",
         columnId: "c1",
+        clickId: SAMPLE_CLICK_ID,
       }),
     ).rejects.toMatchObject({ code: "INSUFFICIENT_QUOTA" })
   })
@@ -160,6 +167,7 @@ describe("translate.text — auth & gating", () => {
       targetLang: "zh-CN",
       modelId: "google",
       columnId: "col-google",
+      clickId: SAMPLE_CLICK_ID,
     })
     expect(out.modelId).toBe("google")
     expect(out.tokens).toBeNull() // translate-api kind has no token cost
@@ -169,7 +177,7 @@ describe("translate.text — auth & gating", () => {
       "u-free",
       "web_text_translate_monthly",
       1,
-      "web-text:u-free:col-google",
+      `web-text:u-free:${SAMPLE_CLICK_ID}`,
       undefined,
     )
   })
@@ -184,9 +192,53 @@ describe("translate.text — auth & gating", () => {
       targetLang: "zh-CN",
       modelId: "claude-sonnet-4-6",
       columnId: "col-claude",
+      clickId: SAMPLE_CLICK_ID,
     })
     expect(out.modelId).toBe("claude-sonnet-4-6")
     expect(out.tokens).toEqual({ input: 0, output: 0 })
+  })
+
+  it("multi-column click: every column shares the same requestId so consumeQuota dedupes", async () => {
+    // Regression: previously requestId used columnId, so 11 columns burned
+    // 11 quota units instead of 1. Now keyed by clickId.
+    const quota = await import("../../billing/quota")
+    const ent = await import("../../billing/entitlements")
+    ;(ent.loadEntitlements as any).mockResolvedValue({ ...FREE_ENTITLEMENTS, tier: "pro" })
+    const client = createRouterClient(router, { context: ctx(proSession) })
+    const sharedClickId = "click-shared-12345678"
+    await Promise.all([
+      client.translate.translate({
+        text: "hi",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+        modelId: "google",
+        columnId: "col-google",
+        clickId: sharedClickId,
+      }),
+      client.translate.translate({
+        text: "hi",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+        modelId: "claude-sonnet-4-6",
+        columnId: "col-claude",
+        clickId: sharedClickId,
+      }),
+      client.translate.translate({
+        text: "hi",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+        modelId: "gpt-5.5",
+        columnId: "col-gpt",
+        clickId: sharedClickId,
+      }),
+    ])
+    const calls = (quota.consumeQuota as any).mock.calls
+    expect(calls).toHaveLength(3)
+    // All three calls must use the SAME requestId so consumeQuota's
+    // (userId, requestId) idempotency collapses them to one decrement.
+    const requestIds = calls.map((args: unknown[]) => args[4])
+    expect(new Set(requestIds).size).toBe(1)
+    expect(requestIds[0]).toBe(`web-text:u-pro:${sharedClickId}`)
   })
 })
 
@@ -201,7 +253,7 @@ describe("translate.document.create", () => {
     const client = createRouterClient(router, { context: ctx(freeSession) })
     await expect(
       client.translate.document.create({
-        sourceKey: "pdfs/x/source.pdf",
+        sourceKey: "pdfs/u-free/abc/source.pdf",
         sourcePages: 11,
         sourceBytes: 100_000,
         modelId: "google",
@@ -215,7 +267,7 @@ describe("translate.document.create", () => {
     const client = createRouterClient(router, { context: ctx(freeSession) })
     await expect(
       client.translate.document.create({
-        sourceKey: "pdfs/x/source.pdf",
+        sourceKey: "pdfs/u-free/abc/source.pdf",
         sourcePages: 5,
         sourceBytes: 100_000,
         modelId: "claude-sonnet-4-6",
@@ -233,7 +285,7 @@ describe("translate.document.create", () => {
     const client = createRouterClient(router, { context: ctx(freeSession) })
     await expect(
       client.translate.document.create({
-        sourceKey: "pdfs/x/source.pdf",
+        sourceKey: "pdfs/u-free/abc/source.pdf",
         sourcePages: 5,
         sourceBytes: 100_000,
         modelId: "google",
@@ -246,10 +298,30 @@ describe("translate.document.create", () => {
     })
   })
 
+  it("rejects sourceKey outside user namespace with FORBIDDEN / SOURCE_KEY_OUT_OF_SCOPE", async () => {
+    // Regression: previously the handler trusted the client-supplied
+    // sourceKey, so a caller could queue a job against another user's
+    // R2 path and burn their own quota processing it.
+    const client = createRouterClient(router, { context: ctx(freeSession) })
+    await expect(
+      client.translate.document.create({
+        sourceKey: "pdfs/other-user-id/secret.pdf",
+        sourcePages: 5,
+        sourceBytes: 100_000,
+        modelId: "google",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+      }),
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      data: { code: "SOURCE_KEY_OUT_OF_SCOPE" },
+    })
+  })
+
   it("happy path: inserts job row with status=queued and returns jobId", async () => {
     const client = createRouterClient(router, { context: ctx(freeSession) })
     const out = await client.translate.document.create({
-      sourceKey: "pdfs/x/source.pdf",
+      sourceKey: "pdfs/u-free/abc/source.pdf",
       sourcePages: 5,
       sourceBytes: 100_000,
       modelId: "google",

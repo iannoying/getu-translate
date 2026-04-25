@@ -28,6 +28,16 @@ const columnIdSchema = z.string().min(1).max(64)
  */
 export const TRANSLATE_TEXT_MAX_CHARS = 50_000
 
+/**
+ * Per-button-press identifier shared by every column issued from one click.
+ * The server uses it as `consumeQuota`'s requestId so 11 concurrent column
+ * calls collapse to exactly **one** monthly-bucket decrement (idempotency
+ * key). The client must generate a fresh value (e.g. `crypto.randomUUID()`)
+ * **once per Translate-button click** and pass the same value to every
+ * column's call.
+ */
+const clickIdSchema = z.string().min(8).max(128)
+
 export const translateTextInputSchema = z
   .object({
     text: z.string().min(1).max(TRANSLATE_TEXT_MAX_CHARS),
@@ -35,6 +45,7 @@ export const translateTextInputSchema = z
     targetLang: langCodeSchema,
     modelId: modelIdSchema,
     columnId: columnIdSchema,
+    clickId: clickIdSchema,
   })
   .strict()
 export type TranslateTextInput = z.infer<typeof translateTextInputSchema>

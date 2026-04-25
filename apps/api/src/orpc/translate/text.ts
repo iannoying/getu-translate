@@ -54,15 +54,19 @@ export const translateText = authed
     const modelId = requireModelAccess(plan, input.modelId)
 
     // 3. Atomic quota check + decrement (button-click count).
-    //    requestId is column-id-independent on purpose: caller passes the
-    //    same id for every concurrent column → consumeQuota's idempotency
-    //    de-dupes them down to one decrement per click.
+    //    requestId is keyed by the per-click `clickId`, NOT per-column.
+    //    The client generates one UUID per "Translate" button press and
+    //    passes the SAME value to every concurrent column call. consumeQuota's
+    //    (userId, requestId) idempotency then collapses N column calls down
+    //    to a single decrement, regardless of how many model columns the
+    //    user has open. (Bug previously: requestId used columnId, so an
+    //    11-column click burned 11 quota units instead of 1.)
     await consumeTranslateQuota(
       db,
       userId,
       "web_text_translate_monthly",
       1,
-      `web-text:${userId}:${input.columnId}`,
+      `web-text:${userId}:${input.clickId}`,
     )
 
     // M6.3 stub — real call lands in M6.5.

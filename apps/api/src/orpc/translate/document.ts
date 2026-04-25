@@ -51,6 +51,18 @@ export const documentCreate = authed
     // Model gating mirrors text translation: free → google/microsoft only.
     const modelId = requireModelAccess(plan, input.modelId)
 
+    // Ownership: sourceKey is supplied by the client after a presigned R2
+    // upload (see #M6.8). Enforce that the key lives under this user's
+    // namespace so a malicious caller can't queue a job against another
+    // user's PDF and burn their own quota processing it.
+    const expectedPrefix = `pdfs/${userId}/`
+    if (!input.sourceKey.startsWith(expectedPrefix)) {
+      throw new ORPCError("FORBIDDEN", {
+        message: "sourceKey 不在用户命名空间内",
+        data: { code: "SOURCE_KEY_OUT_OF_SCOPE", expectedPrefix },
+      })
+    }
+
     // Concurrency: one PDF in-flight per user.
     const active = await db
       .select({ id: translationJobs.id })
