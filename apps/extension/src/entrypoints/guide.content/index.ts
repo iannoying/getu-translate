@@ -5,11 +5,14 @@ import { getLocalConfig } from "@/utils/config/storage"
 import { APP_NAME } from "@/utils/constants/app"
 import { CONFIG_STORAGE_KEY } from "@/utils/constants/config"
 import { OFFICIAL_SITE_URL_PATTERNS } from "@/utils/constants/url"
+import { installContentScriptLifecycleGuard } from "@/utils/extension-lifecycle"
 import { onMessage, sendMessage } from "@/utils/message"
 
 export default defineContentScript({
   matches: OFFICIAL_SITE_URL_PATTERNS,
   async main() {
+    installContentScriptLifecycleGuard("guide.content")
+
     onMessage("pinStateChanged", (msg) => {
       window.postMessage({ source: `${kebabCase(APP_NAME)}-ext`, ...msg }, "*")
     })

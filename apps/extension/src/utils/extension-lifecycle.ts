@@ -10,6 +10,11 @@ import { logger } from "./logger"
  * - `"'wxt/storage' must be loaded in a web extension environment"` — WXT 0.20+
  *   guard inside `getStorageArea()` that fires once `browser.runtime` becomes
  *   `null` post-reload. Same root cause as above, different surface.
+ * - `"You must add the 'storage' permission to your manifest to use 'wxt/storage'"`
+ *   — WXT 0.20+ second guard inside the same `getStorageArea()`. The manifest
+ *   does* declare `storage`; the message is misleading. Chromium nulls
+ *   `chrome.storage` (but leaves `chrome.runtime` in a stale state) post-reload,
+ *   so WXT's `browser.storage == null` branch fires. Same lifecycle root cause.
  *
  * Verified against Chromium-based browsers (Chrome, Edge, Arc) and Firefox.
  * Update if a future browser or WXT release changes the phrasing.
@@ -17,6 +22,7 @@ import { logger } from "./logger"
 const INVALIDATED_CONTEXT_PATTERNS = [
   "Extension context invalidated",
   "'wxt/storage' must be loaded in a web extension environment",
+  "You must add the 'storage' permission to your manifest to use 'wxt/storage'",
 ] as const
 
 /**
@@ -103,4 +109,47 @@ export function swallowExtensionLifecycleError(context: string) {
     }
     logger.error(`${context} failed:`, error)
   }
+}
+
+let lifecycleGuardInstalled = false
+
+/**
+ * @internal
+ * production code.
+ */
+export function __resetLifecycleGuardForTests(): void {
+  lifecycleGuardInstalled = false
+}
+
+/**
+ * Defense-in-depth: install a global `unhandledrejection` listener that
+ * silently swallows lifecycle errors for the current execution context (a
+ * content script, popup, or extension page).
+ *
+ * Per-call-site `.catch(swallowExtensionLifecycleError(...))` remains the
+ * primary mechanism — explicit, scoped, easy to audit. This guard exists to
+ * catch the long tail: third-party libraries (jotai store onMount, react-query
+ * mutations, etc.) that internally fire-and-forget our wrapped `sendMessage` /
+ * `storage.*` and bubble the rejection through their own machinery without
+ * giving us a hook to attach `.catch` at the source.
+ *
+ * Idempotent — calls after the first one no-op. Real failures are NOT touched
+ * (the listener delegates to `isExtensionLifecycleError` and only intercepts
+ * matching messages).
+ */
+export function installContentScriptLifecycleGuard(scriptName: string): void {
+  if (lifecycleGuardInstalled || typeof window === "undefined") {
+    return
+  }
+  lifecycleGuardInstalled = true
+
+  window.addEventListener("unhandledrejection", (event) => {
+    if (isExtensionLifecycleError(event.reason)) {
+      // Prevent the rejection from surfacing to DevTools console as
+      // `Uncaught (in promise) Error: ...`. The error is expected; the
+      // tab's content script just hasn't been GCed yet after extension reload.
+      event.preventDefault()
+      logger.info(`[${scriptName}] swallowed lifecycle rejection:`, (event.reason as Error)?.message)
+    }
+  })
 }

@@ -13,6 +13,7 @@ import { TooltipProvider } from "@/components/ui/base-ui/tooltip"
 import { baseThemeModeAtom } from "@/utils/atoms/theme"
 import { getLocalConfig } from "@/utils/config/storage"
 import { APP_NAME } from "@/utils/constants/app"
+import { installContentScriptLifecycleGuard } from "@/utils/extension-lifecycle"
 import { baseUILocalePreferenceAtom, hydrateI18nFromStorage, I18nReactiveRoot } from "@/utils/i18n"
 import { ensureIconifyBackgroundFetch } from "@/utils/iconify/setup-background-fetch"
 import { protectSelectAllShadowRoot } from "@/utils/select-all"
@@ -109,6 +110,8 @@ export default defineContentScript({
   cssInjectionMode: "ui",
   allFrames: true,
   async main(ctx) {
+    installContentScriptLifecycleGuard("selection.content")
+
     // Prevent double injection (manifest-based + programmatic injection)
     if (window.__READ_FROG_SELECTION_INJECTED__)
       return

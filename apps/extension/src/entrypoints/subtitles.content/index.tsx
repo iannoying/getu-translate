@@ -1,6 +1,7 @@
 import "@/utils/zod-config"
 import { defineContentScript } from "#imports"
 import { getLocalConfig } from "@/utils/config/storage"
+import { installContentScriptLifecycleGuard } from "@/utils/extension-lifecycle"
 import { hydrateI18nFromStorage } from "@/utils/i18n"
 
 declare global {
@@ -19,6 +20,8 @@ export default defineContentScript({
   ],
   cssInjectionMode: "manifest",
   async main(ctx) {
+    installContentScriptLifecycleGuard("subtitles.content")
+
     if (window.__READ_FROG_SUBTITLES_INJECTED__)
       return
     window.__READ_FROG_SUBTITLES_INJECTED__ = true

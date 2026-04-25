@@ -1,6 +1,7 @@
 import "@/utils/zod-config"
 import { defineContentScript } from "#imports"
 import { getLocalConfig } from "@/utils/config/storage"
+import { installContentScriptLifecycleGuard } from "@/utils/extension-lifecycle"
 import { hydrateI18nFromStorage } from "@/utils/i18n"
 import { clearEffectiveSiteControlUrl, getEffectiveSiteControlUrl, isSiteEnabled } from "@/utils/site-control"
 
@@ -15,6 +16,8 @@ export default defineContentScript({
   cssInjectionMode: "manual",
   allFrames: true,
   async main(ctx) {
+    installContentScriptLifecycleGuard("host.content")
+
     // Prevent double injection (manifest-based + programmatic injection)
     if (window.__READ_FROG_HOST_INJECTED__)
       return
