@@ -98,6 +98,43 @@ export type {
 export { AI_MODEL_COEFFICIENTS, PRO_MODEL_WHITELIST, isProModel, normalizeTokens } from "./ai-models.js"
 export type { ProModel } from "./ai-models.js"
 
+// M6 — web /translate & /document contracts
+export {
+  TRANSLATE_TEXT_MAX_CHARS,
+  TRANSLATE_DOCUMENT_MAX_PAGES,
+  TRANSLATE_DOCUMENT_MAX_BYTES,
+  documentCreateInputSchema,
+  documentCreateOutputSchema,
+  documentListInputSchema,
+  documentListItemSchema,
+  documentListOutputSchema,
+  documentStatusInputSchema,
+  documentStatusOutputSchema,
+  listHistoryInputSchema,
+  listHistoryItemSchema,
+  listHistoryOutputSchema,
+  saveHistoryInputSchema,
+  saveHistoryOutputSchema,
+  translateTextInputSchema,
+  translateTextOutputSchema,
+  translationJobEngineSchema,
+  translationJobStatusSchema,
+} from "./translate.js"
+export type {
+  DocumentCreateInput,
+  DocumentCreateOutput,
+  DocumentListItem,
+  DocumentStatusOutput,
+  HistoryResultEntry,
+  ListHistoryItem,
+  SaveHistoryInput,
+  SaveHistoryOutput,
+  TranslateTextInput,
+  TranslateTextOutput,
+  TranslationJobEngine,
+  TranslationJobStatus,
+} from "./translate.js"
+
 export const mergedContract = {
   ...baseContract,
   billing: billingContract,
