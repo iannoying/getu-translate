@@ -15,7 +15,7 @@ popup:
   targetLang: Hedef
   translate: Çevir
   showOriginal: Orijinali Göster
-  translateCurrentPdf: Geçerli PDF'yi çevir
+  translatePdfOnWeb: PDF'yi çevir
   enabledFloatingButton: Yüzen butonu etkinleştir
   enabledSelectionToolbar: Seçim araç çubuğunu etkinleştir
   alwaysTranslate: Bu siteyi her zaman çevir
@@ -281,36 +281,6 @@ options:
       label: Eşik (ms)
       hint: Ardışık boşluk tuşuna basışlar arasındaki milisaniye cinsinden süre (100-1000ms)
       error: Değer $1 ile $2 arasında olmalıdır
-  pdfTranslation:
-    title: PDF Çevirisi
-    enabled:
-      label: PDF çevirisini etkinleştir
-      description: GetU'nun .pdf URL'lerini yakalayıp iki dilli görüntüleyicide açmasına izin verin
-    activationMode:
-      label: Etkinleştirme davranışı
-      always: Her zaman çevir
-      ask: Her sitede ilk seferde sor
-      manual: Yalnızca manuel (açılır pencereden)
-    blocklist:
-      label: Engellenen alan adları
-      empty: Henüz engellenmiş alan adı yok
-      remove: Kaldır
-    fileProtocol:
-      label: Yerel dosya erişimi
-      allowed: Etkin — yerel PDF dosyaları çevrilebilir
-      disabled: Devre dışı — chrome://extensions adresini açın ve "Dosya URL'lerine erişime izin ver" seçeneğini etkinleştirin
-      copyUrl: Uzantı URL'sini kopyala
-    usage:
-      title: Bugünkü kullanım
-      description: Bugün çevrilen sayfa sayısı; yerel saatle gece yarısı sıfırlanır
-      unlimited: sınırsız
-    cache:
-      title: Çeviri önbelleği
-      description: Aynı PDF yeniden açıldığında önbellekteki sayfalar tekrar kullanılır; 30 gün sonra süresi dolar
-      countOne: $1 sayfa önbellekte
-      countMany: $1 sayfa önbellekte
-      clear: Önbelleği temizle
-      clearConfirm: Önbellekteki tüm PDF çevirileri temizlensin mi?
   floatingButtonAndToolbar:
     title: Yüzen Buton ve Araç Çubuğu
     floatingButtonDemoImageAlt: Yüzen Buton Demosu
@@ -854,30 +824,6 @@ options:
     title: Altyazıyı Geliştir 🎁
   rateUs:
     title: Bizi Değerlendirin
-pdfViewer:
-  firstUseToast:
-    title: Bu PDF GetU ile çevrilsin mi?
-    description: Bu PDF'nin iki dilli bir sürümünü oluşturabiliriz; böylece orijinali ve çeviriyi yan yana okuyabilirsiniz.
-    accept: Bu PDF'yi çevir
-    skipOnce: Şimdi değil
-    neverOnThisDomain: Bu sitede bir daha sorma
-  error:
-    missingSrc: ?src= parametresi eksik
-    invalidUrl: Geçersiz PDF URL'si
-    unsupportedScheme: "Desteklenmeyen URL şeması: $1"
-    loadFailed: "PDF yüklenemedi: $1"
-  segmentContent:
-    errorTooltip: Çeviri başarısız
-    errorAriaLabel: "çeviri hatası: $1"
-  watermark:
-    label: GetU tarafından çevrildi — Kaldırmak için yükselt
-    ariaLabel: GetU tarafından çevrildi. Filigranı kaldırmak için yükselt.
-  export:
-    buttonLabelWithIcon: ⬇ İki dilli PDF'yi indir
-    buttonLabelBusy: Dışa aktarılıyor…
-    ariaLabel: İki dilli PDF'yi indir
-    tooltipEnabled: İki dilli PDF'yi indir
-    tooltipDisabled: Pro özellik — indirmek için yükselt
 side:
   sourceLang: Kaynak Dil
   targetLang: Hedef Dil

@@ -15,7 +15,7 @@ popup:
   targetLang: Целевой
   translate: Перевести
   showOriginal: Показать оригинал
-  translateCurrentPdf: Перевести текущий PDF
+  translatePdfOnWeb: Перевести PDF
   enabledFloatingButton: Включить плавающую кнопку
   enabledSelectionToolbar: Включить панель выделения
   alwaysTranslate: Всегда переводить этот сайт
@@ -281,36 +281,6 @@ options:
       label: Порог (мс)
       hint: Время в миллисекундах между последовательными нажатиями пробела (100-1000мс)
       error: Значение должно быть от $1 до $2
-  pdfTranslation:
-    title: Перевод PDF
-    enabled:
-      label: Включить перевод PDF
-      description: Разрешить GetU перехватывать .pdf-ссылки и открывать их в двуязычном просмотрщике
-    activationMode:
-      label: Поведение при активации
-      always: Всегда переводить
-      ask: Спрашивать при первом открытии на каждом сайте
-      manual: Только вручную (из всплывающего окна)
-    blocklist:
-      label: Заблокированные домены
-      empty: Заблокированных доменов пока нет
-      remove: Удалить
-    fileProtocol:
-      label: Доступ к локальным файлам
-      allowed: Включено — локальные PDF-файлы можно переводить
-      disabled: Отключено — откройте chrome://extensions и включите «Разрешить доступ к URL файлов»
-      copyUrl: Копировать URL расширения
-    usage:
-      title: Использование за сегодня
-      description: Страниц переведено сегодня; сбрасывается в полночь по местному времени
-      unlimited: без ограничений
-    cache:
-      title: Кэш переводов
-      description: Закэшированные страницы переиспользуются при повторном открытии того же PDF; срок хранения 30 дней
-      countOne: Закэширована $1 страница
-      countMany: "Закэшировано страниц: $1"
-      clear: Очистить кэш
-      clearConfirm: Очистить все закэшированные переводы PDF?
   floatingButtonAndToolbar:
     title: Плавающая кнопка и панель инструментов
     floatingButtonDemoImageAlt: Демо плавающей кнопки
@@ -854,30 +824,6 @@ options:
     title: Улучшить субтитры 🎁
   rateUs:
     title: Оцените нас
-pdfViewer:
-  firstUseToast:
-    title: Перевести этот PDF с помощью GetU?
-    description: Мы можем создать двуязычную версию этого PDF, чтобы вы могли читать оригинал и перевод рядом.
-    accept: Перевести этот PDF
-    skipOnce: Не сейчас
-    neverOnThisDomain: Больше не на этом сайте
-  error:
-    missingSrc: Отсутствует параметр ?src=
-    invalidUrl: Недопустимый URL PDF
-    unsupportedScheme: "Неподдерживаемая схема URL: $1"
-    loadFailed: "Не удалось загрузить PDF: $1"
-  segmentContent:
-    errorTooltip: Ошибка перевода
-    errorAriaLabel: "ошибка перевода: $1"
-  watermark:
-    label: Переведено GetU — Обновитесь, чтобы убрать
-    ariaLabel: Переведено GetU. Обновите тариф, чтобы убрать водяной знак.
-  export:
-    buttonLabelWithIcon: ⬇ Скачать двуязычный PDF
-    buttonLabelBusy: Экспорт…
-    ariaLabel: Скачать двуязычный PDF
-    tooltipEnabled: Скачать двуязычный PDF
-    tooltipDisabled: Функция Pro — обновите тариф для скачивания
 side:
   sourceLang: Исходный язык
   targetLang: Целевой язык

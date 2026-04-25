@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Jotai atom factories for every piece of cross-context, persisted, or derived state in GetU Translate: the full user `Config`, theme mode, detected page language, analytics opt-in, active provider for a feature, content-script translation toggle, Google Drive sync conflict resolution, last-sync time, **Pro entitlement state**, and **PDF-translation session state**. Every atom here is the single source of truth for its slice — components/hooks subscribe via `useAtom`/`useAtomValue` and writes always flow back through these atoms (so storage, optimistic UI, and cross-context watch stay consistent).
+Jotai atom factories for every piece of cross-context, persisted, or derived state in GetU Translate: the full user `Config`, theme mode, detected page language, analytics opt-in, active provider for a feature, content-script translation toggle, Google Drive sync conflict resolution, last-sync time, and **Pro entitlement state**. Every atom here is the single source of truth for its slice — components/hooks subscribe via `useAtom`/`useAtomValue` and writes always flow back through these atoms (so storage, optimistic UI, and cross-context watch stay consistent).
 
 ## Key Files
 
@@ -21,7 +21,6 @@ Jotai atom factories for every piece of cross-context, persisted, or derived sta
 | `google-drive-sync.ts` | Conflict-resolution atoms: `unresolvedConfigsAtom`, `resolutionsAtom`, derived `diffConflictsResultAtom` / `resolvedConfigResultAtom` / `resolutionStatusAtom`, plus action atoms (`selectResolutionAtom`, `selectAllLocalAtom`, `selectAllRemoteAtom`). |
 | `last-sync-time.ts`    | Read-only `lastSyncTimeAtom` derived from the meta of `LAST_SYNCED_CONFIG_STORAGE_KEY`; subscribes to the WXT meta key (`local:…$`).                                                                                                                     |
 | `entitlements.ts`      | `entitlementAtom` — local mirror of the user's Pro tier / expiry, refreshed from the api oRPC `billing.getEntitlement` call. Backs `useEntitlements`, `<ProGate>`, and all quota UIs.                                                                    |
-| `pdf-translation.ts`   | Per-session atoms for the PDF viewer: activation mode, current file hash, paragraph counts, quota progress. Feeds the B2/B3 scheduler and quota display.                                                                                                 |
 
 ## Subdirectories
 

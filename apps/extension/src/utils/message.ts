@@ -78,6 +78,8 @@ interface ProtocolMap {
   // offscreen internal
   ttsOffscreenPlay: (data: TTSPlaybackStartRequest) => Promise<TTSPlaybackStartResponse>
   ttsOffscreenStop: (data: TTSOffscreenStopRequest) => Promise<{ ok: true }>
+  // pdf tab detection (background tracks Content-Type: application/pdf top-frame loads)
+  isTabPdf: (data: { tabId: number }) => boolean
 }
 
 export const { sendMessage, onMessage }

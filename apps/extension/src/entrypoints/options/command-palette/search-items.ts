@@ -292,33 +292,6 @@ export const SEARCH_ITEMS: SearchItem[] = [
     pageKey: "options.overlayTools.inputTranslation.title",
   },
 
-  // PDF Translation page
-  {
-    sectionId: "pdf-translation-enabled",
-    route: "/pdf-translation",
-    titleKey: "options.pdfTranslation.enabled.label",
-    descriptionKey: "options.pdfTranslation.enabled.description",
-    pageKey: "options.pdfTranslation.title",
-  },
-  {
-    sectionId: "pdf-translation-activation-mode",
-    route: "/pdf-translation",
-    titleKey: "options.pdfTranslation.activationMode.label",
-    pageKey: "options.pdfTranslation.title",
-  },
-  {
-    sectionId: "pdf-translation-blocklist",
-    route: "/pdf-translation",
-    titleKey: "options.pdfTranslation.blocklist.label",
-    pageKey: "options.pdfTranslation.title",
-  },
-  {
-    sectionId: "pdf-translation-file-protocol",
-    route: "/pdf-translation",
-    titleKey: "options.pdfTranslation.fileProtocol.label",
-    pageKey: "options.pdfTranslation.title",
-  },
-
   // Video Subtitles page
   {
     sectionId: "subtitles-config",

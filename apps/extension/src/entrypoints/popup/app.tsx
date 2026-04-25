@@ -36,9 +36,7 @@ function App() {
         <TranslationModeSelector />
         <TranslateProviderField />
         <TranslatePromptSelector />
-        <div className="w-full">
-          <TranslateButton className="w-full" />
-        </div>
+        <TranslateButton className="w-full" />
         <TranslateCurrentPdfButton className="w-full" />
         <SiteControlToggle />
         <AlwaysTranslate />

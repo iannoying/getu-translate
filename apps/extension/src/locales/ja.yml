@@ -15,7 +15,7 @@ popup:
   targetLang: 翻訳言語
   translate: 翻訳
   showOriginal: 原文を表示
-  translateCurrentPdf: 現在の PDF を翻訳
+  translatePdfOnWeb: PDFを翻訳
   enabledFloatingButton: フローティングボタンを有効化
   enabledSelectionToolbar: 選択ツールバーを有効化
   alwaysTranslate: このサイトを常に翻訳する
@@ -281,36 +281,6 @@ options:
       label: しきい値 (ミリ秒)
       hint: 連続したスペースキー押下間の時間間隔 (100-1000ミリ秒)
       error: 値は $1 から $2 の間である必要があります
-  pdfTranslation:
-    title: PDF 翻訳
-    enabled:
-      label: PDF 翻訳を有効化
-      description: GetU が .pdf URL をインターセプトし、バイリンガルビューアーで開くことを許可します
-    activationMode:
-      label: 起動動作
-      always: 常に翻訳
-      ask: サイトごとに初回確認
-      manual: 手動のみ（ポップアップから）
-    blocklist:
-      label: ブロック済みドメイン
-      empty: ブロック済みドメインはありません
-      remove: 削除
-    fileProtocol:
-      label: ローカルファイルアクセス
-      allowed: 有効 — ローカル PDF ファイルを翻訳できます
-      disabled: 無効 — chrome://extensions を開き「ファイルの URL へのアクセスを許可する」を有効化してください
-      copyUrl: 拡張機能 URL をコピー
-    usage:
-      title: 本日の使用量
-      description: 本日翻訳したページ数。ローカル時間の深夜にリセットされます
-      unlimited: 無制限
-    cache:
-      title: 翻訳キャッシュ
-      description: 同じ PDF を再度開いた際にキャッシュされたページが再利用されます。30 日で期限切れ
-      countOne: $1 ページをキャッシュ済み
-      countMany: $1 ページをキャッシュ済み
-      clear: キャッシュをクリア
-      clearConfirm: キャッシュされた PDF 翻訳をすべてクリアしますか？
   floatingButtonAndToolbar:
     title: フローティングボタンとツールバー
     floatingButtonDemoImageAlt: フローティングボタンデモ
@@ -854,30 +824,6 @@ options:
     title: 字幕を改善 🎁
   rateUs:
     title: レビューを書く
-pdfViewer:
-  firstUseToast:
-    title: この PDF を GetU で翻訳しますか？
-    description: この PDF のバイリンガル版を生成し、原文と訳文を並べて読めます。
-    accept: この PDF を翻訳
-    skipOnce: 今回はしない
-    neverOnThisDomain: このサイトでは表示しない
-  error:
-    missingSrc: ?src= パラメータがありません
-    invalidUrl: 無効な PDF URL です
-    unsupportedScheme: "サポートされていない URL スキーム: $1"
-    loadFailed: "PDF の読み込みに失敗しました: $1"
-  segmentContent:
-    errorTooltip: 翻訳に失敗しました
-    errorAriaLabel: "翻訳エラー: $1"
-  watermark:
-    label: GetU で翻訳 — アップグレードで削除
-    ariaLabel: GetU で翻訳されました。アップグレードでウォーターマークを削除できます。
-  export:
-    buttonLabelWithIcon: ⬇ バイリンガル PDF をダウンロード
-    buttonLabelBusy: エクスポート中…
-    ariaLabel: バイリンガル PDF をダウンロード
-    tooltipEnabled: バイリンガル PDF をダウンロード
-    tooltipDisabled: Pro 機能 — アップグレードでダウンロード可能
 side:
   sourceLang: ソース言語
   targetLang: 翻訳言語

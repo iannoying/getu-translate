@@ -15,7 +15,7 @@ popup:
   targetLang: 目标语言
   translate: 翻译
   showOriginal: 显示原文
-  translateCurrentPdf: 翻译当前 PDF
+  translatePdfOnWeb: 翻译PDF
   enabledFloatingButton: 启用悬浮按钮
   enabledSelectionToolbar: 启用选择工具栏
   alwaysTranslate: 总是翻译这个网站
@@ -283,36 +283,6 @@ options:
       label: 阈值 (毫秒)
       hint: 连续空格按键之间的时间间隔 (100-1000毫秒)
       error: 数值必须在 $1 到 $2 之间
-  pdfTranslation:
-    title: PDF 翻译
-    enabled:
-      label: 启用 PDF 翻译
-      description: 允许 GetU 拦截 .pdf 链接并在双语阅读器中打开
-    activationMode:
-      label: 激活方式
-      always: 始终翻译
-      ask: 每个站点首次询问
-      manual: 仅手动（从弹窗）
-    blocklist:
-      label: 屏蔽的域名
-      empty: 暂无屏蔽的域名
-      remove: 移除
-    fileProtocol:
-      label: 本地文件访问
-      allowed: 已启用 — 可翻译本地 PDF 文件
-      disabled: 已禁用 — 请打开 chrome://extensions 并启用"允许访问文件网址"
-      copyUrl: 复制扩展链接
-    usage:
-      title: 今日用量
-      description: 今日已翻译的页数；每天本地午夜重置
-      unlimited: 无限
-    cache:
-      title: 翻译缓存
-      description: 重新打开同一 PDF 时会复用缓存页面；30 天后过期
-      countOne: 已缓存 $1 页
-      countMany: 已缓存 $1 页
-      clear: 清空缓存
-      clearConfirm: 确认清空所有已缓存的 PDF 翻译？
   floatingButtonAndToolbar:
     title: 悬浮按钮和工具栏
     floatingButtonDemoImageAlt: 悬浮按钮演示
@@ -970,30 +940,6 @@ options:
     title: 改进字幕 🎁
   rateUs:
     title: 好评支持
-pdfViewer:
-  firstUseToast:
-    title: 用 GetU 翻译此 PDF？
-    description: 我们可以为此 PDF 生成双语版本，让你并排阅读原文和译文。
-    accept: 翻译此 PDF
-    skipOnce: 本次不用
-    neverOnThisDomain: 永不在此站点使用
-  error:
-    missingSrc: 缺少 ?src= 参数
-    invalidUrl: 无效的 PDF 链接
-    unsupportedScheme: 不支持的 URL 协议：$1
-    loadFailed: 加载 PDF 失败：$1
-  segmentContent:
-    errorTooltip: 翻译失败
-    errorAriaLabel: 翻译错误：$1
-  watermark:
-    label: 由 GetU 翻译 — 升级可移除
-    ariaLabel: 由 GetU 翻译。升级后可移除水印。
-  export:
-    buttonLabelWithIcon: ⬇ 下载双语 PDF
-    buttonLabelBusy: 正在导出…
-    ariaLabel: 下载双语 PDF
-    tooltipEnabled: 下载双语 PDF
-    tooltipDisabled: Pro 功能 — 升级后可下载
 side:
   sourceLang: 来源语言
   targetLang: 目标语言
