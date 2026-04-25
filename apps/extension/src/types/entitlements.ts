@@ -15,6 +15,11 @@ export const FeatureKeySchema = z.enum([
   "ai_translate_pool",
   "subtitle_platforms_extended",
   "enterprise_glossary_share",
+  // M6 — keep mirrored with @getu/contract's FeatureKey. Inert in extension
+  // (no consumer reads them), but parsing fails closed if backend emits a
+  // pro-only entitlement and this enum is missing the key.
+  "web_text_translate_pro",
+  "web_pdf_translate_pro",
 ])
 export type FeatureKey = z.infer<typeof FeatureKeySchema>
 

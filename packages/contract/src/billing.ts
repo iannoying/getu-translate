@@ -11,6 +11,9 @@ export const FeatureKey = z.enum([
   "ai_translate_pool",
   "subtitle_platforms_extended",
   "enterprise_glossary_share",
+  // M6 — web /translate & /document
+  "web_text_translate_pro",
+  "web_pdf_translate_pro",
 ])
 export type FeatureKey = z.infer<typeof FeatureKey>
 
@@ -57,6 +60,10 @@ export const QUOTA_BUCKETS = [
   "pdf_translate_daily",
   "vocab_count",
   "ai_translate_monthly",
+  // M6 — web /translate (button click count) & /document (page count) & Pro LLM tokens
+  "web_text_translate_monthly",
+  "web_text_translate_token_monthly",
+  "web_pdf_translate_monthly",
 ] as const
 export type QuotaBucket = (typeof QUOTA_BUCKETS)[number]
 

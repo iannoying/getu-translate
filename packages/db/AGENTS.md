@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-24 | Updated: 2026-04-24 -->
+<!-- Generated: 2026-04-24 | Updated: 2026-04-25 -->
 
 # db
 
@@ -28,9 +28,9 @@ Exports:
 
 | Directory            | Purpose                                                                                                         |
 | -------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `src/schema/`        | Table definitions (`auth.ts`, `billing.ts`) and `index.ts` barrel.                                              |
+| `src/schema/`        | Table definitions (`auth.ts`, `billing.ts`, `translate.ts`) and `index.ts` barrel.                              |
 | `src/schema/__tests__/` | Schema shape / invariants tests.                                                                              |
-| `drizzle/`           | Generated SQL migrations (`0000_init.sql`, `0001_billing.sql`, `0002_paddle_provider.sql`, `0003_passkey.sql`). |
+| `drizzle/`           | Generated SQL migrations (`0000_init.sql`, `0001_billing.sql`, `0002_paddle_provider.sql`, `0003_passkey.sql`, `0004_translate.sql`). |
 | `drizzle/meta/`      | Drizzle-Kit metadata — DO NOT hand-edit.                                                                        |
 
 ## For AI Agents
