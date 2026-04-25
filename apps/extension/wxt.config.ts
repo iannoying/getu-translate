@@ -39,6 +39,11 @@ export default defineConfig({
       "identity",
       "scripting",
       "webNavigation",
+      // Observation-only — used by `background/pdf-tab-detect.ts` to mark tabs whose
+      // main-frame Content-Type is `application/pdf` (arxiv-style URLs without a `.pdf`
+      // suffix). No blocking, no redirect — the popup queries this flag to decide
+      // whether to swap the regular Translate button for the "翻译PDF" web shortcut.
+      "webRequest",
       ...(browser !== "firefox" ? ["offscreen"] : []),
     ],
     host_permissions: [

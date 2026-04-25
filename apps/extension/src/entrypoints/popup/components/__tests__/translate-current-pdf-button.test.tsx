@@ -4,14 +4,13 @@ import * as React from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import TranslateCurrentPdfButton from "../translate-current-pdf-button"
 
-const tabsQueryMock = vi.fn()
 const tabsCreateMock = vi.fn()
 const windowCloseSpy = vi.fn()
+const useIsCurrentTabPdfMock = vi.fn()
 
 vi.mock("#imports", () => ({
   browser: {
     tabs: {
-      query: (...args: unknown[]) => tabsQueryMock(...args),
       create: (...args: unknown[]) => tabsCreateMock(...args),
     },
   },
@@ -23,14 +22,17 @@ vi.mock("#imports", () => ({
 vi.mock("wxt/browser", () => ({
   browser: {
     tabs: {
-      query: (...args: unknown[]) => tabsQueryMock(...args),
       create: (...args: unknown[]) => tabsCreateMock(...args),
     },
   },
 }))
 
-vi.mock("@/utils/constants/url", () => ({
-  WEB_DOCUMENT_TRANSLATE_URL: "https://example.test/document/",
+vi.mock("@/hooks/use-is-current-tab-pdf", () => ({
+  useIsCurrentTabPdf: () => useIsCurrentTabPdfMock(),
+}))
+
+vi.mock("@/utils/pdf-detection", () => ({
+  buildWebTranslateUrl: (src: string) => `https://example.test/document/?src=${encodeURIComponent(src)}`,
 }))
 
 vi.mock("@/components/ui/base-ui/button", () => ({
@@ -55,10 +57,32 @@ afterEach(() => {
 })
 
 describe("translateCurrentPdfButton", () => {
-  it("renders when the active tab URL ends with .pdf", async () => {
-    tabsQueryMock.mockResolvedValue([
-      { id: 42, url: "https://example.com/paper.pdf" },
-    ])
+  it("renders nothing while detection is loading", () => {
+    useIsCurrentTabPdfMock.mockReturnValue({ loading: true, url: "", isPdf: false })
+
+    const { container } = render(<TranslateCurrentPdfButton />)
+
+    expect(container.querySelector("button")).toBeNull()
+  })
+
+  it("renders nothing when the active tab is not a PDF", () => {
+    useIsCurrentTabPdfMock.mockReturnValue({
+      loading: false,
+      url: "https://example.com/index.html",
+      isPdf: false,
+    })
+
+    const { container } = render(<TranslateCurrentPdfButton />)
+
+    expect(container.querySelector("button")).toBeNull()
+  })
+
+  it("renders the button when the active tab is a PDF", async () => {
+    useIsCurrentTabPdfMock.mockReturnValue({
+      loading: false,
+      url: "https://arxiv.org/pdf/2507.15551",
+      isPdf: true,
+    })
 
     render(<TranslateCurrentPdfButton />)
 
@@ -67,23 +91,9 @@ describe("translateCurrentPdfButton", () => {
     })
   })
 
-  it("does not render when the active tab URL is not a pdf", async () => {
-    tabsQueryMock.mockResolvedValue([
-      { id: 42, url: "https://example.com/index.html" },
-    ])
-
-    const { container } = render(<TranslateCurrentPdfButton />)
-
-    await waitFor(() => {
-      expect(tabsQueryMock).toHaveBeenCalled()
-    })
-
-    expect(container.querySelector("button")).toBeNull()
-  })
-
   it("opens getutranslate.com/document/?src=<encoded> in a new tab and closes the popup on click", async () => {
-    const currentUrl = "https://example.com/paper.pdf"
-    tabsQueryMock.mockResolvedValue([{ id: 42, url: currentUrl }])
+    const currentUrl = "https://arxiv.org/pdf/2507.15551"
+    useIsCurrentTabPdfMock.mockReturnValue({ loading: false, url: currentUrl, isPdf: true })
 
     render(<TranslateCurrentPdfButton />)
 

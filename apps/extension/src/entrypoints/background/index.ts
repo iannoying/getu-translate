@@ -16,6 +16,7 @@ import { setupIframeInjection } from "./iframe-injection"
 import { setupLLMGenerateTextMessageHandlers } from "./llm-generate-text"
 import { initMockData } from "./mock-data"
 import { newUserGuide } from "./new-user-guide"
+import { isPdfTab, setUpPdfTabDetect } from "./pdf-tab-detect"
 import { proxyFetch } from "./proxy-fetch"
 import { setUpSubtitlesTranslationQueue, setUpWebPageTranslationQueue } from "./translation-queues"
 import { translationMessage } from "./translation-signal"
@@ -77,6 +78,10 @@ export default defineBackground({
       await cleanupAllAiSegmentationCache()
     })
 
+    onMessage("isTabPdf", (message) => {
+      return isPdfTab(message.data.tabId)
+    })
+
     newUserGuide()
     setupAnalyticsMessageHandlers()
     translationMessage()
@@ -101,5 +106,11 @@ export default defineBackground({
 
     // Setup programmatic injection for iframes that Chrome's manifest-based all_frames misses
     setupIframeInjection()
+
+    // Passive PDF-tab tracker — observes `Content-Type: application/pdf` and
+    // `.pdf` URL navigations to flag tabs as PDF. Read by the popup via the
+    // `isTabPdf` message to swap the regular Translate button for the
+    // "Translate PDF" web shortcut. Does NOT redirect or modify navigation.
+    setUpPdfTabDetect()
   },
 })
