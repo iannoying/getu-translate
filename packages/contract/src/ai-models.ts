@@ -1,14 +1,16 @@
 /**
- * AI model cost coefficients, normalized to gpt-4o-mini input token = 1 unit.
+ * AI model cost coefficients, normalized to the baseline Pro model input token = 1 unit.
  * Update ONLY when bianxie.ai pricing changes or we add a new whitelist entry.
  * Output cost is typically 3-4x input cost per the underlying provider pricing.
  */
 export const AI_MODEL_COEFFICIENTS = {
-  "gpt-4o-mini": { inputUnitCost: 1, outputUnitCost: 4 },
-  // Claude 3.5 Sonnet: ~20x gpt-4o-mini input, ~25x output (bianxie.ai pricing as of 2026-04)
-  "claude-3-5-sonnet-latest": { inputUnitCost: 20, outputUnitCost: 25 },
-  // Gemini 2.0 Flash: close to gpt-4o-mini, slightly cheaper output
-  "gemini-2.0-flash": { inputUnitCost: 1, outputUnitCost: 3 },
+  "deepseek-v4-pro": { inputUnitCost: 1, outputUnitCost: 4 },
+  "qwen3.5-plus": { inputUnitCost: 1, outputUnitCost: 4 },
+  "glm-5.1": { inputUnitCost: 1, outputUnitCost: 4 },
+  "gemini-3-flash-preview": { inputUnitCost: 1, outputUnitCost: 4 },
+  "gemini-3.1-pro-preview": { inputUnitCost: 1, outputUnitCost: 4 },
+  "gpt-5.5": { inputUnitCost: 1, outputUnitCost: 4 },
+  "claude-sonnet-4-6": { inputUnitCost: 1, outputUnitCost: 4 },
 } as const
 
 export type ProModel = keyof typeof AI_MODEL_COEFFICIENTS

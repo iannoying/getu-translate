@@ -1,3 +1,4 @@
+import type { ProModel } from "@getu/contract"
 import type { AllProviderTypes, APIProviderTypes, LLMProviderModels, LLMProviderTypes, ProviderConfig, ProvidersConfig } from "@/types/config/provider"
 import type { Theme } from "@/types/config/theme"
 import customProviderLogo from "@/assets/providers/custom-provider.svg?url&no-inline"
@@ -12,7 +13,7 @@ import { WEBSITE_URL } from "./url"
 
 export const DEFAULT_LLM_PROVIDER_MODELS: LLMProviderModels = {
   "getu-pro": {
-    model: "gpt-4o-mini",
+    model: "deepseek-v4-pro",
     isCustomModel: false,
     customModel: null,
   },
@@ -152,6 +153,33 @@ export const DEFAULT_LLM_PROVIDER_MODELS: LLMProviderModels = {
     customModel: null,
   },
 }
+
+const GETU_PRO_MODEL_OPTIONS = [
+  { id: "getu-pro-default", name: "DeepSeek-V4-Pro", model: "deepseek-v4-pro" },
+  { id: "getu-pro-qwen35-plus", name: "Qwen3.5-plus", model: "qwen3.5-plus" },
+  { id: "getu-pro-glm-52", name: "Glm-5.2", model: "glm-5.1" },
+  { id: "getu-pro-gemini-3-flash-preview", name: "Gemini-3-flash", model: "gemini-3-flash-preview" },
+  { id: "getu-pro-gemini-31-pro", name: "Gemini-3.1-pro", model: "gemini-3.1-pro-preview" },
+  { id: "getu-pro-gpt-55", name: "GPT-5.5", model: "gpt-5.5" },
+  { id: "getu-pro-claude-sonnet-46", name: "Claude-sonnet-4.6", model: "claude-sonnet-4-6" },
+] as const satisfies readonly {
+  id: string
+  name: string
+  model: ProModel
+}[]
+
+export const DEFAULT_GETU_PRO_PROVIDER_CONFIG_LIST = GETU_PRO_MODEL_OPTIONS.map(({ id, name, model }) => ({
+  id,
+  name,
+  description: i18n.t("options.apiProviders.providers.description.getuPro"),
+  enabled: true,
+  provider: "getu-pro",
+  model: {
+    model,
+    isCustomModel: false,
+    customModel: null,
+  },
+})) satisfies ProvidersConfig
 
 export const PROVIDER_ITEMS: Record<AllProviderTypes, { logo: (theme: Theme) => string, name: string, website: string }>
   = {
@@ -331,6 +359,27 @@ export const PROVIDER_ITEMS: Record<AllProviderTypes, { logo: (theme: Theme) => 
       website: `${WEBSITE_URL}/pricing`,
     },
   }
+
+const GETU_PRO_MODEL_LOGOS = {
+  "deepseek-v4-pro": getLobeIconsCDNUrlFn("deepseek-color"),
+  "qwen3.5-plus": getLobeIconsCDNUrlFn("qwen-color"),
+  "glm-5.1": getLobeIconsCDNUrlFn("zhipu-color"),
+  "gemini-3-flash-preview": getLobeIconsCDNUrlFn("gemini-color"),
+  "gemini-3.1-pro-preview": getLobeIconsCDNUrlFn("gemini-color"),
+  "gpt-5.5": getLobeIconsCDNUrlFn("openai"),
+  "claude-sonnet-4-6": getLobeIconsCDNUrlFn("anthropic"),
+} as const satisfies Record<ProModel, (theme: Theme) => string>
+
+export function getProviderLogo(provider: ProviderConfig, theme: Theme): string {
+  if (provider.provider === "getu-pro") {
+    const logo = GETU_PRO_MODEL_LOGOS[provider.model.model]
+    if (logo) {
+      return logo(theme)
+    }
+  }
+
+  return PROVIDER_ITEMS[provider.provider].logo(theme)
+}
 
 export const DEFAULT_PROVIDER_CONFIG = {
   "google-translate": {
@@ -606,12 +655,7 @@ export const DEFAULT_PROVIDER_CONFIG = {
     model: DEFAULT_LLM_PROVIDER_MODELS.huggingface,
   },
   "getu-pro": {
-    id: "getu-pro-default",
-    name: PROVIDER_ITEMS["getu-pro"].name,
-    description: i18n.t("options.apiProviders.providers.description.getuPro"),
-    enabled: true,
-    provider: "getu-pro",
-    model: DEFAULT_LLM_PROVIDER_MODELS["getu-pro"],
+    ...DEFAULT_GETU_PRO_PROVIDER_CONFIG_LIST[0],
   },
 } as const satisfies Record<AllProviderTypes, ProviderConfig>
 
@@ -632,7 +676,7 @@ export const PROVIDER_CONNECTION_OPTIONS_FIELDS: Partial<
 }
 
 export const DEFAULT_PROVIDER_CONFIG_LIST: ProvidersConfig = [
-  DEFAULT_PROVIDER_CONFIG["getu-pro"],
+  ...DEFAULT_GETU_PRO_PROVIDER_CONFIG_LIST,
   DEFAULT_PROVIDER_CONFIG["microsoft-translate"],
   DEFAULT_PROVIDER_CONFIG["google-translate"],
   DEFAULT_PROVIDER_CONFIG["bing-translate"],

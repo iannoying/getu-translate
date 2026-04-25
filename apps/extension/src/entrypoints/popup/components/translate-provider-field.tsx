@@ -1,8 +1,8 @@
 import { useAtom, useAtomValue } from "jotai"
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { HelpTooltip } from "@/components/help-tooltip"
 import ProviderSelector from "@/components/llm-providers/provider-selector"
-import { isTranslateProvider } from "@/types/config/provider"
+import { isLLMProvider, isTranslateProvider } from "@/types/config/provider"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { filterEnabledProvidersConfig } from "@/utils/config/helpers"
 import { i18n } from "@/utils/i18n"
@@ -15,8 +15,17 @@ export default function TranslateProviderField() {
     const exclude = translateConfig.mode === "translationOnly" ? ["google-translate"] : undefined
     return filterEnabledProvidersConfig(providersConfig)
       .filter(p => isTranslateProvider(p.provider))
+      .filter(p => !isLLMProvider(p.provider) || p.provider === "getu-pro")
       .filter(p => !exclude?.includes(p.provider))
   }, [providersConfig, translateConfig.mode])
+
+  useEffect(() => {
+    if (providers.length === 0 || providers.some(provider => provider.id === translateConfig.providerId)) {
+      return
+    }
+
+    void setTranslateConfig({ providerId: providers[0].id })
+  }, [providers, setTranslateConfig, translateConfig.providerId])
 
   return (
     <div className="flex items-center justify-between gap-2">

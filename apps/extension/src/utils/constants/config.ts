@@ -19,7 +19,7 @@ export const THEME_STORAGE_KEY = "theme"
 export { UI_LOCALE_STORAGE_KEY } from "@/utils/i18n/storage-keys"
 export const DETECTED_CODE_STORAGE_KEY = "detectedCode"
 export const DEFAULT_DETECTED_CODE = "eng" as const
-export const CONFIG_SCHEMA_VERSION = 72
+export const CONFIG_SCHEMA_VERSION = 75
 
 export const DEFAULT_FLOATING_BUTTON_POSITION = 0.66
 

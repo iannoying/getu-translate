@@ -88,7 +88,7 @@ describe("handleChatCompletions", () => {
       method: "POST",
       headers: { authorization: "Bearer ok" },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "deepseek-v4-pro",
         messages: [{ role: "user", content: "hi" }],
         stream: true,
       }),
@@ -115,7 +115,7 @@ describe("handleChatCompletions", () => {
     const req = new Request("https://x/ai/v1/chat/completions", {
       method: "POST",
       headers: { authorization: "Bearer ok" },
-      body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: "hi" }] }),
+      body: JSON.stringify({ model: "deepseek-v4-pro", messages: [{ role: "user", content: "hi" }] }),
     })
     const r = await handleChatCompletions(req, env, {} as any)
     expect(r.status).toBe(502)
@@ -145,7 +145,7 @@ describe("handleChatCompletions", () => {
       method: "POST",
       headers: { authorization: "Bearer ok", "x-request-id": "req-42" },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "deepseek-v4-pro",
         messages: [{ role: "user", content: "hi" }],
         stream: true,
       }),
@@ -155,7 +155,7 @@ describe("handleChatCompletions", () => {
     const reader = r.body!.getReader()
     while (!(await reader.read()).done) {}
     await ctx.drain()
-    // gpt-4o-mini: 100*1 + 200*4 = 900 units
+    // deepseek-v4-pro: 100*1 + 200*4 = 900 units
     expect(consumeQuota).toHaveBeenCalledWith(
       expect.anything(),
       "u1",
@@ -163,7 +163,7 @@ describe("handleChatCompletions", () => {
       900,
       "req-42",
       undefined,
-      "gpt-4o-mini",
+      "deepseek-v4-pro",
       100,
       200,
     )
@@ -178,7 +178,7 @@ describe("handleChatCompletions", () => {
     const req = new Request("https://x/ai/v1/chat/completions", {
       method: "POST",
       headers: { authorization: "Bearer ok" },
-      body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: "hi" }] }),
+      body: JSON.stringify({ model: "deepseek-v4-pro", messages: [{ role: "user", content: "hi" }] }),
     })
     const r = await handleChatCompletions(req, env, fakeCtx() as any)
     expect(r.status).toBe(429)
@@ -208,13 +208,13 @@ describe("handleChatCompletions", () => {
     const req = new Request("https://x/ai/v1/chat/completions", {
       method: "POST",
       headers: { authorization: "Bearer ok", "x-request-id": "req-ns" },
-      body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: "hi" }] }),
+      body: JSON.stringify({ model: "deepseek-v4-pro", messages: [{ role: "user", content: "hi" }] }),
       // no stream: true
     })
     const r = await handleChatCompletions(req, env, ctx as any)
     expect(r.status).toBe(200)
     await ctx.drain()
-    // gpt-4o-mini: 50*1 + 10*4 = 90 units
+    // deepseek-v4-pro: 50*1 + 10*4 = 90 units
     expect(consumeQuota).toHaveBeenCalledWith(
       expect.anything(),
       "u1",
@@ -222,7 +222,7 @@ describe("handleChatCompletions", () => {
       90,
       "req-ns",
       undefined,
-      "gpt-4o-mini",
+      "deepseek-v4-pro",
       50,
       10,
     )

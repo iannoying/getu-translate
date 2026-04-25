@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/base-ui/select"
 import { isLLMProviderConfig, isPureTranslateProviderConfig } from "@/types/config/provider"
-import { PROVIDER_ITEMS } from "@/utils/constants/providers"
+import { getProviderLogo } from "@/utils/constants/providers"
 import { i18n } from "@/utils/i18n"
 import { useTheme } from "../providers/theme-provider"
 
@@ -97,7 +97,7 @@ function TranslateGroupedSelect({
       <SelectTrigger className={className}>
         <SelectValue placeholder={placeholder}>
           {(provider: ProviderConfig) => (
-            <ProviderIcon logo={PROVIDER_ITEMS[provider.provider].logo(theme)} name={provider.name} size="sm" />
+            <ProviderIcon logo={getProviderLogo(provider, theme)} name={provider.name} size="sm" />
           )}
         </SelectValue>
       </SelectTrigger>
@@ -106,7 +106,7 @@ function TranslateGroupedSelect({
           <SelectLabel>{i18n.t("translateService.aiTranslator")}</SelectLabel>
           {llmProviders.map(provider => (
             <SelectItem key={provider.id} value={provider}>
-              <ProviderIcon logo={PROVIDER_ITEMS[provider.provider].logo(theme)} name={provider.name} size="sm" />
+              <ProviderIcon logo={getProviderLogo(provider, theme)} name={provider.name} size="sm" />
             </SelectItem>
           ))}
         </SelectGroup>
@@ -114,7 +114,7 @@ function TranslateGroupedSelect({
           <SelectLabel>{i18n.t("translateService.normalTranslator")}</SelectLabel>
           {pureTranslateProviders.map(provider => (
             <SelectItem key={provider.id} value={provider}>
-              <ProviderIcon logo={PROVIDER_ITEMS[provider.provider].logo(theme)} name={provider.name} size="sm" />
+              <ProviderIcon logo={getProviderLogo(provider, theme)} name={provider.name} size="sm" />
             </SelectItem>
           ))}
         </SelectGroup>
@@ -154,7 +154,7 @@ function FlatSelect({
       <SelectTrigger className={className}>
         <SelectValue placeholder={placeholder}>
           {(provider: ProviderConfig) => (
-            <ProviderIcon logo={PROVIDER_ITEMS[provider.provider].logo(theme)} name={provider.name} size="sm" />
+            <ProviderIcon logo={getProviderLogo(provider, theme)} name={provider.name} size="sm" />
           )}
         </SelectValue>
       </SelectTrigger>
@@ -162,7 +162,7 @@ function FlatSelect({
         <SelectGroup>
           {providers.map(provider => (
             <SelectItem key={provider.id} value={provider}>
-              <ProviderIcon logo={PROVIDER_ITEMS[provider.provider].logo(theme)} name={provider.name} size="sm" />
+              <ProviderIcon logo={getProviderLogo(provider, theme)} name={provider.name} size="sm" />
             </SelectItem>
           ))}
         </SelectGroup>
