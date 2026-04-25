@@ -1,6 +1,5 @@
 import { browser } from "#imports"
 import { db } from "@/utils/db/dexie/db"
-import { evictExpired } from "@/utils/db/dexie/pdf-translations"
 import { logger } from "@/utils/logger"
 
 export const CHECK_INTERVAL_MINUTES = 24 * 60
@@ -15,10 +14,17 @@ export const REQUEST_RECORD_MAX_AGE_DAYS = 120
 export const SUMMARY_CACHE_CLEANUP_ALARM = "summary-cache-cleanup"
 export const SUMMARY_CACHE_MAX_AGE_MINUTES = 7 * 24 * 60
 
-export const PDF_TRANSLATIONS_EVICTION_ALARM = "pdf-translations-eviction"
-export const PDF_TRANSLATIONS_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
+// Legacy alarm name from the in-extension PDF translation feature. The feature
+// has been retired; we proactively cancel any leftover alarm on installs that
+// upgraded across the deletion so the registry doesn't keep dispatching to
+// nothing.
+const LEGACY_PDF_TRANSLATIONS_EVICTION_ALARM = "pdf-translations-eviction"
 
 export async function setUpDatabaseCleanup() {
+  // Drop the legacy PDF-translations eviction alarm if a previous install
+  // registered it. `clear` resolves false when no such alarm exists — safe.
+  void browser.alarms.clear(LEGACY_PDF_TRANSLATIONS_EVICTION_ALARM)
+
   // Set up periodic alarms (only if they don't exist)
   const existingCacheAlarm = await browser.alarms.get(TRANSLATION_CACHE_CLEANUP_ALARM)
   if (!existingCacheAlarm) {
@@ -44,14 +50,6 @@ export async function setUpDatabaseCleanup() {
     })
   }
 
-  const existingPdfTranslationsAlarm = await browser.alarms.get(PDF_TRANSLATIONS_EVICTION_ALARM)
-  if (!existingPdfTranslationsAlarm) {
-    void browser.alarms.create(PDF_TRANSLATIONS_EVICTION_ALARM, {
-      delayInMinutes: 1,
-      periodInMinutes: CHECK_INTERVAL_MINUTES,
-    })
-  }
-
   // Register the alarm listener
   browser.alarms.onAlarm.addListener(async (alarm) => {
     if (alarm.name === TRANSLATION_CACHE_CLEANUP_ALARM) {
@@ -63,22 +61,7 @@ export async function setUpDatabaseCleanup() {
     else if (alarm.name === SUMMARY_CACHE_CLEANUP_ALARM) {
       await cleanupOldSummaryCache()
     }
-    else if (alarm.name === PDF_TRANSLATIONS_EVICTION_ALARM) {
-      await cleanupOldPdfTranslations()
-    }
   })
-}
-
-async function cleanupOldPdfTranslations() {
-  try {
-    const deletedCount = await evictExpired(PDF_TRANSLATIONS_MAX_AGE_MS)
-    if (deletedCount > 0) {
-      logger.info(`PDF translations cleanup: Evicted ${deletedCount} expired rows`)
-    }
-  }
-  catch (error) {
-    logger.error("Failed to cleanup old pdf translations:", error)
-  }
 }
 
 async function cleanupOldTranslationCache() {

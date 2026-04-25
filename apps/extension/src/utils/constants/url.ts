@@ -23,3 +23,9 @@ function deriveApiUrl(website: string): string {
 }
 
 export const API_URL = deriveApiUrl(WEBSITE_URL)
+
+// Public web page where users translate PDFs by uploading. Replaces the
+// in-extension PDF translation feature — the popup forwards the active tab's
+// PDF URL as `?src=<encoded>` so the page can show the user where they came
+// from. The website does not auto-fetch the URL; the user still uploads.
+export const WEB_DOCUMENT_TRANSLATE_URL = `${WEBSITE_URL}/document/`

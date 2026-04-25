@@ -5,18 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import TranslateCurrentPdfButton from "../translate-current-pdf-button"
 
 const tabsQueryMock = vi.fn()
-const tabsUpdateMock = vi.fn()
-const runtimeGetURLMock = vi.fn()
+const tabsCreateMock = vi.fn()
 const windowCloseSpy = vi.fn()
 
 vi.mock("#imports", () => ({
   browser: {
     tabs: {
       query: (...args: unknown[]) => tabsQueryMock(...args),
-      update: (...args: unknown[]) => tabsUpdateMock(...args),
-    },
-    runtime: {
-      getURL: (...args: unknown[]) => runtimeGetURLMock(...args),
+      create: (...args: unknown[]) => tabsCreateMock(...args),
     },
   },
   i18n: {
@@ -28,12 +24,13 @@ vi.mock("wxt/browser", () => ({
   browser: {
     tabs: {
       query: (...args: unknown[]) => tabsQueryMock(...args),
-      update: (...args: unknown[]) => tabsUpdateMock(...args),
-    },
-    runtime: {
-      getURL: (...args: unknown[]) => runtimeGetURLMock(...args),
+      create: (...args: unknown[]) => tabsCreateMock(...args),
     },
   },
+}))
+
+vi.mock("@/utils/constants/url", () => ({
+  WEB_DOCUMENT_TRANSLATE_URL: "https://example.test/document/",
 }))
 
 vi.mock("@/components/ui/base-ui/button", () => ({
@@ -45,8 +42,7 @@ vi.mock("@/components/ui/base-ui/button", () => ({
 }))
 
 beforeEach(() => {
-  runtimeGetURLMock.mockImplementation((path: string) => `chrome-extension://testid${path}`)
-  tabsUpdateMock.mockResolvedValue(undefined)
+  tabsCreateMock.mockResolvedValue(undefined)
   Object.defineProperty(window, "close", {
     configurable: true,
     writable: true,
@@ -67,7 +63,7 @@ describe("translateCurrentPdfButton", () => {
     render(<TranslateCurrentPdfButton />)
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "popup.translateCurrentPdf" })).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "popup.translatePdfOnWeb" })).toBeInTheDocument()
     })
   })
 
@@ -78,7 +74,6 @@ describe("translateCurrentPdfButton", () => {
 
     const { container } = render(<TranslateCurrentPdfButton />)
 
-    // Let the effect resolve
     await waitFor(() => {
       expect(tabsQueryMock).toHaveBeenCalled()
     })
@@ -86,36 +81,18 @@ describe("translateCurrentPdfButton", () => {
     expect(container.querySelector("button")).toBeNull()
   })
 
-  it("does not render when the active tab is already the viewer URL", async () => {
-    tabsQueryMock.mockResolvedValue([
-      {
-        id: 42,
-        url: "chrome-extension://testid/pdf-viewer.html?src=https%3A%2F%2Fexample.com%2Fa.pdf",
-      },
-    ])
-
-    const { container } = render(<TranslateCurrentPdfButton />)
-
-    await waitFor(() => {
-      expect(tabsQueryMock).toHaveBeenCalled()
-    })
-
-    expect(container.querySelector("button")).toBeNull()
-  })
-
-  it("redirects the current tab to the viewer and closes the popup on click", async () => {
+  it("opens getutranslate.com/document/?src=<encoded> in a new tab and closes the popup on click", async () => {
     const currentUrl = "https://example.com/paper.pdf"
     tabsQueryMock.mockResolvedValue([{ id: 42, url: currentUrl }])
 
     render(<TranslateCurrentPdfButton />)
 
-    const button = await screen.findByRole("button", { name: "popup.translateCurrentPdf" })
-
+    const button = await screen.findByRole("button", { name: "popup.translatePdfOnWeb" })
     fireEvent.click(button)
 
     await waitFor(() => {
-      expect(tabsUpdateMock).toHaveBeenCalledWith(42, {
-        url: `chrome-extension://testid/pdf-viewer.html?src=${encodeURIComponent(currentUrl)}`,
+      expect(tabsCreateMock).toHaveBeenCalledWith({
+        url: `https://example.test/document/?src=${encodeURIComponent(currentUrl)}`,
       })
     })
     expect(windowCloseSpy).toHaveBeenCalled()

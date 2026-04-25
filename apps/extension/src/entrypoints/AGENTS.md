@@ -5,7 +5,7 @@
 
 ## Purpose
 
-WXT auto-discovers each subfolder/file here as a separate browser-extension entrypoint and emits the corresponding manifest entry, build artifact, and HTML/JS bundle. Each `*.content/` directory compiles to a content script with its own `defineContentScript({ matches, runAt, world, main })` config; `background/` is the MV3 service worker; `popup/` and `options/` are extension UI pages; `offscreen/` is a Chrome-only offscreen document for audio playback; `pdf-viewer/` is the bundled PDF.js viewer used for PDF translation; `translation-hub/` is a standalone multi-provider translation + wordbook workbench; `upgrade-success/` is the post-checkout landing page.
+WXT auto-discovers each subfolder/file here as a separate browser-extension entrypoint and emits the corresponding manifest entry, build artifact, and HTML/JS bundle. Each `*.content/` directory compiles to a content script with its own `defineContentScript({ matches, runAt, world, main })` config; `background/` is the MV3 service worker; `popup/` and `options/` are extension UI pages; `offscreen/` is a Chrome-only offscreen document for audio playback; `translation-hub/` is a standalone multi-provider translation + wordbook workbench; `upgrade-success/` is the post-checkout landing page.
 
 ## Key Files
 
@@ -21,7 +21,6 @@ This directory has no top-level files — only subdirectories.
 | `interceptor.content/` | YouTube `MAIN`-world script that taps the `<html5-video-player>` API and observes `timedtext` URLs (see `interceptor.content/AGENTS.md`) |
 | `offscreen/`           | Chrome-only offscreen document that plays synthesized TTS audio outside the service worker (see `offscreen/AGENTS.md`)                   |
 | `options/`             | Options page (React app for settings, providers, prompts, backups, wordbook, account)                                                    |
-| `pdf-viewer/`          | Bundled PDF.js viewer used for in-browser PDF translation (see `pdf-viewer/AGENTS.md`)                                                   |
 | `popup/`               | Toolbar popup (React app for quick toggles and status)                                                                                   |
 | `selection.content/`   | Selection-toolbar content script (translate selected text, custom actions)                                                               |
 | `side.content/`        | Side-panel content script with the in-page React UI (Shadow DOM)                                                                         |

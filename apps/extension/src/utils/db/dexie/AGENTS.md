@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Defines the extension's single IndexedDB database (`<AppName>DB`) via Dexie, exposing the full local data layer: caches (`translationCache`, `articleSummaryCache`, `aiSegmentationCache`), request history (`batchRequestRecord`), per-feature usage counters (`inputTranslationUsage`, `pdfTranslationUsage`), PDF per-file translation state (`pdfTranslations`), user wordbook (`words`), and a local mirror of Pro entitlements (`entitlements`). The `db` singleton is imported by the background request pipeline, page/PDF/input/subtitle flows, the wordbook UI, and the quota surfaces.
+Defines the extension's single IndexedDB database (`<AppName>DB`) via Dexie, exposing the full local data layer: caches (`translationCache`, `articleSummaryCache`, `aiSegmentationCache`), request history (`batchRequestRecord`), per-feature usage counters (`inputTranslationUsage`), user wordbook (`words`), and a local mirror of Pro entitlements (`entitlements`). The `db` singleton is imported by the background request pipeline, page/input/subtitle flows, the wordbook UI, and the quota surfaces. Note: `pdfTranslations` and `pdfTranslationUsage` object stores still exist on disk in version 10 of the schema (the in-extension PDF translation feature was retired in favor of the web translator), but no class properties or readers reference them — they are scheduled for removal in a future schema bump.
 
 ## Key Files
 
@@ -14,8 +14,6 @@ Defines the extension's single IndexedDB database (`<AppName>DB`) via Dexie, exp
 | `db.ts`                      | Exports `db = new AppDB()` — the one-and-only Dexie instance the rest of the codebase imports.                                                                     |
 | `app-db.ts`                  | `AppDB extends Dexie` — typed `EntityTable<...>` properties, DB name `${upperCamelCase(APP_NAME)}DB`, append-only version blocks, `mapToClass` bindings per table. |
 | `words.ts`                   | Wordbook table: saved words + SM-2 scheduler state (`due`, `interval`, `easiness`, `reps`). Consumed by SaveWordButton + review page.                              |
-| `pdf-translations.ts`        | Per-PDF paragraph-overlay translation state (hash keyed on doc + page + paragraph).                                                                                |
-| `pdf-translation-usage.ts`   | Free-tier monthly quota counter for PDF translation (used by the paragraph-overlay gate).                                                                          |
 | `input-translation-usage.ts` | Free-tier daily quota counter for input (selection/typing) translation.                                                                                            |
 | `entitlements.ts`            | Local mirror of the remote entitlement (tier + expiresAt), refreshed from the api; lets UI render Pro state without a network round-trip.                          |
 | `mock-data.ts`               | `generateMockBatchRequestRecords()` / `clearMockData()` — `@faker-js/faker` seed for dev/QA of the request-history dashboard.                                      |

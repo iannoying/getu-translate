@@ -16,7 +16,6 @@ import { setupIframeInjection } from "./iframe-injection"
 import { setupLLMGenerateTextMessageHandlers } from "./llm-generate-text"
 import { initMockData } from "./mock-data"
 import { newUserGuide } from "./new-user-guide"
-import { setUpPdfContentTypeRedirect, setUpPdfRedirect } from "./pdf-redirect"
 import { proxyFetch } from "./proxy-fetch"
 import { setUpSubtitlesTranslationQueue, setUpWebPageTranslationQueue } from "./translation-queues"
 import { translationMessage } from "./translation-signal"
@@ -102,13 +101,5 @@ export default defineBackground({
 
     // Setup programmatic injection for iframes that Chrome's manifest-based all_frames misses
     setupIframeInjection()
-
-    // Intercept .pdf navigations and redirect to our self-hosted pdf.js viewer.
-    // Two layers:
-    //   1. onBeforeNavigate  — fast path for URLs whose path ends with `.pdf`
-    //   2. onHeadersReceived — fallback for `application/pdf` responses whose
-    //      URL has no `.pdf` suffix (arxiv `/pdf/2507.15551`, CMS handlers, etc.)
-    setUpPdfRedirect()
-    setUpPdfContentTypeRedirect()
   },
 })

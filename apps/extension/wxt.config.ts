@@ -39,7 +39,6 @@ export default defineConfig({
       "identity",
       "scripting",
       "webNavigation",
-      "webRequest",
       ...(browser !== "firefox" ? ["offscreen"] : []),
     ],
     host_permissions: [
@@ -56,7 +55,7 @@ export default defineConfig({
     // moz-extension:// URLs on regular pages. Firefox enforces this more strictly.
     web_accessible_resources: [
       {
-        resources: ["assets/*.png", "assets/*.svg", "assets/*.webp", "pdf-viewer.html"],
+        resources: ["assets/*.png", "assets/*.svg", "assets/*.webp"],
         matches: ["*://*/*", "file:///*"],
       },
     ],

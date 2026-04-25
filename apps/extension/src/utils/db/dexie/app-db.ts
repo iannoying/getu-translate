@@ -7,8 +7,6 @@ import ArticleSummaryCache from "./tables/article-summary-cache"
 import BatchRequestRecord from "./tables/batch-request-record"
 import EntitlementsCache from "./tables/entitlements-cache"
 import InputTranslationUsage from "./tables/input-translation-usage"
-import PdfTranslationUsage from "./tables/pdf-translation-usage"
-import PdfTranslations from "./tables/pdf-translations"
 import TranslationCache from "./tables/translation-cache"
 import Word from "./tables/word"
 
@@ -40,16 +38,6 @@ export default class AppDB extends Dexie {
 
   inputTranslationUsage!: EntityTable<
     InputTranslationUsage,
-    "dateKey"
-  >
-
-  pdfTranslations!: EntityTable<
-    PdfTranslations,
-    "id"
-  >
-
-  pdfTranslationUsage!: EntityTable<
-    PdfTranslationUsage,
     "dateKey"
   >
 
@@ -268,8 +256,6 @@ export default class AppDB extends Dexie {
     this.aiSegmentationCache.mapToClass(AiSegmentationCache)
     this.entitlementsCache.mapToClass(EntitlementsCache)
     this.inputTranslationUsage.mapToClass(InputTranslationUsage)
-    this.pdfTranslations.mapToClass(PdfTranslations)
-    this.pdfTranslationUsage.mapToClass(PdfTranslationUsage)
     this.words.mapToClass(Word)
   }
 }

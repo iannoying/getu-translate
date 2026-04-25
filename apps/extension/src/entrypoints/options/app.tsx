@@ -16,7 +16,6 @@ const FloatingButtonPage = lazy(() => import("./pages/floating-button").then(mod
 const SelectionToolbarPage = lazy(() => import("./pages/selection-toolbar").then(module => ({ default: module.SelectionToolbarPage })))
 const ContextMenuPage = lazy(() => import("./pages/context-menu").then(module => ({ default: module.ContextMenuPage })))
 const InputTranslationPage = lazy(() => import("./pages/input-translation").then(module => ({ default: module.InputTranslationPage })))
-const PdfTranslationPage = lazy(() => import("./pages/pdf-translation").then(module => ({ default: module.PdfTranslationPage })))
 const TextToSpeechPage = lazy(() => import("./pages/text-to-speech").then(module => ({ default: module.TextToSpeechPage })))
 const StatisticsPage = lazy(() => import("./pages/statistics").then(module => ({ default: module.StatisticsPage })))
 const ConfigPage = lazy(() => import("./pages/config").then(module => ({ default: module.ConfigPage })))
@@ -34,7 +33,6 @@ const ROUTE_COMPONENTS: Record<RoutePath, ComponentType> = {
   "/selection-toolbar": SelectionToolbarPage,
   "/context-menu": ContextMenuPage,
   "/input-translation": InputTranslationPage,
-  "/pdf-translation": PdfTranslationPage,
   "/tts": TextToSpeechPage,
   "/statistics": StatisticsPage,
   "/config": ConfigPage,

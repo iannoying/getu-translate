@@ -15,7 +15,7 @@ popup:
   targetLang: Đích
   translate: Dịch
   showOriginal: Hiển thị bản gốc
-  translateCurrentPdf: Dịch PDF hiện tại
+  translatePdfOnWeb: Dịch PDF
   enabledFloatingButton: Bật nút nổi
   enabledSelectionToolbar: Bật thanh công cụ chọn văn bản
   alwaysTranslate: Luôn dịch trang web này
@@ -281,36 +281,6 @@ options:
       label: Ngưỡng (ms)
       hint: Thời gian tính bằng mili giây giữa các lần nhấn phím cách liên tiếp (100-1000ms)
       error: Giá trị phải từ $1 đến $2
-  pdfTranslation:
-    title: Dịch PDF
-    enabled:
-      label: Bật dịch PDF
-      description: Cho phép GetU chặn các URL .pdf và mở chúng trong trình xem song ngữ
-    activationMode:
-      label: Hành vi kích hoạt
-      always: Luôn dịch
-      ask: Hỏi lần đầu trên mỗi trang
-      manual: Chỉ thủ công (từ cửa sổ bật lên)
-    blocklist:
-      label: Miền đã chặn
-      empty: Chưa có miền nào bị chặn
-      remove: Xóa
-    fileProtocol:
-      label: Truy cập tệp cục bộ
-      allowed: Đã bật — có thể dịch tệp PDF cục bộ
-      disabled: Đã tắt — mở chrome://extensions và bật "Cho phép truy cập URL tệp"
-      copyUrl: Sao chép URL tiện ích
-    usage:
-      title: Sử dụng hôm nay
-      description: Số trang đã dịch hôm nay; đặt lại vào nửa đêm theo giờ địa phương
-      unlimited: không giới hạn
-    cache:
-      title: Bộ nhớ đệm dịch
-      description: Các trang đã lưu trong bộ nhớ đệm sẽ được dùng lại khi mở lại cùng PDF; hết hạn sau 30 ngày
-      countOne: Đã lưu $1 trang
-      countMany: Đã lưu $1 trang
-      clear: Xóa bộ nhớ đệm
-      clearConfirm: Xóa tất cả bản dịch PDF đã lưu trong bộ nhớ đệm?
   floatingButtonAndToolbar:
     title: Nút nổi & Thanh công cụ
     floatingButtonDemoImageAlt: Demo nút nổi
@@ -854,30 +824,6 @@ options:
     title: Cải thiện phụ đề 🎁
   rateUs:
     title: Đánh giá chúng tôi
-pdfViewer:
-  firstUseToast:
-    title: Dịch PDF này bằng GetU?
-    description: Chúng tôi có thể tạo phiên bản song ngữ của PDF này để bạn đọc bản gốc và bản dịch cạnh nhau.
-    accept: Dịch PDF này
-    skipOnce: Không phải lần này
-    neverOnThisDomain: Không bao giờ trên trang này
-  error:
-    missingSrc: Thiếu tham số ?src=
-    invalidUrl: URL PDF không hợp lệ
-    unsupportedScheme: "Lược đồ URL không được hỗ trợ: $1"
-    loadFailed: "Tải PDF thất bại: $1"
-  segmentContent:
-    errorTooltip: Dịch thất bại
-    errorAriaLabel: "lỗi dịch: $1"
-  watermark:
-    label: Được dịch bởi GetU — Nâng cấp để loại bỏ
-    ariaLabel: Được dịch bởi GetU. Nâng cấp để loại bỏ hình mờ.
-  export:
-    buttonLabelWithIcon: ⬇ Tải PDF song ngữ
-    buttonLabelBusy: Đang xuất…
-    ariaLabel: Tải PDF song ngữ
-    tooltipEnabled: Tải PDF song ngữ
-    tooltipDisabled: Tính năng Pro — nâng cấp để tải xuống
 side:
   sourceLang: Ngôn ngữ nguồn
   targetLang: Ngôn ngữ đích
