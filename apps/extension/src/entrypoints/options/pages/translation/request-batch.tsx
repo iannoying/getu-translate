@@ -11,6 +11,7 @@ import { batchQueueConfigSchema } from "@/types/config/translate"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { calculateAverageSavePercentage } from "@/utils/batch-request-record"
 import { MIN_BATCH_CHARACTERS, MIN_BATCH_ITEMS } from "@/utils/constants/translate"
+import { swallowExtensionLifecycleError } from "@/utils/extension-lifecycle"
 import { i18n } from "@/utils/i18n"
 import { sendMessage } from "@/utils/message"
 import { ConfigCard } from "../../components/config-card"
@@ -107,7 +108,7 @@ function BatchNumberSelector({ property }: { property: KeyOfBatchQueueConfig }) 
             })
             void sendMessage("setTranslateBatchQueueConfig", {
               [property]: newConfigValue,
-            })
+            }).catch(swallowExtensionLifecycleError("setTranslateBatchQueueConfig"))
           }
           else {
             toast.error(configParseResult.error?.issues[0].message)

@@ -6,6 +6,7 @@ import { ANALYTICS_FEATURE, ANALYTICS_SURFACE } from "@/types/analytics"
 import { createFeatureUsageContext } from "@/utils/analytics"
 import { CONFIG_STORAGE_KEY } from "@/utils/constants/config"
 import { getTranslationStateKey, TRANSLATION_STATE_KEY_PREFIX } from "@/utils/constants/storage-keys"
+import { swallowExtensionLifecycleError } from "@/utils/extension-lifecycle"
 import { hydrateI18nFromStorage, i18n } from "@/utils/i18n"
 import { UI_LOCALE_STORAGE_KEY } from "@/utils/i18n/storage-keys"
 import { sendMessage } from "@/utils/message"
@@ -230,7 +231,7 @@ async function handleTranslateClick(tabId: number) {
     analyticsContext: newState
       ? createFeatureUsageContext(ANALYTICS_FEATURE.PAGE_TRANSLATION, ANALYTICS_SURFACE.CONTEXT_MENU)
       : undefined,
-  }, tabId)
+  }, tabId).catch(swallowExtensionLifecycleError("context-menu askManagerToTogglePageTranslation"))
 
   // Update menu title immediately
   await updateTranslateMenuTitle(tabId)
@@ -251,7 +252,7 @@ async function handleSelectionTranslateClick(
 
   void sendMessage("openSelectionTranslationFromContextMenu", {
     selectionText,
-  }, target)
+  }, target).catch(swallowExtensionLifecycleError("context-menu openSelectionTranslationFromContextMenu"))
 }
 
 async function handleSelectionCustomActionClick(
@@ -271,5 +272,5 @@ async function handleSelectionCustomActionClick(
   void sendMessage("openSelectionCustomActionFromContextMenu", {
     actionId,
     selectionText,
-  }, target)
+  }, target).catch(swallowExtensionLifecycleError("context-menu openSelectionCustomActionFromContextMenu"))
 }

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/base-ui/input"
 import { batchQueueConfigSchema } from "@/types/config/translate"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { MIN_BATCH_CHARACTERS, MIN_BATCH_ITEMS } from "@/utils/constants/translate"
+import { swallowExtensionLifecycleError } from "@/utils/extension-lifecycle"
 import { i18n } from "@/utils/i18n"
 import { sendMessage } from "@/utils/message"
 import { ConfigCard } from "../../components/config-card"
@@ -80,7 +81,7 @@ function SubtitlesBatchNumberSelector({ property }: { property: KeyOfBatchQueueC
             })
             void sendMessage("setSubtitlesBatchQueueConfig", {
               [property]: newConfigValue,
-            })
+            }).catch(swallowExtensionLifecycleError("setSubtitlesBatchQueueConfig"))
           }
           else {
             toast.error(configParseResult.error?.issues[0].message)

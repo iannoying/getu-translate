@@ -1,3 +1,4 @@
+import { swallowExtensionLifecycleError } from "@/utils/extension-lifecycle"
 import { i18n } from "@/utils/i18n"
 import { sendMessage } from "@/utils/message"
 import { cn } from "@/utils/styles/utils"
@@ -26,7 +27,9 @@ export function APIConfigWarning({ className }: { className?: string }) {
       <button
         type="button"
         className="cursor-pointer underline"
-        onClick={() => sendMessage("openOptionsPage", undefined)}
+        onClick={() => {
+          void sendMessage("openOptionsPage", undefined).catch(swallowExtensionLifecycleError("api-config-warning openOptionsPage"))
+        }}
       >
         {i18n.t("noAPIKeyConfig.warningWithLink.optionsPage")}
       </button>

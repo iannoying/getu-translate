@@ -31,6 +31,11 @@ describe("background context menu", () => {
     contextMenuClickListeners.length = 0
     vi.clearAllMocks()
 
+    // sendMessage now has fire-and-forget callers that chain `.catch` on the
+    // returned promise (see swallowExtensionLifecycleError); the mock must
+    // resolve to a real Promise so those chains don't blow up on `undefined`.
+    sendMessageMock.mockResolvedValue(undefined)
+
     browser.contextMenus.create = vi.fn()
     browser.contextMenus.removeAll = vi.fn().mockResolvedValue(undefined)
     browser.contextMenus.update = vi.fn().mockResolvedValue(undefined)

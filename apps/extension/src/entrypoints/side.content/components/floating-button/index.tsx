@@ -13,6 +13,7 @@ import {
 import { ANALYTICS_FEATURE, ANALYTICS_SURFACE } from "@/types/analytics"
 import { createFeatureUsageContext } from "@/utils/analytics"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
+import { swallowExtensionLifecycleError } from "@/utils/extension-lifecycle"
 import { i18n } from "@/utils/i18n"
 import { sendMessage } from "@/utils/message"
 import { cn } from "@/utils/styles/utils"
@@ -112,7 +113,7 @@ export default function FloatingButton() {
             analyticsContext: nextEnabled
               ? createFeatureUsageContext(ANALYTICS_FEATURE.PAGE_TRANSLATION, ANALYTICS_SURFACE.FLOATING_BUTTON)
               : undefined,
-          })
+          }).catch(swallowExtensionLifecycleError("floating-button translate click"))
         }
         else {
           setIsSideOpen(o => !o)
@@ -202,7 +203,7 @@ export default function FloatingButton() {
         className={attachSideClassName}
         icon={<IconSettings className="h-5 w-5" />}
         onClick={() => {
-          void sendMessage("openOptionsPage", undefined)
+          void sendMessage("openOptionsPage", undefined).catch(swallowExtensionLifecycleError("floating-button openOptionsPage"))
         }}
       />
     </div>

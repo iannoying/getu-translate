@@ -1,6 +1,7 @@
 import { RiTranslate } from "@remixicon/react"
 import { IconCheck } from "@tabler/icons-react"
 import { useAtomValue } from "jotai"
+import { swallowExtensionLifecycleError } from "@/utils/extension-lifecycle"
 import { sendMessage } from "@/utils/message"
 import { cn } from "@/utils/styles/utils"
 import { enablePageTranslationAtom } from "../../atoms"
@@ -16,6 +17,7 @@ export default function TranslateButton({ className }: { className: string }) {
       className={className}
       onClick={() => {
         void sendMessage("tryToSetEnablePageTranslationOnContentScript", { enabled: !isEnabled })
+          .catch(swallowExtensionLifecycleError("floating translate-button click"))
       }}
     >
       <IconCheck

@@ -2,9 +2,9 @@ import type { ContentScriptContext } from "#imports"
 import type { LangCodeISO6393 } from "@getu/definitions"
 import type { Config } from "@/types/config/config"
 import { storage } from "#imports"
-import { isExtensionContextInvalidatedError } from "@/utils/atoms/storage-adapter"
 import { DEFAULT_CONFIG, DETECTED_CODE_STORAGE_KEY } from "@/utils/constants/config"
 import { getDocumentInfo } from "@/utils/content/analyze"
+import { isExtensionLifecycleError } from "@/utils/extension-lifecycle"
 import { ensurePresetStyles } from "@/utils/host/translate/ui/style-injector"
 import { logger } from "@/utils/logger"
 import { onMessage, sendMessage } from "@/utils/message"
@@ -41,8 +41,11 @@ export async function bootstrapHostContent(ctx: ContentScriptContext, initialCon
     translationEnabled = await sendMessage("getEnablePageTranslationFromContentScript", undefined)
   }
   catch (error) {
-    // Extension context may be invalidated during update, proceed without auto-start
-    logger.error("Failed to check translation state:", error)
+    // Lifecycle errors (extension reload mid-injection / no listener yet) are
+    // expected here; proceed without auto-start. Real failures still surface.
+    if (!isExtensionLifecycleError(error)) {
+      logger.error("Failed to check translation state:", error)
+    }
   }
   if (translationEnabled) {
     void manager.start()
@@ -68,7 +71,7 @@ export async function bootstrapHostContent(ctx: ContentScriptContext, initialCon
       await sendMessage("checkAndAskAutoPageTranslation", { url: to, detectedCodeOrUnd })
     }
     catch (error) {
-      if (!isExtensionContextInvalidatedError(error)) {
+      if (!isExtensionLifecycleError(error)) {
         logger.error("Failed to handle URL change:", error)
       }
     }
@@ -111,7 +114,7 @@ export async function bootstrapHostContent(ctx: ContentScriptContext, initialCon
       await sendMessage("checkAndAskAutoPageTranslation", { url: window.location.href, detectedCodeOrUnd })
     }
     catch (error) {
-      if (!isExtensionContextInvalidatedError(error)) {
+      if (!isExtensionLifecycleError(error)) {
         logger.error("Failed to handle initial URL state:", error)
       }
     }
