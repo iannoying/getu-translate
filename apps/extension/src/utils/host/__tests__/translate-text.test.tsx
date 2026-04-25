@@ -3,6 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { DEFAULT_CONFIG } from "@/utils/constants/config"
 import { executeTranslate } from "@/utils/host/translate/execute-translate"
+import { validateTranslationConfigAndToast } from "@/utils/host/translate/translate-text"
 import { translateTextForInput, translateTextForPage, translateTextForPageTitle } from "@/utils/host/translate/translate-variants"
 import { getTranslatePrompt } from "@/utils/prompts/translate"
 
@@ -31,12 +32,20 @@ vi.mock("@/utils/host/translate/webpage-summary", () => ({
   getOrGenerateWebPageSummary: vi.fn(),
 }))
 
+vi.mock("sonner", () => ({
+  toast: {
+    error: vi.fn(),
+    warning: vi.fn(),
+  },
+}))
+
 let mockSendMessage: any
 let mockMicrosoftTranslate: any
 let mockGetConfigFromStorage: any
 let mockGetTranslatePrompt: any
 let mockGetOrCreateWebPageContext: any
 let mockGetOrGenerateWebPageSummary: any
+let mockToast: any
 
 describe("translate-text", () => {
   beforeEach(async () => {
@@ -49,6 +58,7 @@ describe("translate-text", () => {
     mockGetTranslatePrompt = vi.mocked((await import("@/utils/prompts/translate")).getTranslatePrompt)
     mockGetOrCreateWebPageContext = vi.mocked((await import("@/utils/host/translate/webpage-context")).getOrCreateWebPageContext)
     mockGetOrGenerateWebPageSummary = vi.mocked((await import("@/utils/host/translate/webpage-summary")).getOrGenerateWebPageSummary)
+    mockToast = vi.mocked((await import("sonner")).toast)
 
     // Mock getOrCreateWebPageContext to return stable webpage metadata
     mockGetOrCreateWebPageContext.mockImplementation(() => Promise.resolve({
@@ -84,6 +94,35 @@ describe("translate-text", () => {
       }))
       expect(mockGetOrCreateWebPageContext).not.toHaveBeenCalled()
       expect(mockGetOrGenerateWebPageSummary).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("validateTranslationConfigAndToast", () => {
+    it("allows GetU Pro model providers without a user API key", () => {
+      const config = {
+        ...DEFAULT_CONFIG,
+        providersConfig: [
+          {
+            id: "getu-pro-qwen35-plus",
+            name: "Qwen3.5-plus",
+            description: "AI translations powered by your GetU Pro subscription.",
+            enabled: true,
+            provider: "getu-pro" as const,
+            model: {
+              model: "qwen3.5-plus" as const,
+              isCustomModel: false,
+              customModel: null,
+            },
+          },
+        ],
+        translate: {
+          ...DEFAULT_CONFIG.translate,
+          providerId: "getu-pro-qwen35-plus",
+        },
+      }
+
+      expect(validateTranslationConfigAndToast(config, "eng")).toBe(true)
+      expect(mockToast.error).not.toHaveBeenCalled()
     })
   })
 
