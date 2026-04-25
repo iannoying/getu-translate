@@ -64,6 +64,15 @@ beforeAll(() => {
 })
 
 describe("floatingButton close trigger", () => {
+  it("keeps the main logo button fully visible by default", () => {
+    const { container } = render(<FloatingButton />)
+
+    const logoButton = container.querySelector("img")?.parentElement
+
+    expect(logoButton).not.toHaveClass("translate-x-6")
+    expect(logoButton).not.toHaveClass("group-hover:translate-x-0")
+  })
+
   it("keeps the close trigger in the layout with visibility classes instead of display:none", () => {
     render(<FloatingButton />)
 
