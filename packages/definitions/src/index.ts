@@ -70,6 +70,14 @@ export {
   TRANSLATE_MODELS,
   TRANSLATE_MODEL_BY_ID,
   isFreeTranslateModel,
+  isLlmTranslateModel,
   isTranslateModelId,
+  normalizeTranslateTokens,
 } from "./translate-models"
-export type { TranslateModel, TranslateModelId, TranslateModelKind } from "./translate-models"
+export type {
+  TranslateModel,
+  TranslateModelId,
+  TranslateModelKind,
+  TranslateModelLlm,
+  TranslateModelTranslateApi,
+} from "./translate-models"
