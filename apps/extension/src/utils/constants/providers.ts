@@ -5,7 +5,7 @@ import customProviderLogo from "@/assets/providers/custom-provider.svg?url&no-in
 import deeplxLogoDark from "@/assets/providers/deeplx-dark.svg?url&no-inline"
 import deeplxLogoLight from "@/assets/providers/deeplx-light.svg?url&no-inline"
 import tensdaqLogoColor from "@/assets/providers/tensdaq-color.svg?url&no-inline"
-import { API_PROVIDER_TYPES, CUSTOM_LLM_PROVIDER_TYPES, NON_API_TRANSLATE_PROVIDERS, NON_API_TRANSLATE_PROVIDERS_MAP, NON_CUSTOM_LLM_PROVIDER_TYPES, PURE_API_PROVIDER_TYPES, PURE_TRANSLATE_PROVIDERS, TRANSLATE_PROVIDER_TYPES } from "@/types/config/provider"
+import { API_PROVIDER_TYPES, CUSTOM_LLM_PROVIDER_TYPES, NON_API_TRANSLATE_PROVIDERS, NON_API_TRANSLATE_PROVIDERS_MAP, NON_CUSTOM_LLM_PROVIDER_TYPES, PURE_TRANSLATE_PROVIDERS, TRANSLATE_PROVIDER_TYPES } from "@/types/config/provider"
 import { omit, pick } from "@/types/utils"
 import { i18n } from "@/utils/i18n"
 import { getLobeIconsCDNUrlFn } from "../logo"
@@ -681,14 +681,12 @@ export const DEFAULT_PROVIDER_CONFIG_LIST: ProvidersConfig = [
   DEFAULT_PROVIDER_CONFIG["google-translate"],
   DEFAULT_PROVIDER_CONFIG["bing-translate"],
   DEFAULT_PROVIDER_CONFIG["yandex-translate"],
-  DEFAULT_PROVIDER_CONFIG["libre-translate"],
   DEFAULT_PROVIDER_CONFIG.openai,
   DEFAULT_PROVIDER_CONFIG.tensdaq,
   DEFAULT_PROVIDER_CONFIG.ai302,
   // DEFAULT_PROVIDER_CONFIG.deepseek,
   DEFAULT_PROVIDER_CONFIG.google,
   // DEFAULT_PROVIDER_CONFIG.openaiCompatible,
-  DEFAULT_PROVIDER_CONFIG.deeplx,
   // DEFAULT_PROVIDER_CONFIG.anthropic,
   // DEFAULT_PROVIDER_CONFIG.xai,
   // DEFAULT_PROVIDER_CONFIG.bedrock,
@@ -739,7 +737,7 @@ export const PROVIDER_GROUPS = {
     tutorialSlug: "openai-compatible-providers",
   },
   pureTranslationProviders: {
-    types: PURE_API_PROVIDER_TYPES,
+    types: ["deepl"],
     tutorialSlug: "pure-translation-providers",
   },
 } as const satisfies Record<string, { types: readonly APIProviderTypes[], tutorialSlug: string }>

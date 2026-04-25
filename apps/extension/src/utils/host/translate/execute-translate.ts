@@ -1,5 +1,4 @@
 import type { PromptResolver } from "./api/ai"
-import type { FreeTranslateImpl } from "./api/dispatch"
 import type { Config } from "@/types/config/config"
 import type { ProviderConfig } from "@/types/config/provider"
 import { ISO6393_TO_6391, LANG_CODE_TO_EN_NAME } from "@getu/definitions"
@@ -57,26 +56,9 @@ export async function executeTranslate<TContext>(
       ? [preferredKind, ...DEFAULT_ORDER.filter(k => k !== preferredKind)]
       : DEFAULT_ORDER
 
-    // Inject a LibreTranslate impl if the user has configured an endpoint,
-    // so it can participate in the fallback chain.
-    const libreConfig = providerConfig as Record<string, unknown>
-    const libreEndpoint = typeof libreConfig.endpoint === "string" ? libreConfig.endpoint : undefined
-    const libreImpl: FreeTranslateImpl | undefined = libreEndpoint
-      ? async input => translateLibre({
-        text: input.text,
-        from: input.from,
-        to: input.to,
-        endpoint: libreEndpoint,
-        apiKey: typeof libreConfig.apiKey === "string" ? libreConfig.apiKey : undefined,
-      })
-      : undefined
-
-    const finalOrder = libreImpl ? [...order, "libre" as const] : order
-    const impls = libreImpl ? { ...defaultImpls, libre: libreImpl } : defaultImpls
-
     const result = await dispatchFreeTranslate(
       { text: preparedText, from: sourceLang, to: targetLang },
-      { order: finalOrder, impls, health: defaultHealth },
+      { order, impls: defaultImpls, health: defaultHealth },
     )
     translatedText = result.text
   }

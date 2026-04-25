@@ -1,4 +1,4 @@
-export type ProviderKind = "google" | "microsoft" | "bing" | "yandex" | "libre" | "deeplx"
+export type ProviderKind = "google" | "microsoft" | "bing" | "yandex"
 
 export interface HealthOptions {
   now?: () => number
