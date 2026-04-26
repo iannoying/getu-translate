@@ -1,4 +1,3 @@
-import { browser } from "#imports"
 import {
   IconArrowUpRight,
   IconFileDescription,
@@ -9,7 +8,9 @@ import {
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/base-ui/button"
 import { WEB_DOCUMENT_TRANSLATE_URL } from "@/utils/constants/url"
+import { swallowExtensionLifecycleError } from "@/utils/extension-lifecycle"
 import { i18n } from "@/utils/i18n"
+import { sendMessage } from "@/utils/message"
 
 const FORMATS = ["PDF", "EPUB", "DOCX", "TXT", "HTML", "MD", "SRT", "ASS", "VTT", "LRC"] as const
 
@@ -77,7 +78,10 @@ export function SidebarDocumentTab() {
       <Button
         type="button"
         className="h-11 w-full gap-2 text-sm font-semibold"
-        onClick={() => void browser.tabs.create({ url: WEB_DOCUMENT_TRANSLATE_URL })}
+        onClick={() => {
+          void sendMessage("openPage", { url: WEB_DOCUMENT_TRANSLATE_URL })
+            .catch(swallowExtensionLifecycleError("sidebar document upload"))
+        }}
       >
         <IconUpload className="size-4" />
         {i18n.t("translationWorkbench.uploadDocument")}

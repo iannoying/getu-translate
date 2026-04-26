@@ -3,14 +3,14 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { SidebarDocumentTab } from "../sidebar-document-tab"
 
-const createTabMock = vi.hoisted(() => vi.fn())
+const sendMessageMock = vi.hoisted(() => vi.fn(() => Promise.resolve()))
 
 vi.mock("#imports", () => ({
-  browser: { tabs: { create: createTabMock } },
+  browser: { tabs: { create: vi.fn() } },
 }))
 
-vi.mock("wxt/browser", () => ({
-  browser: { tabs: { create: createTabMock } },
+vi.mock("@/utils/message", () => ({
+  sendMessage: sendMessageMock,
 }))
 
 vi.mock("@/utils/constants/url", () => ({
@@ -23,7 +23,7 @@ vi.mock("@/utils/i18n", () => ({
 
 describe("sidebarDocumentTab", () => {
   beforeEach(() => {
-    createTabMock.mockClear()
+    sendMessageMock.mockClear()
   })
 
   it("renders supported document formats and opens the website upload page", () => {
@@ -36,6 +36,6 @@ describe("sidebarDocumentTab", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "translationWorkbench.uploadDocument" }))
 
-    expect(createTabMock).toHaveBeenCalledWith({ url: "https://getutranslate.com/document/" })
+    expect(sendMessageMock).toHaveBeenCalledWith("openPage", { url: "https://getutranslate.com/document/" })
   })
 })

@@ -1,6 +1,5 @@
 import type { TranslationResultState } from "@/components/translation-workbench/types"
 import type { TranslateProviderConfig } from "@/types/config/provider"
-import { browser } from "#imports"
 import { IconCornerDownLeft } from "@tabler/icons-react"
 import { useAtom, useAtomValue } from "jotai"
 import { useMemo, useState } from "react"
@@ -17,7 +16,9 @@ import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { authClient } from "@/utils/auth/auth-client"
 import { filterEnabledProvidersConfig, getTranslateProvidersConfig } from "@/utils/config/helpers"
 import { WEBSITE_URL } from "@/utils/constants/url"
+import { swallowExtensionLifecycleError } from "@/utils/extension-lifecycle"
 import { i18n } from "@/utils/i18n"
+import { sendMessage } from "@/utils/message"
 import { shadowWrapper } from "../../index"
 
 function createClickId(): string {
@@ -136,11 +137,13 @@ export function SidebarTextTab() {
   }
 
   function login() {
-    void browser.tabs.create({ url: `${WEBSITE_URL}/log-in?redirect=/` })
+    void sendMessage("openPage", { url: `${WEBSITE_URL}/log-in?redirect=/` })
+      .catch(swallowExtensionLifecycleError("sidebar text login"))
   }
 
   function upgrade() {
-    void browser.tabs.create({ url: `${WEBSITE_URL}/pricing` })
+    void sendMessage("openPage", { url: `${WEBSITE_URL}/pricing` })
+      .catch(swallowExtensionLifecycleError("sidebar text upgrade"))
   }
 
   return (

@@ -938,6 +938,48 @@ translationHub:
   translationFailed: Çeviri Başarısız
   translationFailedFallback: Çeviri başarısız
   retryTranslation: Çeviriyi yeniden dene
+translationWorkbench:
+  sidebarTitle: GetU Translate
+  textTab: Metin
+  documentTab: Belge
+  closeSidebar: Kenar çubuğunu kapat
+  textTitle: Metin çevir
+  documentTitle: Belge çevirisi
+  documentDescription: PDF, e-kitap, Office dosyası, web belgesi, düz metin, Markdown ve altyazıları çevirmek için belgeleri GetU Translate Web'e yükleyin.
+  documentFormats: Desteklenen biçimler
+  documentFeatures: Belge araçları
+  uploadDocument: Belge yükle
+  learnMore: Daha fazla bilgi
+  pdfProTitle: PDF Pro
+  pdfProBody: Web uygulamasında uzun PDF'leri yerleşime duyarlı işleme ve dışa aktarma seçenekleriyle çevirin.
+  babelDocTitle: BabelDOC düzeni
+  babelDocBody: Belge yapısını koruyarak okunabilir çift dilli sonuç üretir.
+  subtitleFilesTitle: Altyazı dosyaları
+  subtitleFilesBody: Video öğrenme akışları için yaygın altyazı biçimlerini çevirir.
+  inputPlaceholder: Çevrilecek metni girin...
+  translate: Çevir
+  charLimitExceeded: Metin $1 karakter sınırını aşıyor.
+  noProviders: Ayarlarda en az bir çeviri sağlayıcısını etkinleştirin.
+  languages:
+    auto: Otomatik algıla
+  swapLanguages: Dilleri değiştir
+  selectProviders: Çeviri hizmetlerini seç
+  freeProviders: Ücretsiz çevirmenler
+  proProviders: GetU Pro
+  byokProviders: BYOK / LLM
+  apiProviders: API çevirmenleri
+  idle: Çeviri burada görünecek.
+  loading: Çevriliyor...
+  errorFallback: Çeviri başarısız. Lütfen tekrar deneyin.
+  quotaExhausted: Çeviri kotası tükendi.
+  loginRequired: Bu çevirmeni kullanmak için giriş yapın.
+  upgradeRequired: Bu çevirmeni kullanmak için Pro'ya yükseltin.
+  loginAction: Giriş yap
+  upgradeAction: Yükselt
+  copyResult: Çeviriyi kopyala
+  retry: Tekrar dene
+  copied: Panoya kopyalandı
+  copyFailed: Çeviri kopyalanamadı
 wordbook:
   save: Kelime defterine ekle
   saved: Eklendi
