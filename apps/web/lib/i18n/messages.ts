@@ -109,6 +109,29 @@ export type Messages = {
       clearConfirmTemplate: string
       deleteEntryAriaLabel: string
     }
+    upgradeModal: {
+      titles: {
+        free_quota_exceeded: string
+        pro_model_clicked: string
+        pdf_quota_exceeded: string
+        char_limit_exceeded: string
+        history_cleanup_warning: string
+      }
+      perks: {
+        header: string
+        rowRequests: string
+        rowModels: string
+        rowChars: string
+        rowPdf: string
+        rowHistory: string
+      }
+      cta: string
+      close: string
+    }
+    quotaBadge: {
+      /** Template: {textUsed} {textLimit} {tokenUsed} {tokenLimit} {pdfUsed} {pdfLimit} */
+      tooltip: string
+    }
   }
 }
 
@@ -515,6 +538,28 @@ export const messages: Record<Locale, Messages> = {
         clearConfirmTemplate: "Delete all {count} history entries? This cannot be undone.",
         deleteEntryAriaLabel: "Delete this history entry",
       },
+      upgradeModal: {
+        titles: {
+          free_quota_exceeded: "Monthly limit reached",
+          pro_model_clicked: "Pro model — upgrade to unlock",
+          pdf_quota_exceeded: "PDF limit reached",
+          char_limit_exceeded: "Character limit reached",
+          history_cleanup_warning: "History limit reached",
+        },
+        perks: {
+          header: "Free vs Pro",
+          rowRequests: "Requests",
+          rowModels: "AI models",
+          rowChars: "Characters",
+          rowPdf: "PDF pages",
+          rowHistory: "History",
+        },
+        cta: "Upgrade to Pro",
+        close: "Close",
+      },
+      quotaBadge: {
+        tooltip: "Requests {textUsed}/{textLimit} · Tokens {tokenUsed}/{tokenLimit} · PDF {pdfUsed}/{pdfLimit}",
+      },
     },
   },
   "zh-CN": {
@@ -917,6 +962,28 @@ export const messages: Record<Locale, Messages> = {
         clearConfirmTemplate: "确定删除全部 {count} 条历史记录？此操作不可恢复。",
         deleteEntryAriaLabel: "删除此条历史",
       },
+      upgradeModal: {
+        titles: {
+          free_quota_exceeded: "本月用量已达上限",
+          pro_model_clicked: "Pro 专属模型 — 升级后解锁",
+          pdf_quota_exceeded: "PDF 页数已达上限",
+          char_limit_exceeded: "字符数已达上限",
+          history_cleanup_warning: "历史记录已达上限",
+        },
+        perks: {
+          header: "免费版 vs Pro",
+          rowRequests: "请求次数",
+          rowModels: "AI 模型",
+          rowChars: "字符数",
+          rowPdf: "PDF 页数",
+          rowHistory: "历史记录",
+        },
+        cta: "立即升级 Pro",
+        close: "关闭",
+      },
+      quotaBadge: {
+        tooltip: "请求 {textUsed}/{textLimit} · Token {tokenUsed}/{tokenLimit} · PDF {pdfUsed}/{pdfLimit}",
+      },
     },
   },
   "zh-TW": {
@@ -1318,6 +1385,28 @@ export const messages: Record<Locale, Messages> = {
         groupOlder: "更早",
         clearConfirmTemplate: "確定刪除全部 {count} 條歷史紀錄？此操作不可恢復。",
         deleteEntryAriaLabel: "刪除此條歷史",
+      },
+      upgradeModal: {
+        titles: {
+          free_quota_exceeded: "本月用量已達上限",
+          pro_model_clicked: "Pro 專屬模型 — 升級後解鎖",
+          pdf_quota_exceeded: "PDF 頁數已達上限",
+          char_limit_exceeded: "字元數已達上限",
+          history_cleanup_warning: "歷史紀錄已達上限",
+        },
+        perks: {
+          header: "免費版 vs Pro",
+          rowRequests: "請求次數",
+          rowModels: "AI 模型",
+          rowChars: "字元數",
+          rowPdf: "PDF 頁數",
+          rowHistory: "歷史紀錄",
+        },
+        cta: "立即升級 Pro",
+        close: "關閉",
+      },
+      quotaBadge: {
+        tooltip: "請求 {textUsed}/{textLimit} · Token {tokenUsed}/{tokenLimit} · PDF {pdfUsed}/{pdfLimit}",
       },
     },
   },

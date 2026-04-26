@@ -50,7 +50,7 @@ export function ModelGrid({
   results: Partial<Record<TranslateModelId, ModelCardState>>
   upgradeMessage: string
   cardLabels: ModelCardLabels
-  onUpgradeClick: (modelId: TranslateModelId) => void
+  onUpgradeClick: () => void
 }) {
   // SSR / static-export safe: server emits the default order, so the static
   // HTML has the registry order baked in (good for SEO + new visitors).
@@ -112,7 +112,7 @@ export function ModelGrid({
                 locked={locked}
                 upgradeMessage={upgradeMessage}
                 labels={cardLabels}
-                onUpgradeClick={() => onUpgradeClick(id)}
+                onUpgradeClick={onUpgradeClick}
               />
             )
           })}
