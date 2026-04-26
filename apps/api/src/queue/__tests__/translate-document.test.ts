@@ -1,0 +1,281 @@
+import { describe, expect, it, vi } from "vitest"
+import { createQueueHandler } from "../translate-document"
+import { makeTestDb } from "../../__tests__/utils/test-db"
+import { schema, type Db } from "@getu/db"
+import { readFileSync } from "node:fs"
+import { resolve, dirname } from "node:path"
+import { fileURLToPath } from "node:url"
+import { eq } from "drizzle-orm"
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+const FIXTURE_DIR = resolve(
+  __dirname,
+  "../../translate/__tests__/fixtures",
+)
+
+// ---------------------------------------------------------------------------
+// Test helpers
+// ---------------------------------------------------------------------------
+
+async function setupJob(
+  db: ReturnType<typeof makeTestDb>["db"],
+  opts: {
+    jobId: string
+    userId: string
+    sourcePages: number
+    bucket?: string
+    amount?: number
+  },
+) {
+  const { jobId, userId, sourcePages } = opts
+  const bucket = opts.bucket ?? "web_pdf_translate_monthly"
+  const amount = opts.amount ?? sourcePages
+
+  // Insert user
+  await db.insert(schema.user).values({
+    id: userId,
+    email: `${userId}@test.invalid`,
+    name: userId,
+    emailVerified: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  })
+
+  // Insert translation job
+  await db.insert(schema.translationJobs).values({
+    id: jobId,
+    userId,
+    sourceKey: `pdfs/${userId}/${jobId}/source.pdf`,
+    sourcePages,
+    modelId: "google",
+    sourceLang: "auto",
+    targetLang: "zh-Hans",
+    engine: "simple",
+    status: "queued",
+    expiresAt: new Date(Date.now() + 30 * 86400_000),
+    createdAt: new Date(),
+  })
+
+  // Insert the original quota consumption row (requestId = jobId)
+  // so refundQuota can find it
+  const now = new Date()
+  const periodStart = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+  )
+  // periodKey for monthly bucket is "YYYY-MM"
+  const pk = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`
+
+  await db.insert(schema.usageLog).values({
+    id: crypto.randomUUID(),
+    userId,
+    bucket,
+    amount,
+    requestId: jobId,
+    createdAt: now,
+  })
+
+  await db.insert(schema.quotaPeriod).values({
+    userId,
+    bucket,
+    periodKey: pk,
+    used: amount,
+    updatedAt: now,
+  })
+
+  return { userId, jobId, bucket, amount, pk }
+}
+
+function makeBatch(jobId: string) {
+  const ack = vi.fn()
+  const retry = vi.fn()
+  const batch = {
+    messages: [{ id: `msg-${jobId}`, body: { jobId }, ack, retry }],
+  }
+  return { batch, ack, retry }
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+describe("queue translate-document handler", () => {
+  it("happy path: queued -> processing -> segments.json written, status stays processing with translated/100 progress", async () => {
+    const { db } = makeTestDb()
+    await setupJob(db, { jobId: "j1", userId: "u1", sourcePages: 2 })
+    const pdfBuf = readFileSync(resolve(FIXTURE_DIR, "hello-world.pdf"))
+    // Buffer.buffer is a shared backing ArrayBuffer — slice to get a detached copy
+    // so pdfjs worker can structuredClone/transfer it without DataCloneError
+    const pdfAb = pdfBuf.buffer.slice(pdfBuf.byteOffset, pdfBuf.byteOffset + pdfBuf.byteLength)
+
+    const r2Get = vi.fn(async (key: string) =>
+      key.endsWith("source.pdf")
+        ? { arrayBuffer: async () => pdfAb }
+        : null,
+    )
+    const r2Put = vi.fn(async () => undefined)
+
+    const handler = createQueueHandler({
+      db: db as unknown as Db,
+      bucket: { get: r2Get, put: r2Put } as unknown as R2Bucket,
+      env: {} as any,
+      translateChunk: async () => "你好",
+    })
+
+    const { batch, ack } = makeBatch("j1")
+    await handler.queue(batch as any, {} as any, {} as any)
+
+    // R2 put called once with correct key
+    expect(r2Put).toHaveBeenCalledTimes(1)
+    expect((r2Put.mock.calls[0] as unknown[])[0]).toBe("pdfs/u1/j1/segments.json")
+
+    // Message acked
+    expect(ack).toHaveBeenCalled()
+
+    // Job status = processing, progress = translated/100
+    const job = await db
+      .select()
+      .from(schema.translationJobs)
+      .where(eq(schema.translationJobs.id, "j1"))
+      .get()
+    expect(job?.status).toBe("processing")
+    expect(JSON.parse(job?.progress ?? "{}")).toMatchObject({
+      stage: "translated",
+      pct: 100,
+    })
+  })
+
+  it("scanned PDF: status=failed with canonical message + quota refunded", async () => {
+    const { db } = makeTestDb()
+    const ctx = await setupJob(db, { jobId: "j2", userId: "u2", sourcePages: 1 })
+    const scannedBuf = readFileSync(resolve(FIXTURE_DIR, "scanned-image.pdf"))
+    const scannedAb = scannedBuf.buffer.slice(scannedBuf.byteOffset, scannedBuf.byteOffset + scannedBuf.byteLength)
+
+    const handler = createQueueHandler({
+      db: db as unknown as Db,
+      bucket: {
+        get: vi.fn(async () => ({ arrayBuffer: async () => scannedAb })),
+        put: vi.fn(),
+      } as unknown as R2Bucket,
+      env: {} as any,
+      translateChunk: async () => { throw new Error("should not be called") },
+    })
+
+    const { batch, ack } = makeBatch("j2")
+    await handler.queue(batch as any, {} as any, {} as any)
+
+    expect(ack).toHaveBeenCalled()
+
+    const job = await db
+      .select()
+      .from(schema.translationJobs)
+      .where(eq(schema.translationJobs.id, "j2"))
+      .get()
+    expect(job?.status).toBe("failed")
+    expect(job?.errorMessage).toMatch(/扫描件/)
+
+    // Refund row has negative amount
+    const refunds = await db
+      .select()
+      .from(schema.usageLog)
+      .where(eq(schema.usageLog.requestId, "refund:j2"))
+      .all()
+    expect(refunds.length).toBe(1)
+    expect(refunds[0].amount).toBe(-ctx.amount)
+  })
+
+  it("R2 source missing: status=failed with generic message", async () => {
+    const { db } = makeTestDb()
+    await setupJob(db, { jobId: "j3", userId: "u3", sourcePages: 1 })
+
+    const handler = createQueueHandler({
+      db: db as unknown as Db,
+      bucket: {
+        get: vi.fn(async () => null),
+        put: vi.fn(),
+      } as unknown as R2Bucket,
+      env: {} as any,
+    })
+
+    const { batch, ack } = makeBatch("j3")
+    await handler.queue(batch as any, {} as any, {} as any)
+
+    expect(ack).toHaveBeenCalled()
+
+    const job = await db
+      .select()
+      .from(schema.translationJobs)
+      .where(eq(schema.translationJobs.id, "j3"))
+      .get()
+    expect(job?.status).toBe("failed")
+    expect(job?.errorMessage).toBe("翻译失败，请重试")
+  })
+
+  it("translateChunk throws 503 after retries: status=failed + canonical LLM 5xx message + refunded", async () => {
+    const { db } = makeTestDb()
+    const ctx = await setupJob(db, { jobId: "j4", userId: "u4", sourcePages: 1 })
+    const pdfBuf = readFileSync(resolve(FIXTURE_DIR, "hello-world.pdf"))
+    const pdfAb = pdfBuf.buffer.slice(pdfBuf.byteOffset, pdfBuf.byteOffset + pdfBuf.byteLength)
+
+    const handler = createQueueHandler({
+      db: db as unknown as Db,
+      bucket: {
+        get: vi.fn(async () => ({ arrayBuffer: async () => pdfAb })),
+        put: vi.fn(),
+      } as unknown as R2Bucket,
+      env: {} as any,
+      // 0ms backoff and 1 retry so the test completes instantly
+      pipelineOpts: { maxRetries: 1, baseBackoffMs: 0 },
+      translateChunk: async () => {
+        throw new Error("503 server error")
+      },
+    })
+
+    const { batch, ack } = makeBatch("j4")
+    await handler.queue(batch as any, {} as any, {} as any)
+
+    expect(ack).toHaveBeenCalled()
+
+    const job = await db
+      .select()
+      .from(schema.translationJobs)
+      .where(eq(schema.translationJobs.id, "j4"))
+      .get()
+    expect(job?.status).toBe("failed")
+    expect(job?.errorMessage).toBe("翻译模型暂时不可用，请稍后重试")
+
+    // Refund row exists
+    const refunds = await db
+      .select()
+      .from(schema.usageLog)
+      .where(eq(schema.usageLog.requestId, "refund:j4"))
+      .all()
+    expect(refunds.length).toBe(1)
+    expect(refunds[0].amount).toBe(-ctx.amount)
+  })
+
+  it("idempotent: skips processing when status is already done", async () => {
+    const { db } = makeTestDb()
+    await setupJob(db, { jobId: "j5", userId: "u5", sourcePages: 1 })
+    await db
+      .update(schema.translationJobs)
+      .set({ status: "done" })
+      .where(eq(schema.translationJobs.id, "j5"))
+
+    const r2Get = vi.fn()
+    const r2Put = vi.fn()
+    const handler = createQueueHandler({
+      db: db as unknown as Db,
+      bucket: { get: r2Get, put: r2Put } as unknown as R2Bucket,
+      env: {} as any,
+    })
+
+    const { batch, ack } = makeBatch("j5")
+    await handler.queue(batch as any, {} as any, {} as any)
+
+    // No R2 access — skipped immediately
+    expect(r2Get).not.toHaveBeenCalled()
+    expect(r2Put).not.toHaveBeenCalled()
+    expect(ack).toHaveBeenCalled()
+  })
+})
