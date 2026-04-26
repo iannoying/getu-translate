@@ -5,6 +5,7 @@ import { extractTextFromPdf } from "../translate/pdf-extract"
 import { chunkParagraphs } from "../translate/document-chunker"
 import { runTranslationPipeline, type TranslateChunkFn } from "../translate/document-pipeline"
 import { makeTranslateChunkFn } from "../translate/document-translators"
+import { renderHtml, renderMarkdown } from "../translate/document-output"
 import { periodKey } from "../billing/period"
 import type { WorkerEnv } from "../env"
 
@@ -174,13 +175,34 @@ async function processOne(
       return
     }
 
-    // 11. Final progress — status stays 'processing'; M6.10 transitions to 'done'
-    await db
-      .update(schema.translationJobs)
-      .set({ progress: JSON.stringify({ stage: "translated", pct: 100 }) })
-      .where(eq(schema.translationJobs.id, jobId))
-
-    console.info("[queue.translate-document] job translated", { jobId })
+    // 11. M6.10: render bilingual HTML + Markdown, transition to 'done'
+    try {
+      const htmlKey = job.sourceKey.replace(/source\.pdf$/, "output.html")
+      const mdKey = job.sourceKey.replace(/source\.pdf$/, "output.md")
+      const html = renderHtml(segmentsFile)
+      const md = renderMarkdown(segmentsFile)
+      await bucket.put(htmlKey, html, {
+        httpMetadata: { contentType: "text/html; charset=utf-8" },
+      })
+      await bucket.put(mdKey, md, {
+        httpMetadata: { contentType: "text/markdown; charset=utf-8" },
+      })
+      await db
+        .update(schema.translationJobs)
+        .set({
+          status: "done",
+          outputHtmlKey: htmlKey,
+          outputMdKey: mdKey,
+          progress: null,
+        })
+        .where(eq(schema.translationJobs.id, jobId))
+      console.info("[queue.translate-document] job done", { jobId })
+    } catch (err) {
+      console.error("[queue.translate-document] render/output failed", { jobId, err })
+      await fail(db, job, FAILURE_MSG_OUTPUT)
+      await refundQuota(db, job)
+      return
+    }
   } catch (err) {
     // Translation pipeline failure (exhausted retries or unexpected error)
     const errMsg = pickErrorMessage(err)
