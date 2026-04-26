@@ -1,13 +1,9 @@
 import type { TranslateProviderConfig } from "@/types/config/provider"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { runTranslationWorkbenchRequest } from "../translate-runner"
 
-const executeTranslateMock = vi.hoisted(() => vi.fn(async () => "translated"))
-const consumeQuotaMock = vi.hoisted(() => vi.fn(async () => ({
-  bucket: "web_text_translate_monthly",
-  remaining: 99,
-  reset_at: null,
-})))
+const executeTranslateMock = vi.hoisted(() => vi.fn())
+const consumeQuotaMock = vi.hoisted(() => vi.fn())
 
 vi.mock("@/utils/host/translate/execute-translate", () => ({
   executeTranslate: executeTranslateMock,
@@ -41,6 +37,17 @@ const proProvider = {
 } as TranslateProviderConfig
 
 describe("runTranslationWorkbenchRequest", () => {
+  beforeEach(() => {
+    executeTranslateMock.mockReset()
+    executeTranslateMock.mockResolvedValue("translated")
+    consumeQuotaMock.mockReset()
+    consumeQuotaMock.mockResolvedValue({
+      bucket: "web_text_translate_monthly",
+      remaining: 99,
+      reset_at: null,
+    })
+  })
+
   it("does not call any provider for anonymous users", async () => {
     const results = await runTranslationWorkbenchRequest({
       plan: "anonymous",
@@ -131,6 +138,70 @@ describe("runTranslationWorkbenchRequest", () => {
         },
       }),
     )
+  })
+
+  it("returns results in input provider order when gated and runnable providers are mixed", async () => {
+    const results = await runTranslationWorkbenchRequest({
+      plan: "free",
+      userId: "user-1",
+      request: {
+        text: "hello",
+        sourceLanguage: "auto",
+        targetLanguage: "cmn",
+        clickId: "click-6",
+      },
+      providers: [googleProvider, proProvider],
+      languageLevel: "intermediate",
+    })
+
+    expect(results).toEqual([
+      { providerId: "google-translate-default", status: "success", text: "translated" },
+      { providerId: "getu-pro-default", status: "upgrade-required" },
+    ])
+  })
+
+  it("returns quota-exhausted results and skips providers when click quota is exhausted", async () => {
+    consumeQuotaMock.mockRejectedValueOnce({ code: "QUOTA_EXCEEDED", message: "quota exhausted" })
+
+    const results = await runTranslationWorkbenchRequest({
+      plan: "free",
+      userId: "user-1",
+      request: {
+        text: "hello",
+        sourceLanguage: "auto",
+        targetLanguage: "cmn",
+        clickId: "click-7",
+      },
+      providers: [googleProvider],
+      languageLevel: "intermediate",
+    })
+
+    expect(results).toEqual([
+      { providerId: "google-translate-default", status: "quota-exhausted", errorMessage: "quota exhausted" },
+    ])
+    expect(executeTranslateMock).not.toHaveBeenCalled()
+  })
+
+  it("returns error results and skips providers when click quota check fails for a non-quota error", async () => {
+    consumeQuotaMock.mockRejectedValueOnce(new Error("network down"))
+
+    const results = await runTranslationWorkbenchRequest({
+      plan: "free",
+      userId: "user-1",
+      request: {
+        text: "hello",
+        sourceLanguage: "auto",
+        targetLanguage: "cmn",
+        clickId: "click-8",
+      },
+      providers: [googleProvider],
+      languageLevel: "intermediate",
+    })
+
+    expect(results).toEqual([
+      { providerId: "google-translate-default", status: "error", errorMessage: "network down" },
+    ])
+    expect(executeTranslateMock).not.toHaveBeenCalled()
   })
 
   it("returns an error result for one failed provider without clearing successful results", async () => {

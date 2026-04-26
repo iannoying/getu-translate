@@ -19,8 +19,43 @@ interface RunTranslationWorkbenchRequestInput {
   languageLevel: Config["language"]["level"]
 }
 
+interface ProviderClassification {
+  provider: TranslateProviderConfig
+  result: TranslationResultState | null
+}
+
+const QUOTA_EXHAUSTION_CODES = new Set(["QUOTA_EXCEEDED", "INSUFFICIENT_QUOTA", "FORBIDDEN"])
+
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "translation failed"
+  if (error instanceof Error)
+    return error.message
+
+  if (error !== null && typeof error === "object") {
+    const maybeError = error as { data?: { message?: unknown }, message?: unknown }
+    if (typeof maybeError.data?.message === "string")
+      return maybeError.data.message
+    if (typeof maybeError.message === "string")
+      return maybeError.message
+  }
+
+  return "translation failed"
+}
+
+function isQuotaExhaustionError(error: unknown): boolean {
+  if (error === null || typeof error !== "object")
+    return false
+
+  const maybeError = error as { data?: { code?: unknown }, code?: unknown }
+  const code = maybeError.data?.code ?? maybeError.code
+  return typeof code === "string" && QUOTA_EXHAUSTION_CODES.has(code)
+}
+
+function failureResult(providerId: string, error: unknown): TranslationResultState {
+  return {
+    providerId,
+    status: isQuotaExhaustionError(error) ? "quota-exhausted" : "error",
+    errorMessage: errorMessage(error),
+  }
 }
 
 export async function runTranslationWorkbenchRequest({
@@ -30,38 +65,49 @@ export async function runTranslationWorkbenchRequest({
   providers,
   languageLevel,
 }: RunTranslationWorkbenchRequestInput): Promise<TranslationResultState[]> {
-  const runnable: TranslateProviderConfig[] = []
-  const gated: TranslationResultState[] = []
-
-  for (const provider of providers) {
+  const classifications: ProviderClassification[] = providers.map((provider) => {
     if (!provider.enabled) {
-      gated.push({
-        providerId: provider.id,
-        status: "error",
-        errorMessage: "Provider is disabled",
-      })
-      continue
+      return {
+        provider,
+        result: {
+          providerId: provider.id,
+          status: "error",
+          errorMessage: "Provider is disabled",
+        },
+      }
     }
 
     const gate = getProviderGate(provider, plan)
     if (gate === "login-required" || gate === "upgrade-required") {
-      gated.push({ providerId: provider.id, status: gate })
-      continue
+      return {
+        provider,
+        result: { providerId: provider.id, status: gate },
+      }
     }
 
-    runnable.push(provider)
+    return { provider, result: null }
+  })
+
+  const hasRunnableProvider = classifications.some(({ result }) => result === null)
+
+  if (userId !== null && hasRunnableProvider) {
+    try {
+      await orpcClient.billing.consumeQuota({
+        bucket: "web_text_translate_monthly",
+        amount: 1,
+        request_id: buildSidebarClickRequestId(request.clickId),
+      })
+    }
+    catch (error) {
+      return classifications.map(({ provider, result }) => result ?? failureResult(provider.id, error))
+    }
   }
 
-  if (userId !== null && runnable.length > 0) {
-    await orpcClient.billing.consumeQuota({
-      bucket: "web_text_translate_monthly",
-      amount: 1,
-      request_id: buildSidebarClickRequestId(request.clickId),
-    })
-  }
+  return Promise.all(
+    classifications.map(async ({ provider, result }): Promise<TranslationResultState> => {
+      if (result !== null)
+        return result
 
-  const settled = await Promise.all(
-    runnable.map(async (provider): Promise<TranslationResultState> => {
       try {
         const headers = isGetuProProvider(provider)
           ? {
@@ -85,12 +131,8 @@ export async function runTranslationWorkbenchRequest({
         return { providerId: provider.id, status: "success", text }
       }
       catch (error) {
-        const message = errorMessage(error)
-        const status = /quota|limit|exceeded|FORBIDDEN/i.test(message) ? "quota-exhausted" : "error"
-        return { providerId: provider.id, status, errorMessage: message }
+        return failureResult(provider.id, error)
       }
     }),
   )
-
-  return [...gated, ...settled]
 }
