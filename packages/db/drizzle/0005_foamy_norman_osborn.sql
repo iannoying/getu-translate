@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `uq_one_active_pdf_per_user` ON `translation_jobs` (`user_id`) WHERE status IN ('queued', 'processing');
