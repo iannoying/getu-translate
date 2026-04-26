@@ -100,7 +100,7 @@ function makeBatch(jobId: string) {
 // ---------------------------------------------------------------------------
 
 describe("queue translate-document handler", () => {
-  it("happy path: queued -> processing -> segments.json written, status stays processing with translated/100 progress", async () => {
+  it("happy path: queued -> processing -> segments.json + output.html + output.md written, status=done", async () => {
     const { db } = makeTestDb()
     await setupJob(db, { jobId: "j1", userId: "u1", sourcePages: 2 })
     const pdfBuf = readFileSync(resolve(FIXTURE_DIR, "hello-world.pdf"))
@@ -125,24 +125,26 @@ describe("queue translate-document handler", () => {
     const { batch, ack } = makeBatch("j1")
     await handler.queue(batch as any, {} as any, {} as any)
 
-    // R2 put called once with correct key
-    expect(r2Put).toHaveBeenCalledTimes(1)
-    expect((r2Put.mock.calls[0] as unknown[])[0]).toBe("pdfs/u1/j1/segments.json")
+    // R2 put called three times: segments.json, output.html, output.md
+    expect(r2Put).toHaveBeenCalledTimes(3)
+    const putKeys = r2Put.mock.calls.map((c) => (c as unknown[])[0] as string)
+    expect(putKeys).toContain("pdfs/u1/j1/segments.json")
+    expect(putKeys).toContain("pdfs/u1/j1/output.html")
+    expect(putKeys).toContain("pdfs/u1/j1/output.md")
 
     // Message acked
     expect(ack).toHaveBeenCalled()
 
-    // Job status = processing, progress = translated/100
+    // Job status = done, progress = null, outputHtmlKey + outputMdKey set
     const job = await db
       .select()
       .from(schema.translationJobs)
       .where(eq(schema.translationJobs.id, "j1"))
       .get()
-    expect(job?.status).toBe("processing")
-    expect(JSON.parse(job?.progress ?? "{}")).toMatchObject({
-      stage: "translated",
-      pct: 100,
-    })
+    expect(job?.status).toBe("done")
+    expect(job?.progress).toBeNull()
+    expect(job?.outputHtmlKey).toBe("pdfs/u1/j1/output.html")
+    expect(job?.outputMdKey).toBe("pdfs/u1/j1/output.md")
   })
 
   it("scanned PDF: status=failed with canonical message + quota refunded", async () => {
@@ -283,6 +285,46 @@ describe("queue translate-document handler", () => {
 
     const [job] = await db.select().from(schema.translationJobs).where(eq(schema.translationJobs.id, "j-bad"))
     expect(job.status).toBe("failed")
+  })
+
+  it("renderer/R2 output write failure -> failed + refund", async () => {
+    const { db } = makeTestDb()
+    await setupJob(db, { jobId: "j-out", userId: "u-out", sourcePages: 1 })
+    const pdfBuf = readFileSync(resolve(FIXTURE_DIR, "hello-world.pdf"))
+    const pdfAb = pdfBuf.buffer.slice(pdfBuf.byteOffset, pdfBuf.byteOffset + pdfBuf.byteLength)
+
+    let putCount = 0
+    const r2Put = vi.fn(async () => {
+      putCount++
+      if (putCount === 2) throw new Error("R2 write failed for output.html")
+      // segments.json (call 1) succeeds; output.html (call 2) throws
+    })
+
+    const handler = createQueueHandler({
+      db: db as unknown as Db,
+      bucket: {
+        get: vi.fn(async () => ({ arrayBuffer: async () => pdfAb })),
+        put: r2Put,
+      } as unknown as R2Bucket,
+      env: {} as any,
+      translateChunk: async () => "你好",
+    })
+
+    const batch = { messages: [{ id: "m-out", body: { jobId: "j-out" }, ack: vi.fn(), retry: vi.fn() }] }
+    await handler.queue(batch as any, {} as any, {} as any)
+
+    const [job] = await db.select().from(schema.translationJobs).where(eq(schema.translationJobs.id, "j-out"))
+    expect(job.status).toBe("failed")
+    expect(job.errorMessage).toMatch(/结果保存失败/)
+
+    // Refund row exists
+    const refunds = await db
+      .select()
+      .from(schema.usageLog)
+      .where(eq(schema.usageLog.requestId, "refund:j-out"))
+      .all()
+    expect(refunds.length).toBe(1)
+    expect(refunds[0].amount).toBe(-1)
   })
 
   it("idempotent: skips processing when status is already done", async () => {
