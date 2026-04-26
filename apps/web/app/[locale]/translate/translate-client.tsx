@@ -114,6 +114,9 @@ export function TranslateClient({
       if (!cancelled) setEntitlements(e)
     }).catch((err) => {
       // Non-fatal — fall back to "free" tier so the page remains usable.
+      // Mirror the cancel guard from the success branch / history fetch:
+      // if the user logged out before this rejected, suppress console noise.
+      if (cancelled) return
       // eslint-disable-next-line no-console -- helps M6.7 ops trace entitlement fetch failures
       console.warn("[translate] getEntitlements failed", err)
     })
@@ -359,7 +362,7 @@ export function TranslateClient({
     }
   }, [])
 
-  function handleUpgradeClick(_modelId?: string) {
+  function handleUpgradeClick() {
     openUpgradeModal("pro_model_clicked")
   }
 
