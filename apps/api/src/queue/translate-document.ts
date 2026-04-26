@@ -15,6 +15,9 @@ const FAILURE_MSG_OUTPUT = "结果保存失败，请重试或联系客服"
 const FAILURE_MSG_LLM_5XX = "翻译模型暂时不可用，请稍后重试"
 const FAILURE_MSG_LLM_429 = "当前翻译压力较大，请稍后重试"
 
+export const buildPdfQuotaRequestId = (userId: string, jobId: string) =>
+  `web-pdf:${userId}:${jobId}`
+
 export type CreateQueueHandlerOpts = {
   db: Db
   bucket: R2Bucket
@@ -153,6 +156,12 @@ async function processOne(
     )
 
     // 10. Write segments.json to R2
+    if (!job.sourceKey.endsWith("/source.pdf")) {
+      console.error("[queue.translate-document] unexpected sourceKey shape", { jobId, sourceKey: job.sourceKey })
+      await fail(db, job, FAILURE_MSG_GENERIC)
+      await refundQuota(db, job)
+      return
+    }
     const segmentsKey = job.sourceKey.replace(/source\.pdf$/, "segments.json")
     try {
       await bucket.put(segmentsKey, JSON.stringify(segmentsFile), {
@@ -201,14 +210,14 @@ async function refundQuota(
 ): Promise<void> {
   const refundRequestId = `refund:${job.id}`
 
-  // Find the original quota consumption row (requestId = jobId)
+  // Find the original quota consumption row (requestId = web-pdf:{userId}:{jobId})
   const originalUsage = await db
     .select()
     .from(schema.usageLog)
     .where(
       and(
         eq(schema.usageLog.userId, job.userId),
-        eq(schema.usageLog.requestId, job.id),
+        eq(schema.usageLog.requestId, buildPdfQuotaRequestId(job.userId, job.id)),
       ),
     )
     .get()
@@ -273,7 +282,7 @@ async function refundQuota(
 
 function pickErrorMessage(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err)
-  if (/429|rate.?limit/i.test(msg)) return FAILURE_MSG_LLM_429
-  if (/5\d\d|server.?error/i.test(msg)) return FAILURE_MSG_LLM_5XX
+  if (/\b429\b|rate.?limit/i.test(msg)) return FAILURE_MSG_LLM_429
+  if (/\b5\d{2}\b|server.?error/i.test(msg)) return FAILURE_MSG_LLM_5XX
   return FAILURE_MSG_GENERIC
 }

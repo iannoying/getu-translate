@@ -58,4 +58,15 @@ describe("chunkParagraphs", () => {
   it("returns [] for an empty pages array", () => {
     expect(chunkParagraphs([])).toEqual([])
   })
+
+  it("splits oversized Chinese paragraph at Chinese sentence boundary", () => {
+    const sent = "这是一句话。".repeat(300) // ~1800 chars, all Chinese
+    const chunks = chunkParagraphs([{ pageNumber: 1, text: sent }])
+    expect(chunks.length).toBeGreaterThan(1)
+    for (const c of chunks) {
+      expect(c.text.length).toBeLessThanOrEqual(1500)
+      // Each chunk must end on a Chinese OR English sentence boundary
+      expect(c.text.trim()).toMatch(/[.!?。！？]$/)
+    }
+  })
 })

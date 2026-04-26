@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
-import { createQueueHandler } from "../translate-document"
+import { createQueueHandler, buildPdfQuotaRequestId } from "../translate-document"
 import { makeTestDb } from "../../__tests__/utils/test-db"
 import { schema, type Db } from "@getu/db"
 import { readFileSync } from "node:fs"
@@ -71,7 +71,7 @@ async function setupJob(
     userId,
     bucket,
     amount,
-    requestId: jobId,
+    requestId: buildPdfQuotaRequestId(userId, jobId),
     createdAt: now,
   })
 
@@ -252,6 +252,37 @@ describe("queue translate-document handler", () => {
       .all()
     expect(refunds.length).toBe(1)
     expect(refunds[0].amount).toBe(-ctx.amount)
+  })
+
+  it("malformed sourceKey -> fails without overwriting", async () => {
+    const { db } = makeTestDb()
+    await setupJob(db, { jobId: "j-bad", userId: "u-bad", sourcePages: 1 })
+    // Mutate the row to a malformed sourceKey
+    await db
+      .update(schema.translationJobs)
+      .set({ sourceKey: "pdfs/u-bad/j-bad/document.pdf" })
+      .where(eq(schema.translationJobs.id, "j-bad"))
+
+    const r2Put = vi.fn()
+    const handler = createQueueHandler({
+      db: db as unknown as Db,
+      bucket: {
+        get: vi.fn(async () => ({ arrayBuffer: async () => readFileSync(resolve(FIXTURE_DIR, "hello-world.pdf")).buffer })),
+        put: r2Put,
+      } as unknown as R2Bucket,
+      env: {} as any,
+      translateChunk: async () => "你好",
+    })
+
+    const { batch } = makeBatch("j-bad")
+    await handler.queue(batch as any, {} as any, {} as any)
+
+    // segments.json should NOT have been written
+    const putKeys = r2Put.mock.calls.map((c) => c[0] as string)
+    expect(putKeys).not.toContain("pdfs/u-bad/j-bad/document.pdf")
+
+    const [job] = await db.select().from(schema.translationJobs).where(eq(schema.translationJobs.id, "j-bad"))
+    expect(job.status).toBe("failed")
   })
 
   it("idempotent: skips processing when status is already done", async () => {

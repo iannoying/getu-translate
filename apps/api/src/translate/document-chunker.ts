@@ -82,8 +82,8 @@ export function chunkParagraphs(pages: PdfPage[]): Chunk[] {
 }
 
 function splitOversized(text: string): string[] {
-  // Try sentence boundaries first
-  const sentences = text.match(/[^.!?]+[.!?]+["')\]]?\s*/g) ?? [text]
+  // Try sentence boundaries first (includes Chinese sentence terminators)
+  const sentences = text.match(/[^.!?。！？]+[.!?。！？]+["')\]」』]?\s*/gu) ?? [text]
   const out: string[] = []
   let buf = ""
 
