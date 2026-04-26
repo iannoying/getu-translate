@@ -105,6 +105,23 @@ export function TranslateClient({
   // auth resolves; null while loading or when anonymous.
   const [entitlements, setEntitlements] = useState<Entitlements | null>(null)
 
+  // Reusable callback for post-translate refresh. No cancel guard needed —
+  // handleTranslate already short-circuits via the abort signal, so by the
+  // time we call this the component is guaranteed to still be mounted.
+  const refreshEntitlements = useCallback(async () => {
+    if (!isAuthed) {
+      setEntitlements(null)
+      return
+    }
+    try {
+      const e = await orpcClient.billing.getEntitlements({})
+      setEntitlements(e)
+    } catch (err) {
+      // eslint-disable-next-line no-console -- helps M6.7 ops trace entitlement fetch failures
+      console.warn("[translate] getEntitlements failed", err)
+    }
+  }, [isAuthed])
+
   useEffect(() => {
     if (!isAuthed) {
       setEntitlements(null)
@@ -286,7 +303,13 @@ export function TranslateClient({
       }
     }
 
-    // Task 5 hook fires here (quota-badge refresh after translate completes)
+    // Refresh entitlements if at least one column succeeded — the server only
+    // consumed quota in that case (M6.3 atomic behavior). On full failure we
+    // skip the round-trip.
+    const anySucceeded = columnResults.some(r => "text" in r)
+    if (anySucceeded) {
+      void refreshEntitlements()
+    }
 
     // Persist to history. We always save (even if every column failed) so
     // the user can see "I tried this on Tuesday and nothing worked" — this
