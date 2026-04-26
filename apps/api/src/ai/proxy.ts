@@ -71,9 +71,8 @@ export async function handleChatCompletions(
   try {
     await assertCanConsumeQuotaBucket(db, userId, quotaBucket)
   } catch (err) {
-    if (hasErrorCode(err, "FORBIDDEN")) {
-      return json({ error: getErrorMessage(err, "quota bucket forbidden") }, 403)
-    }
+    const quotaError = quotaErrorResponse(err)
+    if (quotaError) return quotaError
     console.warn("[ai-proxy] quota preflight failed", {
       userId,
       quotaBucket,
@@ -107,7 +106,24 @@ export async function handleChatCompletions(
     (upstream.headers.get("content-type") ?? "").includes("text/event-stream")
   if (isStream) {
     const [forward, usageP] = extractUsageFromSSE(upstream.body)
-    ctx.waitUntil(chargeAfterStream(db, userId, model, usageP, requestId, quotaBucket))
+    if (quotaBucket === "web_text_translate_token_monthly") {
+      try {
+        await chargeQuota(db, userId, model, usageP, requestId, quotaBucket)
+      } catch (err) {
+        const quotaError = quotaErrorResponse(err)
+        if (quotaError) return quotaError
+        console.warn("[ai-proxy] charge failed", {
+          userId,
+          model,
+          requestId,
+          quotaBucket,
+          err: String(err),
+        })
+        return json({ error: "quota charge failed" }, 500)
+      }
+    } else {
+      ctx.waitUntil(chargeAfterStream(db, userId, model, usageP, requestId, quotaBucket))
+    }
     return new Response(forward, {
       status: 200,
       headers: filterResponseHeaders(upstream.headers),
@@ -126,7 +142,24 @@ export async function handleChatCompletions(
     parsed.usage?.prompt_tokens != null && parsed.usage?.completion_tokens != null
       ? { input: parsed.usage.prompt_tokens, output: parsed.usage.completion_tokens }
       : null
-  ctx.waitUntil(chargeAfterStream(db, userId, model, Promise.resolve(usage), requestId, quotaBucket))
+  if (quotaBucket === "web_text_translate_token_monthly") {
+    try {
+      await chargeQuota(db, userId, model, Promise.resolve(usage), requestId, quotaBucket)
+    } catch (err) {
+      const quotaError = quotaErrorResponse(err)
+      if (quotaError) return quotaError
+      console.warn("[ai-proxy] charge failed", {
+        userId,
+        model,
+        requestId,
+        quotaBucket,
+        err: String(err),
+      })
+      return json({ error: "quota charge failed" }, 500)
+    }
+  } else {
+    ctx.waitUntil(chargeAfterStream(db, userId, model, Promise.resolve(usage), requestId, quotaBucket))
+  }
   return new Response(text, {
     status: 200,
     headers: filterResponseHeaders(upstream.headers),
@@ -142,16 +175,7 @@ async function chargeAfterStream(
   quotaBucket: AiProxyQuotaBucket,
 ): Promise<void> {
   try {
-    const usage = await usageP
-    const units = usage == null ? 1 : normalizeQuotaTokens(quotaBucket, model, usage)
-    if (units < 1) return
-    await consumeQuota(
-      db, userId, quotaBucket, units, requestId,
-      undefined,
-      model,
-      usage?.input,
-      usage?.output,
-    )
+    await chargeQuota(db, userId, model, usageP, requestId, quotaBucket)
   } catch (err) {
     console.warn("[ai-proxy] charge failed", {
       userId,
@@ -161,6 +185,26 @@ async function chargeAfterStream(
       err: String(err),
     })
   }
+}
+
+async function chargeQuota(
+  db: ReturnType<typeof createDb>,
+  userId: string,
+  model: ProModel,
+  usageP: Promise<{ input: number; output: number } | null>,
+  requestId: string,
+  quotaBucket: AiProxyQuotaBucket,
+): Promise<void> {
+  const usage = await usageP
+  const units = usage == null ? 1 : normalizeQuotaTokens(quotaBucket, model, usage)
+  if (units < 1) return
+  await consumeQuota(
+    db, userId, quotaBucket, units, requestId,
+    undefined,
+    model,
+    usage?.input,
+    usage?.output,
+  )
 }
 
 function normalizeQuotaTokens(
@@ -180,6 +224,16 @@ function hasErrorCode(err: unknown, code: string): boolean {
 
 function getErrorMessage(err: unknown, fallback: string): string {
   return err instanceof Error && err.message ? err.message : fallback
+}
+
+function quotaErrorResponse(err: unknown): Response | null {
+  if (hasErrorCode(err, "FORBIDDEN")) {
+    return json({ error: getErrorMessage(err, "quota bucket forbidden") }, 403)
+  }
+  if (hasErrorCode(err, "QUOTA_EXCEEDED")) {
+    return json({ error: getErrorMessage(err, "quota exceeded") }, 429)
+  }
+  return null
 }
 
 function filterResponseHeaders(h: Headers): HeadersInit {

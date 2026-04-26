@@ -223,11 +223,25 @@ describe("assertCanConsumeQuotaBucket", () => {
   it("allows a pro-tier bucket preflight without consuming quota", async () => {
     const { db, batchFn } = makeFakeDbByOrder([
       { tier: "pro", expiresAt: new Date("2099-01-01"), features: "[]" },
+      undefined, // quotaPeriod — no prior period row
     ])
 
     await expect(
       assertCanConsumeQuotaBucket(db, USER_ID, "web_text_translate_token_monthly", NOW),
     ).resolves.toBeUndefined()
+
+    expect(batchFn).not.toHaveBeenCalled()
+  })
+
+  it("throws QUOTA_EXCEEDED for a finite bucket whose current period is exhausted without writing usage", async () => {
+    const { db, batchFn } = makeFakeDbByOrder([
+      { tier: "pro", expiresAt: new Date("2099-01-01"), features: "[]" },
+      { used: 2_000_000, bucket: "web_text_translate_token_monthly", periodKey: "2026-04" },
+    ])
+
+    await expect(
+      assertCanConsumeQuotaBucket(db, USER_ID, "web_text_translate_token_monthly", NOW),
+    ).rejects.toMatchObject({ code: "QUOTA_EXCEEDED" })
 
     expect(batchFn).not.toHaveBeenCalled()
   })

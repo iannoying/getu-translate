@@ -270,6 +270,45 @@ describe("handleChatCompletions", () => {
     expect(consumeQuota).not.toHaveBeenCalled()
   })
 
+  it("429s before upstream fetch when quota bucket preflight is exhausted", async () => {
+    const { verifyAiJwt } = await import("../jwt")
+    const { assertCanConsumeQuotaBucket, consumeQuota } = await import("../../billing/quota")
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    vi.mocked(assertCanConsumeQuotaBucket).mockRejectedValueOnce(
+      Object.assign(new Error("Bucket web_text_translate_token_monthly exhausted"), {
+        code: "QUOTA_EXCEEDED",
+      }),
+    )
+    const fetchSpy = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ usage: { prompt_tokens: 100, completion_tokens: 200 } }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    )
+    vi.stubGlobal("fetch", fetchSpy)
+
+    const req = new Request("https://x/ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer ok",
+        "x-getu-quota-bucket": "web_text_translate_token_monthly",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    })
+
+    const r = await handleChatCompletions(req, env, fakeCtx() as any)
+    const body = (await r.json()) as { error: string }
+
+    expect(r.status).toBe(429)
+    expect(body.error).toMatch(/exhausted|exceeded/i)
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(consumeQuota).not.toHaveBeenCalled()
+  })
+
   it("falls back to the default quota bucket for unknown bucket headers", async () => {
     const { verifyAiJwt } = await import("../jwt")
     const { consumeQuota } = await import("../../billing/quota")
@@ -378,6 +417,62 @@ describe("handleChatCompletions", () => {
       "deepseek-v4-pro",
       50,
       10,
+    )
+  })
+
+  it("returns quota error instead of upstream JSON when web text token charge exceeds remaining quota", async () => {
+    const { verifyAiJwt } = await import("../jwt")
+    const { consumeQuota } = await import("../../billing/quota")
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    vi.mocked(consumeQuota).mockRejectedValueOnce(
+      Object.assign(new Error("Bucket web_text_translate_token_monthly exceeded"), {
+        code: "QUOTA_EXCEEDED",
+      }),
+    )
+    const upstreamBody = JSON.stringify({
+      choices: [{ message: { role: "assistant", content: "paid output" } }],
+      usage: { prompt_tokens: 100, completion_tokens: 200 },
+    })
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(upstreamBody, {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+      ),
+    )
+
+    const req = new Request("https://x/ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer ok",
+        "x-request-id": "sidebar-over-remaining",
+        "x-getu-quota-bucket": "web_text_translate_token_monthly",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    })
+
+    const r = await handleChatCompletions(req, env, fakeCtx() as any)
+    const body = (await r.json()) as { error: string }
+
+    expect(r.status).toBe(429)
+    expect(body.error).toMatch(/exceeded/i)
+    expect(JSON.stringify(body)).not.toContain("paid output")
+    expect(consumeQuota).toHaveBeenCalledWith(
+      expect.anything(),
+      "u1",
+      "web_text_translate_token_monthly",
+      17000,
+      "sidebar-over-remaining",
+      undefined,
+      "claude-sonnet-4-6",
+      100,
+      200,
     )
   })
 })

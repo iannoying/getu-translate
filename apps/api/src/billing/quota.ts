@@ -76,6 +76,27 @@ function assertBucketAllowed(
   }
 }
 
+async function getQuotaPeriodUsed(
+  db: Db,
+  userId: string,
+  bucket: QuotaBucket,
+  now: Date,
+): Promise<number> {
+  const pk = periodKey(bucket, now)
+  const period = await db
+    .select()
+    .from(quotaPeriod)
+    .where(
+      and(
+        eq(quotaPeriod.userId, userId),
+        eq(quotaPeriod.bucket, bucket),
+        eq(quotaPeriod.periodKey, pk),
+      ),
+    )
+    .get()
+  return period?.used ?? 0
+}
+
 export async function assertCanConsumeQuotaBucket(
   db: Db,
   userId: string,
@@ -84,6 +105,14 @@ export async function assertCanConsumeQuotaBucket(
 ): Promise<void> {
   const { tier, limit } = await resolveQuotaAccess(db, userId, bucket, now)
   assertBucketAllowed(tier, bucket, limit)
+  if (limit == null) return
+
+  const used = await getQuotaPeriodUsed(db, userId, bucket, now)
+  if (used >= limit) {
+    throw new ORPCError("QUOTA_EXCEEDED", {
+      message: `Bucket ${bucket} exhausted: used=${used}, limit=${limit}`,
+    })
+  }
 }
 
 export async function consumeQuota(
@@ -149,18 +178,7 @@ export async function consumeQuota(
   //   - Zero-overshoot enforcement would require D1 Durable Objects or KV CAS,
   //     which are Phase 4+ scope per the plan's Risk Register.
   const pk = periodKey(bucket, now)
-  const period = await db
-    .select()
-    .from(quotaPeriod)
-    .where(
-      and(
-        eq(quotaPeriod.userId, userId),
-        eq(quotaPeriod.bucket, bucket),
-        eq(quotaPeriod.periodKey, pk),
-      ),
-    )
-    .get()
-  const used = period?.used ?? 0
+  const used = await getQuotaPeriodUsed(db, userId, bucket, now)
   if (lim != null && used + amount > lim) {
     throw new ORPCError("QUOTA_EXCEEDED", {
       message: `Bucket ${bucket} exceeded: used=${used}, amount=${amount}, limit=${lim}`,
