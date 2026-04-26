@@ -6,6 +6,7 @@
 import type { ContractRouterClient } from "@orpc/contract"
 import { contract as baseContract } from "./base.js"
 import { billingContract } from "./billing.js"
+import { translateContract } from "./translate.js"
 
 export {
   contract,
@@ -99,6 +100,7 @@ export { AI_MODEL_COEFFICIENTS, PRO_MODEL_WHITELIST, isProModel, normalizeTokens
 export type { ProModel } from "./ai-models.js"
 
 // M6 — web /translate & /document contracts
+export { translateContract } from "./translate.js"
 export {
   TRANSLATE_TEXT_MAX_CHARS,
   TRANSLATE_DOCUMENT_MAX_PAGES,
@@ -138,6 +140,7 @@ export type {
 export const mergedContract = {
   ...baseContract,
   billing: billingContract,
+  translate: translateContract,
 } as const
 
 export type ORPCRouterClient = ContractRouterClient<typeof mergedContract>

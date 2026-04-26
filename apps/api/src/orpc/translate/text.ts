@@ -10,8 +10,13 @@ import {
   translateTextInputSchema,
   translateTextOutputSchema,
 } from "@getu/contract"
-import { TRANSLATE_MODEL_BY_ID } from "@getu/definitions"
+import { TRANSLATE_MODEL_BY_ID, type TranslateModelId } from "@getu/definitions"
 import { loadEntitlements } from "../../billing/entitlements"
+import {
+  TranslateProviderError,
+  googleTranslate,
+  microsoftTranslate,
+} from "../../translate/free-providers"
 import { authed } from "../context"
 import { requireModelAccess, type Plan } from "./models"
 import { consumeTranslateQuota, requireCharLimit } from "./quota"
@@ -26,17 +31,45 @@ function resolvePlan(tier: string | undefined): Plan {
 }
 
 /**
- * Web /translate text endpoint.
+ * Translate one column. M6.5a behavior:
  *
- * M6.3 SKELETON: validates input, model access, quota; returns a stub
- * `text` payload. Real provider wiring (Google/Microsoft REST + LLM
- * streaming via ai-sdk) lands in M6.5.
+ *   - `google` / `microsoft`  → real HTTP call to the corresponding free
+ *     public translator. Failures are wrapped as INTERNAL_SERVER_ERROR with
+ *     `data.code = 'PROVIDER_FAILED'` so the client can render the per-card
+ *     error state without affecting the other 10 columns.
+ *   - 9 LLM models  → still a stub (waiting on bianxie.ai routing config +
+ *     API keys for the new model ids in M6.5b). The stub pretends to spend
+ *     a small, deterministic amount of input/output tokens so the Pro
+ *     token-quota wiring is testable end-to-end.
  *
  * Quota: each *button click* counts as 1 against `web_text_translate_monthly`,
- * regardless of column count. The client should issue this procedure once
- * per click with the same `requestId` for every column to keep the
- * idempotent guarantee from `consumeQuota`.
+ * regardless of column count. The client passes the same `clickId` UUID to
+ * every concurrent column; `consumeQuota`'s (userId, requestId) idempotency
+ * collapses them to one decrement.
  */
+async function dispatchTranslate(
+  modelId: TranslateModelId,
+  text: string,
+  source: string,
+  target: string,
+): Promise<{ text: string; tokens: { input: number; output: number } | null }> {
+  if (modelId === "google") {
+    return { text: await googleTranslate(text, source, target), tokens: null }
+  }
+  if (modelId === "microsoft") {
+    return { text: await microsoftTranslate(text, source, target), tokens: null }
+  }
+  // LLM stub — see M6.5b TODO above. Token mock = 1.5x char count rounded
+  // up so Pro token-quota math has non-zero values to exercise.
+  const inputTokens = Math.ceil(text.length / 4)
+  const outputTokens = Math.ceil(text.length / 3)
+  const display = TRANSLATE_MODEL_BY_ID[modelId].displayName
+  return {
+    text: `[Pro stub: ${display} 将在 M6.5b 接通] ${text}`,
+    tokens: { input: inputTokens, output: outputTokens },
+  }
+}
+
 export const translateText = authed
   .input(translateTextInputSchema)
   .output(translateTextOutputSchema)
@@ -53,14 +86,9 @@ export const translateText = authed
     // 2. Per-plan model access (free → google/microsoft only).
     const modelId = requireModelAccess(plan, input.modelId)
 
-    // 3. Atomic quota check + decrement (button-click count).
-    //    requestId is keyed by the per-click `clickId`, NOT per-column.
-    //    The client generates one UUID per "Translate" button press and
-    //    passes the SAME value to every concurrent column call. consumeQuota's
-    //    (userId, requestId) idempotency then collapses N column calls down
-    //    to a single decrement, regardless of how many model columns the
-    //    user has open. (Bug previously: requestId used columnId, so an
-    //    11-column click burned 11 quota units instead of 1.)
+    // 3. Atomic quota check + decrement (button-click count). All concurrent
+    //    column calls from the same click share `clickId`, so consumeQuota's
+    //    idempotency collapses them to one decrement.
     await consumeTranslateQuota(
       db,
       userId,
@@ -69,13 +97,33 @@ export const translateText = authed
       `web-text:${userId}:${input.clickId}`,
     )
 
-    // M6.3 stub — real call lands in M6.5.
-    const model = TRANSLATE_MODEL_BY_ID[modelId]
-    return {
-      columnId: input.columnId,
-      modelId,
-      text: `[stub:${model.displayName}] ${input.text}`,
-      tokens: model.kind === "llm" ? { input: 0, output: 0 } : null,
+    // 4. Dispatch to the right provider. Provider failures are wrapped so
+    //    the per-card error UI surfaces a friendly message; we deliberately
+    //    don't refund quota on provider failure (consumeQuota already ran
+    //    and other columns may have succeeded — refund logic is a per-click
+    //    aggregate decision, not per-column).
+    try {
+      const result = await dispatchTranslate(modelId, input.text, input.sourceLang, input.targetLang)
+      return {
+        columnId: input.columnId,
+        modelId,
+        text: result.text,
+        tokens: result.tokens,
+      }
+    } catch (err) {
+      if (err instanceof TranslateProviderError) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR", {
+          message: err.message,
+          data: {
+            code: "PROVIDER_FAILED",
+            providerId: err.providerId,
+            modelId,
+            columnId: input.columnId,
+            statusCode: err.statusCode,
+          },
+        })
+      }
+      throw err
     }
   })
 
