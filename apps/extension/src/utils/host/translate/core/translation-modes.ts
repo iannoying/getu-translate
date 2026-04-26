@@ -8,12 +8,18 @@ import {
   WALKED_ATTRIBUTE,
 } from "../../../constants/dom-labels"
 import { batchDOMOperation } from "../../dom/batch-dom"
-import { isBlockTransNode, isHTMLElement, isTextNode, isTransNode } from "../../dom/filter"
+import { isBlockTransNode, isDontWalkIntoAndDontTranslateAsChildElement, isHTMLElement, isTextNode, isTransNode } from "../../dom/filter"
 import { unwrapDeepestOnlyHTMLChild } from "../../dom/find"
 import { getOwnerDocument } from "../../dom/node"
 import { extractTextContent } from "../../dom/traversal"
 import { removeTranslatedWrapperWithRestore } from "../dom/translation-cleanup"
-import { insertTranslatedNodeIntoWrapper } from "../dom/translation-insertion"
+import {
+  appendTranslatedContent,
+  getLinkEndMarker,
+  getLinkStartMarker,
+  insertTranslatedNodeIntoWrapper,
+  isSafeLinkHref,
+} from "../dom/translation-insertion"
 import { findPreviousTranslatedWrapperInside } from "../dom/translation-wrapper"
 import { shouldFilterSmallParagraph } from "../filter-small-paragraph"
 import { prepareTranslationText } from "../text-preparation"
@@ -32,6 +38,101 @@ function getDisplayTranslation(sourceText: string, translatedText: string | unde
   return prepareTranslationText(sourceText) === prepareTranslationText(translatedText)
     ? ""
     : translatedText
+}
+
+function cleanTextContent(content: string): string {
+  if (!content)
+    return content
+
+  let cleanedContent = content.replace(MARK_ATTRIBUTES_REGEX, "")
+  cleanedContent = cleanedContent.replace(HTML_COMMENT_RE, " ")
+
+  return cleanedContent
+}
+
+function hasSafeLink(nodes: TransNode[]): boolean {
+  return nodes.some((node) => {
+    if (!isHTMLElement(node))
+      return false
+
+    const nodeAndDescendants = [
+      node,
+      ...node.querySelectorAll<HTMLElement>("a[href]"),
+    ]
+
+    return nodeAndDescendants.some(candidate =>
+      candidate.tagName === "A" && candidate.hasAttribute("href") && isSafeLinkHref(candidate),
+    )
+  })
+}
+
+function hasAnyLink(nodes: TransNode[]): boolean {
+  return nodes.some((node) => {
+    if (!isHTMLElement(node))
+      return false
+
+    return (node.tagName === "A" && node.hasAttribute("href")) || !!node.querySelector("a[href]")
+  })
+}
+
+function getStringFormatFromNode(node: Element | Text) {
+  if (isTextNode(node)) {
+    return node.textContent
+  }
+  return node.outerHTML
+}
+
+function extractTextContentWithLinkMarkers(node: TransNode, config: Config, linkIndexRef: { value: number }): string {
+  if (isTextNode(node)) {
+    return extractTextContent(node, config)
+  }
+
+  if (isDontWalkIntoAndDontTranslateAsChildElement(node, config)) {
+    return ""
+  }
+
+  if (node.tagName === "BR") {
+    return "\n"
+  }
+
+  if (node.tagName === "A" && node.hasAttribute("href") && isSafeLinkHref(node)) {
+    const linkIndex = linkIndexRef.value++
+    const linkText = [...node.childNodes].reduce((text: string, child: ChildNode) => {
+      if (isTextNode(child) || isHTMLElement(child))
+        return text + extractTextContent(child, config)
+      return text
+    }, "")
+    return `${getLinkStartMarker(linkIndex)}${linkText}${getLinkEndMarker(linkIndex)}`
+  }
+
+  const childNodes = [...node.childNodes]
+  return childNodes.reduce((text: string, child: ChildNode) => {
+    if (isTextNode(child) || isHTMLElement(child)) {
+      return text + extractTextContentWithLinkMarkers(child, config, linkIndexRef)
+    }
+    return text
+  }, "")
+}
+
+function getBilingualTranslationSource(transNodes: TransNode[], config: Config, plainTextContent: string): string {
+  if (!hasSafeLink(transNodes))
+    return plainTextContent
+
+  return getLinkMarkerTranslationSource(transNodes, config, plainTextContent)
+}
+
+function getLinkMarkerTranslationSource(transNodes: TransNode[], config: Config, fallbackTextContent: string): string {
+  const linkIndexRef = { value: 0 }
+  const markerTextContent = transNodes.map(node => extractTextContentWithLinkMarkers(node, config, linkIndexRef)).join("").trim()
+
+  return markerTextContent || fallbackTextContent
+}
+
+function getTranslationOnlyTranslationSource(transNodes: TransNode[], config: Config, htmlContent: string, plainTextContent: string): string {
+  if (!hasAnyLink(transNodes))
+    return htmlContent
+
+  return getLinkMarkerTranslationSource(transNodes, config, plainTextContent)
 }
 
 export async function translateNodes(
@@ -87,12 +188,14 @@ export async function translateNodesBilingualMode(
       }
     }
 
-    const textContent = transNodes.map(node => extractTextContent(node, config)).join("").trim()
-    if (!textContent || isNumericContent(textContent))
+    const plainTextContent = transNodes.map(node => extractTextContent(node, config)).join("").trim()
+    if (!plainTextContent || isNumericContent(plainTextContent))
       return
 
-    if (await shouldFilterSmallParagraph(textContent, config))
+    if (await shouldFilterSmallParagraph(plainTextContent, config))
       return
+
+    const textContent = getBilingualTranslationSource(transNodes, config, plainTextContent)
 
     const ownerDoc = getOwnerDocument(targetNode)
     const translatedWrapperNode = ownerDoc.createElement("span")
@@ -136,6 +239,8 @@ export async function translateNodesBilingualMode(
       translatedText,
       config.translate.translationNodeStyle,
       forceBlockTranslation,
+      transNodes,
+      config,
     )
   }
   finally {
@@ -236,30 +341,19 @@ export async function translateNodeTranslationOnlyMode(
     if (await shouldFilterSmallParagraph(innerTextContent, config))
       return
 
-    const cleanTextContent = (content: string): string => {
-      if (!content)
-        return content
-
-      let cleanedContent = content.replace(MARK_ATTRIBUTES_REGEX, "")
-      cleanedContent = cleanedContent.replace(HTML_COMMENT_RE, " ")
-
-      return cleanedContent
-    }
-
     // Only save originalContent when there's no existing translation wrapper
     const hasExistingWrapperInParent = parentNode.querySelector(`.${CONTENT_WRAPPER_CLASS}`)
     if (!originalContentMap.has(parentNode) && !hasExistingWrapperInParent) {
       originalContentMap.set(parentNode, parentNode.innerHTML)
     }
 
-    const getStringFormatFromNode = (node: Element | Text) => {
-      if (isTextNode(node)) {
-        return node.textContent
-      }
-      return node.outerHTML
-    }
-
-    const textContent = cleanTextContent(transNodes.map(getStringFormatFromNode).join(""))
+    const translationSourceNodes = hasSafeLink(outerTransNodes) ? outerTransNodes : transNodes
+    const textContent = getTranslationOnlyTranslationSource(
+      translationSourceNodes,
+      config,
+      cleanTextContent(transNodes.map(getStringFormatFromNode).join("")),
+      innerTextContent.trim(),
+    )
     if (!textContent)
       return
 
@@ -299,7 +393,8 @@ export async function translateNodeTranslationOnlyMode(
       return
     }
 
-    translatedWrapperNode.innerHTML = translatedText
+    const shouldReuseAncestorLink = targetNode.parentElement?.closest("a[href]")
+    appendTranslatedContent(ownerDoc, translatedWrapperNode, translatedText, shouldReuseAncestorLink ? [] : outerTransNodes, config)
 
     // Batch final DOM mutations to reduce layout thrashing
     batchDOMOperation(() => {

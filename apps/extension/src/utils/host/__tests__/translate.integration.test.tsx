@@ -110,12 +110,13 @@ describe("translate", () => {
   })
 
   // Helper functions
-  async function removeOrShowPageTranslation(translationMode: TranslationMode, toggle: boolean = false) {
+  async function removeOrShowPageTranslation(translationMode: TranslationMode, toggle: boolean = false, configOverride?: Config) {
     const id = crypto.randomUUID()
+    const config = configOverride ?? (translationMode === "bilingual" ? BILINGUAL_CONFIG : TRANSLATION_ONLY_CONFIG)
 
-    walkAndLabelElement(document.body, id, translationMode === "bilingual" ? BILINGUAL_CONFIG : TRANSLATION_ONLY_CONFIG)
+    walkAndLabelElement(document.body, id, config)
     await act(async () => {
-      await translateWalkedElement(document.body, id, translationMode === "bilingual" ? BILINGUAL_CONFIG : TRANSLATION_ONLY_CONFIG, toggle)
+      await translateWalkedElement(document.body, id, config, toggle)
       // Flush batched DOM operations to ensure all changes are applied before assertions
       flushBatchedOperations()
     })
@@ -1091,6 +1092,370 @@ describe("translate", () => {
       })
     })
     describe("force inline tags inside paragraphs", () => {
+      it("bilingual mode: should preserve link semantics when translating an anchor-only block", async () => {
+        render(
+          <h2 data-testid="test-node">
+            <a href="https://example.com/article" target="_blank" rel="noreferrer">
+              {MOCK_ORIGINAL_TEXT}
+            </a>
+          </h2>,
+        )
+        const node = screen.getByTestId("test-node")
+        await removeOrShowPageTranslation("bilingual", true)
+
+        const originalLink = node.querySelector("a[href='https://example.com/article']")
+        expect(originalLink).toBeTruthy()
+
+        const wrapper = expectTranslationWrapper(originalLink!, "bilingual")
+        const translatedContent = expectTranslatedContent(wrapper, INLINE_CONTENT_CLASS)!
+        expect(translatedContent.tagName).toBe("SPAN")
+        expect(translatedContent.closest("a")).toBe(originalLink)
+
+        await removeOrShowPageTranslation("bilingual", true)
+        expect(node.querySelector(`.${CONTENT_WRAPPER_CLASS}`)).toBeFalsy()
+      })
+
+      it("bilingual mode: should link the translation when the translated block has one prominent anchor", async () => {
+        vi.mocked(translateTextForPage).mockResolvedValueOnce(
+          `[[GETU_LINK_0_START]]translated title[[GETU_LINK_0_END]]`,
+        )
+
+        render(
+          <h2 data-testid="test-node">
+            <span>
+              <a
+                href="https://example.com/article"
+                target="_blank"
+                rel="nofollow"
+                title="Original title"
+                aria-label="Original label"
+                style={{ color: "red" }}
+                ping="https://tracker.example/ping"
+                data-read-frog-paragraph="external"
+                onClick={() => {}}
+              >
+                {MOCK_ORIGINAL_TEXT}
+                {MOCK_ORIGINAL_TEXT}
+                {MOCK_ORIGINAL_TEXT}
+                {MOCK_ORIGINAL_TEXT}
+                {MOCK_ORIGINAL_TEXT}
+                {MOCK_ORIGINAL_TEXT}
+                {MOCK_ORIGINAL_TEXT}
+                {MOCK_ORIGINAL_TEXT}
+                {MOCK_ORIGINAL_TEXT}
+                {MOCK_ORIGINAL_TEXT}
+                {MOCK_ORIGINAL_TEXT}
+                {MOCK_ORIGINAL_TEXT}
+              </a>
+              <span> (example.com)</span>
+            </span>
+          </h2>,
+        )
+        const node = screen.getByTestId("test-node")
+        await removeOrShowPageTranslation("bilingual", true)
+
+        const wrapper = expectTranslationWrapper(node.querySelector("span")!, "bilingual")
+        const translatedLink = expectTranslatedContent(wrapper, INLINE_CONTENT_CLASS, "translated title") as HTMLAnchorElement
+        expect(translatedLink.tagName).toBe("A")
+        expect(translatedLink).toHaveTextContent("translated title")
+        expect(translatedLink).not.toHaveTextContent("[[GETU_LINK_0_START]]")
+        expect(translatedLink).toHaveAttribute("href", "https://example.com/article")
+        expect(translatedLink).toHaveAttribute("target", "_blank")
+        expect(translatedLink).toHaveAttribute("rel", "nofollow noopener noreferrer")
+        expect(translatedLink).toHaveAttribute("title", "Original title")
+        expect(translatedLink).toHaveAttribute("aria-label", "Original label")
+        expect(translatedLink).not.toHaveAttribute("style")
+        expect(translatedLink).not.toHaveAttribute("ping")
+        expect(translatedLink).not.toHaveAttribute("data-read-frog-paragraph")
+        expect(translatedLink).not.toHaveAttribute("onclick")
+
+        await removeOrShowPageTranslation("bilingual", true)
+        expect(node.querySelector(`.${CONTENT_WRAPPER_CLASS}`)).toBeFalsy()
+      })
+
+      it("bilingual mode: should not link the whole translation when non-link text is real copy", async () => {
+        render(
+          <p data-testid="test-node">
+            Prefix words before the linked title
+            {" "}
+            <a href="https://example.com/details">
+              {MOCK_ORIGINAL_TEXT}
+              {MOCK_ORIGINAL_TEXT}
+              {MOCK_ORIGINAL_TEXT}
+              {MOCK_ORIGINAL_TEXT}
+              {MOCK_ORIGINAL_TEXT}
+              {MOCK_ORIGINAL_TEXT}
+            </a>
+            {" "}
+            suffix words after it.
+          </p>,
+        )
+        const node = screen.getByTestId("test-node")
+        await removeOrShowPageTranslation("bilingual", true)
+
+        const wrapper = expectTranslationWrapper(node, "bilingual")
+        const translatedContent = expectTranslatedContent(
+          wrapper,
+          BLOCK_CONTENT_CLASS,
+          `${MOCK_TRANSLATION} ${MOCK_ORIGINAL_TEXT}${MOCK_ORIGINAL_TEXT}${MOCK_ORIGINAL_TEXT}${MOCK_ORIGINAL_TEXT}${MOCK_ORIGINAL_TEXT}${MOCK_ORIGINAL_TEXT}`,
+        )!
+        expect(translatedContent.tagName).toBe("SPAN")
+
+        await removeOrShowPageTranslation("bilingual", true)
+        expect(node.querySelector(`.${CONTENT_WRAPPER_CLASS}`)).toBeFalsy()
+      })
+
+      it("bilingual mode: should preserve inline links from translated HTML", async () => {
+        vi.mocked(translateTextForPage).mockClear()
+        vi.mocked(translateTextForPage).mockResolvedValueOnce(
+          `Translated prefix [[GETU_LINK_0_START]]translated link[[GETU_LINK_0_END]] translated suffix.`,
+        )
+
+        render(
+          <p data-testid="test-node">
+            Prefix words before the linked title
+            {" "}
+            <a
+              href="https://example.com/details"
+              target="_blank"
+              rel="nofollow"
+              title="Original title"
+              aria-label="Original label"
+              style={{ color: "red" }}
+              ping="https://tracker.example/ping"
+              data-read-frog-paragraph="external"
+              onClick={() => {}}
+            >
+              {MOCK_ORIGINAL_TEXT}
+              {MOCK_ORIGINAL_TEXT}
+              {MOCK_ORIGINAL_TEXT}
+            </a>
+            {" "}
+            suffix words after it.
+          </p>,
+        )
+        const node = screen.getByTestId("test-node")
+        await removeOrShowPageTranslation("bilingual", true)
+
+        expect(translateTextForPage).toHaveBeenCalledTimes(1)
+        const sourceText = vi.mocked(translateTextForPage).mock.calls[0]?.[0] ?? ""
+        expect(sourceText).toContain(`[[GETU_LINK_0_START]]`)
+        expect(sourceText).toContain(`[[GETU_LINK_0_END]]`)
+        expect(sourceText).not.toContain("https://example.com/details")
+        expect(sourceText).not.toContain("ping=")
+        expect(sourceText).not.toContain("style=")
+        expect(sourceText).not.toContain("data-read-frog-paragraph")
+
+        const wrapper = expectTranslationWrapper(node, "bilingual")
+        const translatedContent = expectTranslatedContent(wrapper, BLOCK_CONTENT_CLASS, "Translated prefix translated link translated suffix.")!
+        expect(translatedContent.tagName).toBe("SPAN")
+
+        const translatedLink = translatedContent.querySelector("a")
+        expect(translatedLink).toBeTruthy()
+        expect(translatedLink).toHaveTextContent("translated link")
+        expect(translatedLink).toHaveAttribute("href", "https://example.com/details")
+        expect(translatedLink).toHaveAttribute("target", "_blank")
+        expect(translatedLink).toHaveAttribute("rel", "nofollow noopener noreferrer")
+        expect(translatedLink).toHaveAttribute("title", "Original title")
+        expect(translatedLink).toHaveAttribute("aria-label", "Original label")
+        expect(translatedLink).not.toHaveAttribute("style")
+        expect(translatedLink).not.toHaveAttribute("ping")
+        expect(translatedLink).not.toHaveAttribute("data-read-frog-paragraph")
+        expect(translatedLink).not.toHaveAttribute("onclick")
+
+        await removeOrShowPageTranslation("bilingual", true)
+        expect(node.querySelector(`.${CONTENT_WRAPPER_CLASS}`)).toBeFalsy()
+      })
+
+      it("bilingual mode: should append safe fallback links when translated text loses link markers", async () => {
+        vi.mocked(translateTextForPage).mockClear()
+        vi.mocked(translateTextForPage).mockResolvedValueOnce("Translated prefix translated link translated suffix.")
+
+        render(
+          <p data-testid="test-node">
+            Prefix words before the linked title
+            {" "}
+            <a href="https://example.com/details">
+              {MOCK_ORIGINAL_TEXT}
+              {MOCK_ORIGINAL_TEXT}
+            </a>
+            {" "}
+            suffix words after it.
+          </p>,
+        )
+        const node = screen.getByTestId("test-node")
+        await removeOrShowPageTranslation("bilingual", true)
+
+        const sourceText = vi.mocked(translateTextForPage).mock.calls[0]?.[0] ?? ""
+        expect(sourceText).toContain("[[GETU_LINK_0_START]]")
+        expect(sourceText).not.toContain("https://example.com/details")
+
+        const wrapper = expectTranslationWrapper(node, "bilingual")
+        const translatedContent = expectTranslatedContent(
+          wrapper,
+          BLOCK_CONTENT_CLASS,
+          `Translated prefix translated link translated suffix. ${MOCK_ORIGINAL_TEXT}${MOCK_ORIGINAL_TEXT}`,
+        )!
+        expect(translatedContent).toHaveTextContent("Translated prefix translated link translated suffix.")
+
+        const fallbackLink = translatedContent.querySelector("a")
+        expect(fallbackLink).toBeTruthy()
+        expect(fallbackLink).toHaveAttribute("href", "https://example.com/details")
+        expect(fallbackLink).toHaveTextContent(`${MOCK_ORIGINAL_TEXT}${MOCK_ORIGINAL_TEXT}`)
+
+        await removeOrShowPageTranslation("bilingual", true)
+        expect(node.querySelector(`.${CONTENT_WRAPPER_CLASS}`)).toBeFalsy()
+      })
+
+      it("bilingual mode: should not include hidden text in link-marker source", async () => {
+        vi.mocked(translateTextForPage).mockClear()
+        vi.mocked(translateTextForPage).mockResolvedValueOnce(
+          `Visible [[GETU_LINK_0_START]]translated link[[GETU_LINK_0_END]]`,
+        )
+
+        render(
+          <p data-testid="test-node">
+            Visible
+            {" "}
+            <a href="https://example.com/details">{MOCK_ORIGINAL_TEXT}</a>
+            <span style={{ display: "none" }}>Hidden secret</span>
+          </p>,
+        )
+        const node = screen.getByTestId("test-node")
+        await removeOrShowPageTranslation("bilingual", true)
+
+        const sourceText = vi.mocked(translateTextForPage).mock.calls[0]?.[0] ?? ""
+        expect(sourceText).toContain("[[GETU_LINK_0_START]]")
+        expect(sourceText).not.toContain("Hidden secret")
+
+        await removeOrShowPageTranslation("bilingual", true)
+        expect(node.querySelector(`.${CONTENT_WRAPPER_CLASS}`)).toBeFalsy()
+      })
+
+      it("bilingual mode: should not remap hidden links into translated content", async () => {
+        vi.mocked(translateTextForPage).mockClear()
+        vi.mocked(translateTextForPage).mockResolvedValueOnce(
+          `Visible [[GETU_LINK_0_START]]translated link[[GETU_LINK_0_END]]`,
+        )
+
+        render(
+          <p data-testid="test-node">
+            Visible
+            {" "}
+            <span style={{ display: "none" }}>
+              <a href="https://hidden.example/secret">hidden link</a>
+            </span>
+            <a href="https://example.com/details">{MOCK_ORIGINAL_TEXT}</a>
+          </p>,
+        )
+        const node = screen.getByTestId("test-node")
+        await removeOrShowPageTranslation("bilingual", true)
+
+        const sourceText = vi.mocked(translateTextForPage).mock.calls[0]?.[0] ?? ""
+        expect(sourceText).not.toContain("hidden link")
+        expect(sourceText).not.toContain("https://hidden.example/secret")
+
+        const wrapper = expectTranslationWrapper(node, "bilingual")
+        const translatedContent = expectTranslatedContent(wrapper, BLOCK_CONTENT_CLASS, "Visible translated link")!
+        const translatedLink = translatedContent.querySelector("a")
+        expect(translatedLink).toHaveAttribute("href", "https://example.com/details")
+        expect(translatedLink).not.toHaveAttribute("href", "https://hidden.example/secret")
+
+        await removeOrShowPageTranslation("bilingual", true)
+        expect(node.querySelector(`.${CONTENT_WRAPPER_CLASS}`)).toBeFalsy()
+      })
+
+      it("bilingual mode: should not remap config-ignored links into translated content", async () => {
+        vi.mocked(translateTextForPage).mockClear()
+        vi.mocked(translateTextForPage).mockResolvedValueOnce(
+          `Visible [[GETU_LINK_0_START]]translated link[[GETU_LINK_0_END]]`,
+        )
+        const mainRangeConfig: Config = {
+          ...BILINGUAL_CONFIG,
+          translate: {
+            ...BILINGUAL_CONFIG.translate,
+            page: {
+              ...BILINGUAL_CONFIG.translate.page,
+              range: "main",
+            },
+          },
+        }
+
+        render(
+          <div data-testid="test-node">
+            Visible
+            {" "}
+            <header>
+              <a href="https://ignored.example/secret">ignored link</a>
+            </header>
+            <a href="https://example.com/details">{MOCK_ORIGINAL_TEXT}</a>
+          </div>,
+        )
+        const node = screen.getByTestId("test-node")
+        await removeOrShowPageTranslation("bilingual", true, mainRangeConfig)
+
+        const sourceText = vi.mocked(translateTextForPage).mock.calls[0]?.[0] ?? ""
+        expect(sourceText).not.toContain("ignored link")
+        expect(sourceText).not.toContain("https://ignored.example/secret")
+
+        const wrapper = expectTranslationWrapper(node, "bilingual")
+        const translatedContent = expectTranslatedContent(wrapper, BLOCK_CONTENT_CLASS, "Visible translated link")!
+        const translatedLink = translatedContent.querySelector("a")
+        expect(translatedLink).toHaveAttribute("href", "https://example.com/details")
+        expect(translatedLink).not.toHaveAttribute("href", "https://ignored.example/secret")
+
+        await removeOrShowPageTranslation("bilingual", true, mainRangeConfig)
+        expect(node.querySelector(`.${CONTENT_WRAPPER_CLASS}`)).toBeFalsy()
+      })
+
+      it("bilingual mode: should not preserve unsafe prominent link hrefs", async () => {
+        const unsafeHref = `java${"script"}:alert(1)`
+        render(
+          <h2 data-testid="test-node">
+            <span>
+              <a href="#">
+                {MOCK_ORIGINAL_TEXT}
+                {MOCK_ORIGINAL_TEXT}
+                {MOCK_ORIGINAL_TEXT}
+                {MOCK_ORIGINAL_TEXT}
+              </a>
+              <span> (example.com)</span>
+            </span>
+          </h2>,
+        )
+        const node = screen.getByTestId("test-node")
+        node.querySelector("a")?.setAttribute("href", unsafeHref)
+        await removeOrShowPageTranslation("bilingual", true)
+
+        const wrapper = expectTranslationWrapper(node.querySelector("span")!, "bilingual")
+        const translatedContent = expectTranslatedContent(wrapper, INLINE_CONTENT_CLASS)!
+        expect(translatedContent.tagName).toBe("SPAN")
+
+        await removeOrShowPageTranslation("bilingual", true)
+        expect(node.querySelector(`.${CONTENT_WRAPPER_CLASS}`)).toBeFalsy()
+      })
+
+      it("bilingual mode: should not link the whole translation for a short inline anchor", async () => {
+        render(
+          <p data-testid="test-node">
+            This paragraph has a lot of surrounding text before a
+            {" "}
+            <a href="https://example.com/details">short link</a>
+            {" "}
+            and a lot more surrounding text after it.
+          </p>,
+        )
+        const node = screen.getByTestId("test-node")
+        await removeOrShowPageTranslation("bilingual", true)
+
+        const wrapper = expectTranslationWrapper(node, "bilingual")
+        const translatedContent = expectTranslatedContent(wrapper, BLOCK_CONTENT_CLASS)!
+        expect(translatedContent.tagName).toBe("SPAN")
+
+        await removeOrShowPageTranslation("bilingual", true)
+        expect(node.querySelector(`.${CONTENT_WRAPPER_CLASS}`)).toBeFalsy()
+      })
+
       it("bilingual mode: should not split paragraph when inline tag has only decorative block child", async () => {
         render(
           <p data-testid="test-node">
@@ -1283,7 +1648,7 @@ describe("translate", () => {
       expect(node.textContent).toBe(` ${MOCK_TRANSLATION} `)
     })
     it("translation only mode: should have translation wrapper", async () => {
-    // Mock translateTextForPage to return the exact HTML string with spaces
+      // Mock translateTextForPage to return the exact HTML string with spaces
       const TRANSLATED_TEXT = `<div>${MOCK_TRANSLATION}</div>`
       vi.mocked(translateTextForPage).mockResolvedValueOnce(TRANSLATED_TEXT)
 
@@ -1298,6 +1663,105 @@ describe("translate", () => {
       const wrapper = node.querySelector(`.${CONTENT_WRAPPER_CLASS}`)
       expect(wrapper).toBeTruthy()
       expect(wrapper?.innerHTML).toBe(TRANSLATED_TEXT)
+
+      await removeOrShowPageTranslation("translationOnly", true)
+      expect(node.querySelector(`.${CONTENT_WRAPPER_CLASS}`)).toBeFalsy()
+    })
+
+    it("translation only mode: should sanitize translated HTML and remap links", async () => {
+      vi.mocked(translateTextForPage).mockClear()
+      vi.mocked(translateTextForPage).mockResolvedValueOnce(
+        `<img src=x onerror="alert(1)"><a href="javascript:alert(1)" onclick="alert(1)" style="color:red">translated link</a><script>alert(1)</script>`,
+      )
+
+      render(
+        <p data-testid="test-node">
+          Before
+          {" "}
+          <a href="https://example.com/details" target="_blank" rel="nofollow">
+            {MOCK_ORIGINAL_TEXT}
+            {MOCK_ORIGINAL_TEXT}
+          </a>
+          {" "}
+          After
+        </p>,
+      )
+      const node = screen.getByTestId("test-node")
+      await removeOrShowPageTranslation("translationOnly", true)
+
+      const sourceText = vi.mocked(translateTextForPage).mock.calls[0]?.[0] ?? ""
+      expect(sourceText).toContain("[[GETU_LINK_0_START]]")
+      expect(sourceText).not.toContain("https://example.com/details")
+      expect(sourceText).not.toContain("target=")
+      expect(sourceText).not.toContain("rel=")
+
+      const wrapper = node.querySelector(`.${CONTENT_WRAPPER_CLASS}`)
+      expect(wrapper).toBeTruthy()
+      expect(wrapper?.querySelector("img")).toBeFalsy()
+      expect(wrapper?.querySelector("script")).toBeFalsy()
+
+      const translatedLink = wrapper?.querySelector("a")
+      expect(translatedLink).toBeTruthy()
+      expect(translatedLink).toHaveTextContent("translated link")
+      expect(translatedLink).toHaveAttribute("href", "https://example.com/details")
+      expect(translatedLink).toHaveAttribute("target", "_blank")
+      expect(translatedLink).toHaveAttribute("rel", "nofollow noopener noreferrer")
+      expect(translatedLink).not.toHaveAttribute("style")
+      expect(translatedLink).not.toHaveAttribute("onclick")
+
+      await removeOrShowPageTranslation("translationOnly", true)
+      expect(node.querySelector(`.${CONTENT_WRAPPER_CLASS}`)).toBeFalsy()
+    })
+
+    it("translation only mode: should not send unsafe link attributes to provider", async () => {
+      const unsafeHref = `java${"script"}:alert(1)`
+      vi.mocked(translateTextForPage).mockClear()
+      vi.mocked(translateTextForPage).mockResolvedValueOnce("translated unsafe link")
+
+      render(
+        <p data-testid="test-node">
+          Before
+          {" "}
+          <a href="#" target="_blank" rel="opener" style={{ color: "red" }}>
+            {MOCK_ORIGINAL_TEXT}
+          </a>
+          {" "}
+          After
+        </p>,
+      )
+      const node = screen.getByTestId("test-node")
+      node.querySelector("a")?.setAttribute("href", unsafeHref)
+      await removeOrShowPageTranslation("translationOnly", true)
+
+      const sourceText = vi.mocked(translateTextForPage).mock.calls[0]?.[0] ?? ""
+      expect(sourceText).not.toContain(unsafeHref)
+      expect(sourceText).not.toContain("target=")
+      expect(sourceText).not.toContain("rel=")
+      expect(sourceText).not.toContain("style=")
+
+      await removeOrShowPageTranslation("translationOnly", true)
+      expect(node.querySelector(`.${CONTENT_WRAPPER_CLASS}`)).toBeFalsy()
+    })
+
+    it("translation only mode: should reuse the original anchor for anchor-only content", async () => {
+      vi.mocked(translateTextForPage).mockClear()
+      vi.mocked(translateTextForPage).mockResolvedValueOnce(
+        `[[GETU_LINK_0_START]]translated link[[GETU_LINK_0_END]]`,
+      )
+
+      render(
+        <p data-testid="test-node">
+          <a href="https://example.com/details">{MOCK_ORIGINAL_TEXT}</a>
+        </p>,
+      )
+      const node = screen.getByTestId("test-node")
+      await removeOrShowPageTranslation("translationOnly", true)
+
+      const originalLink = node.querySelector("a[href='https://example.com/details']")
+      expect(originalLink).toBeTruthy()
+      expect(originalLink?.querySelector(`.${CONTENT_WRAPPER_CLASS}`)).toBeTruthy()
+      expect(originalLink?.querySelector("a")).toBeFalsy()
+      expect(originalLink).toHaveTextContent("translated link")
 
       await removeOrShowPageTranslation("translationOnly", true)
       expect(node.querySelector(`.${CONTENT_WRAPPER_CLASS}`)).toBeFalsy()

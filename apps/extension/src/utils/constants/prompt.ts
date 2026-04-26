@@ -25,6 +25,7 @@ export const DEFAULT_TRANSLATE_SYSTEM_PROMPT = `You are a professional ${getToke
 2. The returned translation must maintain exactly the same number of paragraphs and format as the original text.
 3. If the text contains HTML tags, consider where the tags should be placed in the translation while maintaining fluency.
 4. For content that should not be translated (such as proper nouns, code, etc.), keep the original text.
+5. Preserve placeholder tokens like [[GETU_LINK_0_START]] and [[GETU_LINK_0_END]] exactly, and keep translated text for that link between its matching START and END tokens.
 
 ## Document Metadata for Context Awareness
 Webpage title: ${getTokenCellText(WEB_TITLE)}
