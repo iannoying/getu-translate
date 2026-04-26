@@ -15,13 +15,9 @@ import {
   translateTextInputSchema,
   translateTextOutputSchema,
 } from "@getu/contract"
-import { TRANSLATE_MODEL_BY_ID, type TranslateModelId } from "@getu/definitions"
 import { loadEntitlements } from "../../billing/entitlements"
-import {
-  TranslateProviderError,
-  googleTranslate,
-  microsoftTranslate,
-} from "../../translate/free-providers"
+import { TranslateProviderError } from "../../translate/free-providers"
+import { dispatchTranslate } from "../../translate/dispatch"
 import { authed } from "../context"
 import { requireModelAccess, type Plan } from "./models"
 import { consumeTranslateQuota, requireCharLimit } from "./quota"
@@ -52,29 +48,6 @@ function resolvePlan(tier: string | undefined): Plan {
  * every concurrent column; `consumeQuota`'s (userId, requestId) idempotency
  * collapses them to one decrement.
  */
-async function dispatchTranslate(
-  modelId: TranslateModelId,
-  text: string,
-  source: string,
-  target: string,
-): Promise<{ text: string; tokens: { input: number; output: number } | null }> {
-  if (modelId === "google") {
-    return { text: await googleTranslate(text, source, target), tokens: null }
-  }
-  if (modelId === "microsoft") {
-    return { text: await microsoftTranslate(text, source, target), tokens: null }
-  }
-  // LLM stub — see M6.5b TODO above. Token mock = 1.5x char count rounded
-  // up so Pro token-quota math has non-zero values to exercise.
-  const inputTokens = Math.ceil(text.length / 4)
-  const outputTokens = Math.ceil(text.length / 3)
-  const display = TRANSLATE_MODEL_BY_ID[modelId].displayName
-  return {
-    text: `[Pro stub: ${display} 将在 M6.5b 接通] ${text}`,
-    tokens: { input: inputTokens, output: outputTokens },
-  }
-}
-
 export const translateText = authed
   .input(translateTextInputSchema)
   .output(translateTextOutputSchema)

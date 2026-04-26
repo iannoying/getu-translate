@@ -29,6 +29,16 @@ bucket_name = "getu-pdfs"
 binding = "TRANSLATE_QUEUE"
 queue = "getu-translate-jobs"
 
+# Queue consumer (M6.9): drains jobs enqueued by documentCreate / documentFromUrl,
+# runs the translation pipeline, writes segments.json to R2.
+[[queues.consumers]]
+queue = "getu-translate-jobs"
+max_batch_size = 1
+max_batch_timeout = 5
+max_retries = 2
+# DLQ disabled for M6.9; revisit when retry analytics land in M6.13.
+# dead_letter_queue = "getu-translate-jobs-dlq"
+
 [vars]
 AUTH_BASE_URL = "http://localhost:8788"
 ALLOWED_EXTENSION_ORIGINS = "chrome-extension://*,http://localhost:3000,https://getutranslate.com,https://www.getutranslate.com"
@@ -61,6 +71,14 @@ bucket_name = "getu-pdfs"
 [[env.production.queues.producers]]
 binding = "TRANSLATE_QUEUE"
 queue = "getu-translate-jobs"
+
+# Queue consumer (M6.9): production binding mirrors default above.
+[[env.production.queues.consumers]]
+queue = "getu-translate-jobs"
+max_batch_size = 1
+max_batch_timeout = 5
+max_retries = 2
+# dead_letter_queue = "getu-translate-jobs-dlq"
 
 [env.production.vars]
 AUTH_BASE_URL = "https://api.getutranslate.com"
