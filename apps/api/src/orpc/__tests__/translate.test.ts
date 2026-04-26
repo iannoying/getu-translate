@@ -431,6 +431,82 @@ describe("translate.document.create", () => {
       sourcePages: 5,
     })
   })
+
+  it("M6.8: server-side page count overrides client-supplied sourcePages when BUCKET_PDFS is bound", async () => {
+    // Build a real 7-page PDF in memory and stand up a fake R2 binding
+    // that returns its bytes.
+    const { PDFDocument } = await import("pdf-lib")
+    const doc = await PDFDocument.create()
+    for (let i = 0; i < 7; i++) doc.addPage([100, 100])
+    const pdfBytes = await doc.save()
+    const bucket = {
+      get: vi.fn(async () => ({ arrayBuffer: async () => pdfBytes.buffer })),
+      put: vi.fn(),
+    }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { BUCKET_PDFS: bucket as any }),
+    })
+    const out = await client.translate.document.create({
+      // Client lies: claims 1 page so the quota check is cheap.
+      // Server reads 7 pages from R2 and uses THAT for quota + INSERT.
+      sourceKey: "pdfs/u-free/abc/source.pdf",
+      sourcePages: 1,
+      sourceBytes: pdfBytes.byteLength,
+      modelId: "google",
+      sourceLang: "en",
+      targetLang: "zh-CN",
+    })
+    expect(out.jobId).toBeTruthy()
+    expect(bucket.get).toHaveBeenCalledWith("pdfs/u-free/abc/source.pdf")
+    // Inserted row uses SERVER value (7), not client value (1).
+    expect(insertedJobs[0]).toMatchObject({ sourcePages: 7 })
+    // Quota was decremented by 7, not 1.
+    const quota = await import("../../billing/quota")
+    expect(quota.consumeQuota).toHaveBeenCalledWith(
+      expect.anything(),
+      "u-free",
+      "web_pdf_translate_monthly",
+      7,
+      expect.any(String),
+      undefined,
+    )
+  })
+
+  it("M6.8: returns SOURCE_NOT_FOUND when R2 has no object for the sourceKey", async () => {
+    const bucket = { get: vi.fn(async () => null), put: vi.fn() }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { BUCKET_PDFS: bucket as any }),
+    })
+    await expect(
+      client.translate.document.create({
+        sourceKey: "pdfs/u-free/abc/source.pdf",
+        sourcePages: 5,
+        sourceBytes: 100_000,
+        modelId: "google",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+      }),
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { code: "SOURCE_NOT_FOUND" },
+    })
+  })
+
+  it("M6.8: enqueues { jobId } onto TRANSLATE_QUEUE after INSERT", async () => {
+    const queue = { send: vi.fn(async () => undefined) }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { TRANSLATE_QUEUE: queue as any }),
+    })
+    const out = await client.translate.document.create({
+      sourceKey: "pdfs/u-free/abc/source.pdf",
+      sourcePages: 3,
+      sourceBytes: 100_000,
+      modelId: "google",
+      sourceLang: "en",
+      targetLang: "zh-CN",
+    })
+    expect(queue.send).toHaveBeenCalledWith({ jobId: out.jobId })
+  })
 })
 
 describe("translate.document.status", () => {

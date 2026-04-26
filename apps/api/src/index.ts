@@ -8,6 +8,7 @@ import { handleChatCompletions } from "./ai/proxy"
 import { signAiJwt, AI_JWT_TTL_SECONDS } from "./ai/jwt"
 import { handlePaddleWebhook } from "./billing/webhook-handler"
 import { handleStripeWebhook } from "./billing/stripe-webhook-handler"
+import { documentRoutes } from "./translate/document"
 
 const app = new Hono<{ Bindings: WorkerEnv }>()
 
@@ -31,6 +32,8 @@ function makeCorsMw(env: WorkerEnv) {
 
 app.use("/api/identity/*", async (c, next) => makeCorsMw(c.env)(c, next))
 app.use("/orpc/*", async (c, next) => makeCorsMw(c.env)(c, next))
+app.use("/api/translate/document/*", async (c, next) => makeCorsMw(c.env)(c, next))
+app.route("/api/translate/document", documentRoutes)
 
 app.get("/health", c => c.json({ ok: true, service: "getu-api" }))
 

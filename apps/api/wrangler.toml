@@ -16,6 +16,19 @@ database_name = "getu-translate"
 database_id = "903fa2ef-2aaa-4f20-b3a7-a2ef59a8cb70"
 migrations_dir = "../../packages/db/drizzle"
 
+# M6.8 — R2 bucket for PDF source + output objects (pdfs/{userId}/{jobId}/...)
+# Created out-of-band: `wrangler r2 bucket create getu-pdfs`
+[[r2_buckets]]
+binding = "BUCKET_PDFS"
+bucket_name = "getu-pdfs"
+
+# M6.8 — Cloudflare Queue for PDF translation jobs.
+# `documentCreate` enqueues `{ jobId }`; the consumer worker (M6.9) drains it.
+# Created out-of-band: `wrangler queues create getu-translate-jobs`
+[[queues.producers]]
+binding = "TRANSLATE_QUEUE"
+queue = "getu-translate-jobs"
+
 [vars]
 AUTH_BASE_URL = "http://localhost:8788"
 ALLOWED_EXTENSION_ORIGINS = "chrome-extension://*,http://localhost:3000,https://getutranslate.com,https://www.getutranslate.com"
@@ -40,6 +53,14 @@ binding = "DB"
 database_name = "getu-translate"
 database_id = "903fa2ef-2aaa-4f20-b3a7-a2ef59a8cb70"
 migrations_dir = "../../packages/db/drizzle"
+
+[[env.production.r2_buckets]]
+binding = "BUCKET_PDFS"
+bucket_name = "getu-pdfs"
+
+[[env.production.queues.producers]]
+binding = "TRANSLATE_QUEUE"
+queue = "getu-translate-jobs"
 
 [env.production.vars]
 AUTH_BASE_URL = "https://api.getutranslate.com"
