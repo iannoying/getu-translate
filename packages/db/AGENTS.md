@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-24 | Updated: 2026-04-26 -->
+<!-- Generated: 2026-04-24 | Updated: 2026-04-26 (CHECK constraint deferral note) -->
 
 # db
 
@@ -57,6 +57,19 @@ Exports:
 4. **Rollback (`drizzle-kit drop`) is the only affected workflow** — and the team uses D1 + wrangler CLI which is forward-only. We don't roll back schema, we ship a new migration that undoes the change.
 
 If a future workflow ever needs the historical chain (e.g. `drizzle-kit drop` for local dev), reconstruct by checking out the commit immediately before each missing migration, regenerating the snapshot, and force-merging it.
+
+### CHECK constraints — deferred (issues #190 + #191)
+
+Code reviewers flagged that `translation_jobs.status` / `engine` (text+enum columns) and `text_translations.results` / `translation_jobs.progress` (text+JSON columns) lack DB-level CHECK constraints. The schema documents them via Drizzle's `enum:` option (TS-only, no SQL emission) and the handler layer parses JSON via Zod (`historyResultsSchema` in `@getu/contract`).
+
+**Status**: defense-in-depth CHECK constraints are NOT enforced at the SQL layer; we accept the trade-off because:
+
+1. **TypeScript enum already prevents bad writes from our code.** The only path to a bad value is a manual SQL update or a third-party tool, neither of which we use.
+2. **Reader-side hardening already exists.** `listTextHistory` Zod-parses each row's `results`; corrupt rows render as empty (with a TODO marker) instead of crashing the listing.
+3. **Adding CHECK to existing SQLite tables requires a full table rebuild** (`CREATE _new + INSERT + DROP + RENAME` per table, FK + index recreation, careful with snapshots). Cost is ~8 statements × 2 tables, plus the meta-snapshot dance documented above.
+4. **Tables are empty in production** (M6 not yet shipped), so the failure mode this would protect against has never been observed.
+
+**When to revisit**: if a real production bug surfaces a row with corrupt JSON or an unknown enum value, add the rebuild migration then. Until then, the handler-layer Zod parse is the canonical defense.
 
 ### Testing Requirements
 

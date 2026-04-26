@@ -109,6 +109,8 @@ export {
   clearHistoryOutputSchema,
   deleteHistoryInputSchema,
   deleteHistoryOutputSchema,
+  historyResultEntrySchema,
+  historyResultsSchema,
   documentCreateInputSchema,
   documentCreateOutputSchema,
   documentListInputSchema,

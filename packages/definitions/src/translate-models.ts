@@ -144,7 +144,13 @@ export const PRO_TRANSLATE_MODEL_IDS: readonly TranslateModelId[] = TRANSLATE_MO
   .map(m => m.id)
 
 export function isTranslateModelId(value: string): value is TranslateModelId {
-  return value in TRANSLATE_MODEL_BY_ID
+  // `Object.hasOwn` (NOT the `in` operator) — prototype chain properties
+  // like "constructor", "toString", "hasOwnProperty" leak through `in` and
+  // would (a) make this guard return true for them, (b) make
+  // `TRANSLATE_MODEL_BY_ID[value]` return the prototype method downstream
+  // and crash with `undefined.displayName`. `Object.hasOwn` is the safe
+  // own-property check, available in all evergreen runtimes (Node 16.9+).
+  return Object.hasOwn(TRANSLATE_MODEL_BY_ID, value)
 }
 
 export function isFreeTranslateModel(id: TranslateModelId): boolean {

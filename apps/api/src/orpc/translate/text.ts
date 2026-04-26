@@ -7,6 +7,7 @@ import {
   clearHistoryOutputSchema,
   deleteHistoryInputSchema,
   deleteHistoryOutputSchema,
+  historyResultsSchema,
   listHistoryInputSchema,
   listHistoryOutputSchema,
   saveHistoryInputSchema,
@@ -196,14 +197,21 @@ export const listTextHistory = authed
       .all()
 
     const items = rows.slice(0, input.limit).map((row) => {
+      // Defense-in-depth (#191): the DB has no `CHECK (json_valid(results))`
+      // constraint (deferred — see packages/db/AGENTS.md for SQLite CHECK
+      // migration cost rationale). Use the contract's Zod schema to validate
+      // the parsed JSON shape per row. Any row that fails parse OR shape is
+      // surfaced to the client as empty results, not as a 500 — better UX,
+      // and the row itself remains in the DB for ops to inspect/clean up.
       let results: Record<string, { text: string } | { error: string }> = {}
       try {
         const parsed = JSON.parse(row.results) as unknown
-        if (parsed && typeof parsed === "object") {
-          results = parsed as typeof results
+        const validated = historyResultsSchema.safeParse(parsed)
+        if (validated.success) {
+          results = validated.data as typeof results
         }
       } catch {
-        // Treat corrupt rows as empty rather than failing the whole list.
+        // JSON.parse threw — corrupt row. Drop to empty-results fallback.
       }
       const createdAt = row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt as number)
       return {

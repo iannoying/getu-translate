@@ -78,11 +78,14 @@ export type TranslateTextOutput = z.infer<typeof translateTextOutputSchema>
 
 // ---- text translation history ----
 
-const historyResultEntrySchema = z.union([
+export const historyResultEntrySchema = z.union([
   z.object({ text: z.string() }).strict(),
   z.object({ error: z.string() }).strict(),
 ])
 export type HistoryResultEntry = z.infer<typeof historyResultEntrySchema>
+
+/** Reusable: the persisted `text_translations.results` JSON shape. */
+export const historyResultsSchema = z.record(z.string(), historyResultEntrySchema)
 
 export const saveHistoryInputSchema = z
   .object({
