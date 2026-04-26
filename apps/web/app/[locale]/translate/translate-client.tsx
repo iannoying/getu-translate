@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
 import { localeHref } from "@/lib/i18n/routing"
@@ -21,6 +21,7 @@ import { QuotaBadge } from "./components/QuotaBadge"
 import { TranslateShell } from "./components/TranslateShell"
 import { UpgradeModal, type UpgradeModalSource } from "./components/UpgradeModal"
 import { DEMO_INPUT, DEMO_RESULTS } from "./demo-data"
+import { runColumnTranslations, type ColumnTask } from "./translate-orchestrator"
 
 /**
  * Client-side i18n shape mirrors `Messages["translate"]` exactly. We avoid
@@ -148,6 +149,16 @@ export function TranslateClient({
   )
   const [isTranslating, setIsTranslating] = useState(false)
 
+  // AbortController ref — aborted on new translate click or on unmount so
+  // in-flight orpc calls don't consume tokens after the component is gone.
+  const abortRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort()
+    }
+  }, [])
+
   // History state — fetched once after auth resolves, then mutated locally
   // by translate (prepend) / delete / clear so we don't refetch round-trip.
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([])
@@ -206,6 +217,11 @@ export function TranslateClient({
     const modelsToFire = visibleModelsForPlan(plan)
     if (modelsToFire.length === 0) return
 
+    // Abort any previous in-flight batch before starting a new one.
+    abortRef.current?.abort()
+    const ac = new AbortController()
+    abortRef.current = ac
+
     // One UUID per click — every concurrent column shares it so the server's
     // consumeQuota idempotency collapses N column calls to 1 decrement.
     const clickId = crypto.randomUUID()
@@ -216,50 +232,61 @@ export function TranslateClient({
       return next
     })
 
-    // Track per-column outcomes locally so we can save the complete row to
-    // history at the end. We can't read the final React state synchronously
-    // after Promise.allSettled (setState is async), so this local map is
-    // the source of truth for the saveHistory payload.
-    const localResults: Record<string, { text: string } | { error: string }> = {}
-
-    await Promise.allSettled(
-      modelsToFire.map(async (modelId) => {
-        const columnId = `col-${modelId}`
-        try {
-          const out = await orpcClient.translate.translate({
+    const tasks: ColumnTask[] = modelsToFire.map((modelId) => ({
+      modelId,
+      run: (signal: AbortSignal) =>
+        orpcClient.translate.translate(
+          {
             text: trimmed,
             sourceLang: source,
             targetLang: target,
             modelId,
-            columnId,
+            columnId: `col-${modelId}`,
             clickId,
-          })
-          localResults[modelId] = { text: out.text }
-          setResults(prev => ({ ...prev, [modelId]: { status: "done", text: out.text } }))
-        } catch (err) {
-          // Use the localized friendly fallback rather than the raw oRPC
-          // error.message — that string can include upstream provider HTTP
-          // bodies which are not user-friendly and may leak provider tracking
-          // identifiers. M6.5b will key off err.data.code (PROVIDER_FAILED,
-          // RATE_LIMITED, ...) for more specific UX, but for M6.5a the
-          // generic message is correct and safe.
-          // eslint-disable-next-line no-console -- helps M6.5b debug provider failures without surfacing them to users
-          console.warn("[translate] column failed", modelId, err)
-          const errMsg = err instanceof Error ? err.message : "translate failed"
-          localResults[modelId] = { error: errMsg }
-          setResults(prev => ({
-            ...prev,
-            [modelId]: { status: "error", errorMessage: messages.page.cardErrorFallback },
-          }))
-          // Open upgrade modal on quota-exceeded errors from the server.
-          // oRPC surfaces the error code on err.data?.code (ORPCError shape).
-          const code = (err as any)?.data?.code ?? (err as any)?.code
-          if (code === "QUOTA_EXCEEDED" || code === "INSUFFICIENT_QUOTA") {
-            openUpgradeModal("free_quota_exceeded")
-          }
+          },
+          { signal },
+        ),
+    }))
+
+    const columnResults = await runColumnTranslations(tasks, ac.signal)
+
+    // If the component unmounted or a new translate was fired while we were
+    // in-flight, ac.signal is now aborted — skip all state updates.
+    if (ac.signal.aborted) return
+
+    // Track per-column outcomes locally so we can save the complete row to
+    // history at the end. We can't read the final React state synchronously
+    // after the orchestrator resolves (setState is async), so this local map
+    // is the source of truth for the saveHistory payload.
+    const localResults: Record<string, { text: string } | { error: string }> = {}
+
+    for (const result of columnResults) {
+      if ("text" in result) {
+        localResults[result.modelId] = { text: result.text }
+        setResults(prev => ({ ...prev, [result.modelId]: { status: "done", text: result.text } }))
+      } else {
+        // Use the localized friendly fallback rather than the raw oRPC
+        // error.message — that string can include upstream provider HTTP
+        // bodies which are not user-friendly and may leak provider tracking
+        // identifiers. M6.5b will key off err.data.code (PROVIDER_FAILED,
+        // RATE_LIMITED, ...) for more specific UX, but for M6.5a the
+        // generic message is correct and safe.
+        // eslint-disable-next-line no-console -- helps M6.5b debug provider failures without surfacing them to users
+        console.warn("[translate] column failed", result.modelId, result.error)
+        localResults[result.modelId] = { error: result.error.message ?? result.error.code }
+        setResults(prev => ({
+          ...prev,
+          [result.modelId]: { status: "error", errorMessage: messages.page.cardErrorFallback },
+        }))
+        // Open upgrade modal on quota-exceeded errors from the server.
+        // oRPC surfaces the error code on err.data?.code (ORPCError shape).
+        if (result.error.code === "QUOTA_EXCEEDED" || result.error.code === "INSUFFICIENT_QUOTA") {
+          openUpgradeModal("free_quota_exceeded")
         }
-      }),
-    )
+      }
+    }
+
+    // Task 5 hook fires here (quota-badge refresh after translate completes)
 
     // Persist to history. We always save (even if every column failed) so
     // the user can see "I tried this on Tuesday and nothing worked" — this
