@@ -159,31 +159,68 @@ describe("translate.text — auth & gating", () => {
     ).rejects.toMatchObject({ code: "INSUFFICIENT_QUOTA" })
   })
 
-  it("free user with quota: google call decrements 1 and returns stub text", async () => {
-    const quota = await import("../../billing/quota")
-    const client = createRouterClient(router, { context: ctx(freeSession) })
-    const out = await client.translate.translate({
-      text: "hello world",
-      sourceLang: "en",
-      targetLang: "zh-CN",
-      modelId: "google",
-      columnId: "col-google",
-      clickId: SAMPLE_CLICK_ID,
-    })
-    expect(out.modelId).toBe("google")
-    expect(out.tokens).toBeNull() // translate-api kind has no token cost
-    expect(out.text).toContain("hello world")
-    expect(quota.consumeQuota).toHaveBeenCalledWith(
-      expect.anything(),
-      "u-free",
-      "web_text_translate_monthly",
-      1,
-      `web-text:u-free:${SAMPLE_CLICK_ID}`,
-      undefined,
+  it("free user with quota: google call decrements 1 and returns translated text", async () => {
+    // Mock the upstream Google free API. Shape:
+    //   [ [ [translatedSegment, originalSegment, ...], ... ], ... ]
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify([[["你好世界", "hello world", null, null, 1]]]), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
     )
+    try {
+      const quota = await import("../../billing/quota")
+      const client = createRouterClient(router, { context: ctx(freeSession) })
+      const out = await client.translate.translate({
+        text: "hello world",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+        modelId: "google",
+        columnId: "col-google",
+        clickId: SAMPLE_CLICK_ID,
+      })
+      expect(out.modelId).toBe("google")
+      expect(out.tokens).toBeNull() // translate-api has no token cost
+      expect(out.text).toBe("你好世界")
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      expect(quota.consumeQuota).toHaveBeenCalledWith(
+        expect.anything(),
+        "u-free",
+        "web_text_translate_monthly",
+        1,
+        `web-text:u-free:${SAMPLE_CLICK_ID}`,
+        undefined,
+      )
+    } finally {
+      fetchSpy.mockRestore()
+    }
   })
 
-  it("pro user can invoke an LLM model and gets token shape", async () => {
+  it("propagates google upstream failure as PROVIDER_FAILED", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("rate limited", { status: 429 }),
+    )
+    try {
+      const client = createRouterClient(router, { context: ctx(freeSession) })
+      await expect(
+        client.translate.translate({
+          text: "hello",
+          sourceLang: "en",
+          targetLang: "zh-CN",
+          modelId: "google",
+          columnId: "col-google",
+          clickId: SAMPLE_CLICK_ID,
+        }),
+      ).rejects.toMatchObject({
+        code: "INTERNAL_SERVER_ERROR",
+        data: { code: "PROVIDER_FAILED", providerId: "google", statusCode: 429 },
+      })
+    } finally {
+      fetchSpy.mockRestore()
+    }
+  })
+
+  it("pro user invoking an LLM model gets non-zero token mock (M6.5 stub)", async () => {
     const ent = await import("../../billing/entitlements")
     ;(ent.loadEntitlements as any).mockResolvedValueOnce({ ...FREE_ENTITLEMENTS, tier: "pro" })
     const client = createRouterClient(router, { context: ctx(proSession) })
@@ -196,7 +233,12 @@ describe("translate.text — auth & gating", () => {
       clickId: SAMPLE_CLICK_ID,
     })
     expect(out.modelId).toBe("claude-sonnet-4-6")
-    expect(out.tokens).toEqual({ input: 0, output: 0 })
+    expect(out.text).toContain("Pro stub")
+    // M6.5b will replace this with real bianxie.ai token usage; for now
+    // the stub computes 1.5x char count split across input/output so the
+    // Pro token-quota math has non-zero values to exercise.
+    expect(out.tokens?.input).toBeGreaterThan(0)
+    expect(out.tokens?.output).toBeGreaterThan(0)
   })
 
   it("rejects non-UUID clickId at the schema layer", async () => {

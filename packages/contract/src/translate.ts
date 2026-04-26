@@ -1,3 +1,4 @@
+import { oc } from "@orpc/contract"
 import { z } from "zod"
 
 /**
@@ -209,3 +210,21 @@ export const documentListOutputSchema = z
     nextCursor: z.string().optional(),
   })
   .strict()
+
+// ---- oRPC contract ----
+
+/**
+ * Web /translate & /document oRPC contract. The server (`apps/api`) implements
+ * each procedure; the web client (`apps/web`) consumes them via
+ * `orpcClient.translate.*` typed against this contract.
+ */
+export const translateContract = oc.router({
+  translate: oc.input(translateTextInputSchema).output(translateTextOutputSchema),
+  saveHistory: oc.input(saveHistoryInputSchema).output(saveHistoryOutputSchema),
+  listHistory: oc.input(listHistoryInputSchema).output(listHistoryOutputSchema),
+  document: oc.router({
+    create: oc.input(documentCreateInputSchema).output(documentCreateOutputSchema),
+    status: oc.input(documentStatusInputSchema).output(documentStatusOutputSchema),
+    list: oc.input(documentListInputSchema).output(documentListOutputSchema),
+  }),
+})

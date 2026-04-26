@@ -1,11 +1,16 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
 import { localeHref } from "@/lib/i18n/routing"
 import type { Locale } from "@/lib/i18n/locales"
-import { TRANSLATE_MODELS, type TranslateModelId } from "@getu/definitions"
+import { orpcClient } from "@/lib/orpc-client"
+import {
+  TRANSLATE_MODELS,
+  isFreeTranslateModel,
+  type TranslateModelId,
+} from "@getu/definitions"
 import type { Messages } from "@/lib/i18n/messages"
 import { LangPicker } from "./components/LangPicker"
 import { ModelGrid } from "./components/ModelGrid"
@@ -33,7 +38,9 @@ function formatTemplate(template: string, vars: Record<string, string | number>)
 const FREE_CHAR_LIMIT = 2000
 const PRO_CHAR_LIMIT = 20000
 
-function buildInitialResults(plan: "anonymous" | "free" | "pro" | "enterprise"): Partial<Record<TranslateModelId, ModelCardState>> {
+type Plan = "anonymous" | "free" | "pro" | "enterprise"
+
+function buildInitialResults(plan: Plan): Partial<Record<TranslateModelId, ModelCardState>> {
   const out: Partial<Record<TranslateModelId, ModelCardState>> = {}
   for (const model of TRANSLATE_MODELS) {
     if (plan === "anonymous") {
@@ -48,6 +55,17 @@ function buildInitialResults(plan: "anonymous" | "free" | "pro" | "enterprise"):
   return out
 }
 
+/** Models the user can actually invoke with their current plan. */
+function visibleModelsForPlan(plan: Plan): TranslateModelId[] {
+  if (plan === "free") {
+    return TRANSLATE_MODELS.filter(m => isFreeTranslateModel(m.id)).map(m => m.id)
+  }
+  if (plan === "pro" || plan === "enterprise") {
+    return TRANSLATE_MODELS.map(m => m.id)
+  }
+  return []
+}
+
 export function TranslateClient({
   locale,
   messages,
@@ -59,24 +77,27 @@ export function TranslateClient({
   const session = authClient.useSession()
   const isLoadingSession = session.isPending
   const isAuthed = !!session.data?.user
-  // M6.4: tier resolution from entitlements lands in M6.7. For now everyone
+  // M6.5: tier resolution from entitlements lands in M6.7. For now everyone
   // signed-in is treated as "free". Pro UI is exercised via the locked Pro
   // model cards and the upgrade CTAs.
-  const plan: "anonymous" | "free" | "pro" | "enterprise" = !isAuthed ? "anonymous" : "free"
+  const plan: Plan = !isAuthed ? "anonymous" : "free"
   const charLimit = plan === "free" ? FREE_CHAR_LIMIT : PRO_CHAR_LIMIT
 
   const [text, setText] = useState(plan === "anonymous" ? DEMO_INPUT : "")
   const [source, setSource] = useState("auto")
   const [target, setTarget] = useState("zh-CN")
 
-  // Reviewer fix: derived state (NOT useState which freezes on mount). When
-  // `plan` flips from anonymous → free after session resolves, the 9 Pro
-  // columns must immediately swap from demo text to the locked CTA. With
-  // useState(initialResults) those frozen demo strings would persist.
-  const results: Partial<Record<TranslateModelId, ModelCardState>> = useMemo(
+  // Mutable results map — written by per-column orpc callbacks. Lazy
+  // initializer keys off the *initial* plan; the useEffect below resets
+  // when plan changes (anonymous → free transition after session resolves).
+  const [results, setResults] = useState<Partial<Record<TranslateModelId, ModelCardState>>>(
     () => buildInitialResults(plan),
-    [plan],
   )
+  const [isTranslating, setIsTranslating] = useState(false)
+
+  useEffect(() => {
+    setResults(buildInitialResults(plan))
+  }, [plan])
 
   const charCount = text.length
   const overLimit = charCount > charLimit
@@ -87,15 +108,57 @@ export function TranslateClient({
     setTarget(source)
   }
 
-  function handleTranslate() {
+  async function handleTranslate() {
     if (!isAuthed) {
       router.push(localeHref(locale, "/log-in?next=/translate"))
       return
     }
-    // M6.5 wires the real procedure; for M6.4 just show a toast hint.
-    if (typeof window !== "undefined") {
-      window.alert(messages.page.notImplementedToast)
-    }
+    const trimmed = text.trim()
+    if (trimmed.length === 0 || overLimit || isTranslating) return
+
+    const modelsToFire = visibleModelsForPlan(plan)
+    if (modelsToFire.length === 0) return
+
+    // One UUID per click — every concurrent column shares it so the server's
+    // consumeQuota idempotency collapses N column calls to 1 decrement.
+    const clickId = crypto.randomUUID()
+    setIsTranslating(true)
+    setResults(prev => {
+      const next = { ...prev }
+      for (const id of modelsToFire) next[id] = { status: "loading" }
+      return next
+    })
+
+    await Promise.allSettled(
+      modelsToFire.map(async (modelId) => {
+        const columnId = `col-${modelId}`
+        try {
+          const out = await orpcClient.translate.translate({
+            text: trimmed,
+            sourceLang: source,
+            targetLang: target,
+            modelId,
+            columnId,
+            clickId,
+          })
+          setResults(prev => ({ ...prev, [modelId]: { status: "done", text: out.text } }))
+        } catch (err) {
+          // Use the localized friendly fallback rather than the raw oRPC
+          // error.message — that string can include upstream provider HTTP
+          // bodies which are not user-friendly and may leak provider tracking
+          // identifiers. M6.5b will key off err.data.code (PROVIDER_FAILED,
+          // RATE_LIMITED, ...) for more specific UX, but for M6.5a the
+          // generic message is correct and safe.
+          // eslint-disable-next-line no-console -- helps M6.5b debug provider failures without surfacing them to users
+          console.warn("[translate] column failed", modelId, err)
+          setResults(prev => ({
+            ...prev,
+            [modelId]: { status: "error", errorMessage: messages.page.cardErrorFallback },
+          }))
+        }
+      }),
+    )
+    setIsTranslating(false)
   }
 
   function handleUpgradeClick() {
@@ -104,7 +167,7 @@ export function TranslateClient({
 
   const translateLabel = !isAuthed
     ? messages.page.translateLoginButton
-    : isLoadingSession
+    : isLoadingSession || isTranslating
       ? messages.page.translateLoadingButton
       : messages.page.translateButton
 
@@ -131,6 +194,7 @@ export function TranslateClient({
               onChange={e => setText(e.target.value)}
               placeholder={messages.page.inputPlaceholder}
               rows={12}
+              disabled={isTranslating}
             />
             <div className="translate-input-foot">
               <span className={`char-counter ${overLimit ? "char-counter-over" : charCount > charLimit * 0.8 ? "char-counter-warn" : ""}`}>
@@ -138,14 +202,19 @@ export function TranslateClient({
               </span>
               {overLimit && <span className="char-counter-msg">{messages.page.charLimitExceeded}</span>}
               <div className="translate-input-actions">
-                <button type="button" className="button secondary small" onClick={() => setText("")}>
+                <button
+                  type="button"
+                  className="button secondary small"
+                  onClick={() => setText("")}
+                  disabled={isTranslating}
+                >
                   {messages.page.clearButton}
                 </button>
                 <button
                   type="button"
                   className="button primary"
                   onClick={handleTranslate}
-                  disabled={overLimit || (isAuthed && text.trim().length === 0)}
+                  disabled={overLimit || isTranslating || (isAuthed && text.trim().length === 0)}
                 >
                   {translateLabel}
                 </button>
