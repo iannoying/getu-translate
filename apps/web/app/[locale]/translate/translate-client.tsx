@@ -68,8 +68,15 @@ export function TranslateClient({
   const [text, setText] = useState(plan === "anonymous" ? DEMO_INPUT : "")
   const [source, setSource] = useState("auto")
   const [target, setTarget] = useState("zh-CN")
-  const initialResults = useMemo(() => buildInitialResults(plan), [plan])
-  const [results] = useState(initialResults)
+
+  // Reviewer fix: derived state (NOT useState which freezes on mount). When
+  // `plan` flips from anonymous → free after session resolves, the 9 Pro
+  // columns must immediately swap from demo text to the locked CTA. With
+  // useState(initialResults) those frozen demo strings would persist.
+  const results: Partial<Record<TranslateModelId, ModelCardState>> = useMemo(
+    () => buildInitialResults(plan),
+    [plan],
+  )
 
   const charCount = text.length
   const overLimit = charCount > charLimit

@@ -15,7 +15,7 @@ export function TranslateShell({
   children,
 }: {
   locale: Locale
-  labels: { text: string; document: string; upgradePro: string; sectionExtensions: string }
+  labels: { text: string; document: string; upgradePro: string }
   children: React.ReactNode
 }) {
   const pathname = usePathname() ?? ""

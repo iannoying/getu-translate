@@ -76,7 +76,7 @@ export type Messages = {
   translate: {
     metaTitle: string
     metaDescription: string
-    shell: { text: string; document: string; upgradePro: string; sectionExtensions: string }
+    shell: { text: string; document: string; upgradePro: string }
     page: {
       inputPlaceholder: string
       translateButton: string
@@ -467,7 +467,6 @@ export const messages: Record<Locale, Messages> = {
         text: "Text",
         document: "Document",
         upgradePro: "Upgrade Pro",
-        sectionExtensions: "Extensions",
       },
       page: {
         inputPlaceholder: "Type or paste text to translate…",
@@ -854,7 +853,6 @@ export const messages: Record<Locale, Messages> = {
         text: "文本",
         document: "文档",
         upgradePro: "升级 Pro",
-        sectionExtensions: "扩展",
       },
       page: {
         inputPlaceholder: "请输入或粘贴文本进行翻译…",
@@ -1241,7 +1239,6 @@ export const messages: Record<Locale, Messages> = {
         text: "文字",
         document: "文件",
         upgradePro: "升級 Pro",
-        sectionExtensions: "擴充功能",
       },
       page: {
         inputPlaceholder: "請輸入或貼上文字進行翻譯…",

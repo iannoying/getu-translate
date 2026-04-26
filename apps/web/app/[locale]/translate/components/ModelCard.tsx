@@ -31,8 +31,13 @@ export function ModelCard({
   upgradeMessage: string
   onUpgradeClick: () => void
 }) {
+  // Locked cards (Pro-only models for free users) are excluded from drag
+  // because reordering a column the user can't actually use is meaningless
+  // UX noise. The handle stays visible but visually disabled to make the
+  // distinction clear.
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: model.id,
+    disabled: locked,
   })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -52,6 +57,7 @@ export function ModelCard({
           type="button"
           className="model-card-handle"
           aria-label={`Drag ${model.displayName} column`}
+          disabled={locked}
           {...attributes}
           {...listeners}
         >

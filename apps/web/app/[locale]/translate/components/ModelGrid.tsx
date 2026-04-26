@@ -50,13 +50,23 @@ export function ModelGrid({
   upgradeMessage: string
   onUpgradeClick: (modelId: TranslateModelId) => void
 }) {
-  // SSR-safe: hydrate the saved order on the client only. Initial render uses
-  // the default order so server HTML matches client first-paint.
+  // SSR / static-export safe: server emits the default order, so the static
+  // HTML has the registry order baked in (good for SEO + new visitors).
+  // After hydration, useEffect reads localStorage; for returning users with
+  // a custom order this means a one-frame flash of the default order before
+  // the saved order takes over. Eliminating the flash would require hiding
+  // the grid until hydrated, which would also hide the demo content from
+  // search-engine crawlers — explicit trade-off in favor of SEO.
   const [order, setOrder] = useState<TranslateModelId[]>(DEFAULT_ORDER)
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(ORDER_STORAGE_KEY)
-      if (raw) setOrder(sanitizeOrder(JSON.parse(raw)))
+      if (raw) {
+        const next = sanitizeOrder(JSON.parse(raw))
+        // Skip the setState if the saved order already matches DEFAULT_ORDER
+        // (avoids one wasted render for new users who never reordered).
+        if (next.some((id, i) => id !== DEFAULT_ORDER[i])) setOrder(next)
+      }
     } catch {
       // ignore — fall back to default order
     }
