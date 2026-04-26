@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
 import { localeHref } from "@/lib/i18n/routing"
@@ -12,6 +12,7 @@ import {
   type TranslateModelId,
 } from "@getu/definitions"
 import type { Messages } from "@/lib/i18n/messages"
+import { HistoryDrawer, type HistoryEntry } from "./components/HistoryDrawer"
 import { LangPicker } from "./components/LangPicker"
 import { ModelGrid } from "./components/ModelGrid"
 import type { ModelCardState } from "./components/ModelCard"
@@ -95,9 +96,43 @@ export function TranslateClient({
   )
   const [isTranslating, setIsTranslating] = useState(false)
 
+  // History state — fetched once after auth resolves, then mutated locally
+  // by translate (prepend) / delete / clear so we don't refetch round-trip.
+  const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+
   useEffect(() => {
     setResults(buildInitialResults(plan))
   }, [plan])
+
+  useEffect(() => {
+    // Anonymous users have no server-side history; rendering the drawer
+    // empty is the expected behavior. Skip the API call entirely.
+    if (!isAuthed) {
+      setHistoryEntries([])
+      return
+    }
+    let cancelled = false
+    setHistoryLoading(true)
+    orpcClient.translate
+      .listHistory({ limit: 100 })
+      .then((res) => {
+        if (cancelled) return
+        setHistoryEntries(res.items as HistoryEntry[])
+      })
+      .catch((err) => {
+        if (cancelled) return
+        // Non-fatal — drawer just shows the empty state.
+        // eslint-disable-next-line no-console -- helps M6 ops trace history outages
+        console.warn("[translate] history list failed", err)
+      })
+      .finally(() => {
+        if (!cancelled) setHistoryLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthed])
 
   const charCount = text.length
   const overLimit = charCount > charLimit
@@ -129,6 +164,12 @@ export function TranslateClient({
       return next
     })
 
+    // Track per-column outcomes locally so we can save the complete row to
+    // history at the end. We can't read the final React state synchronously
+    // after Promise.allSettled (setState is async), so this local map is
+    // the source of truth for the saveHistory payload.
+    const localResults: Record<string, { text: string } | { error: string }> = {}
+
     await Promise.allSettled(
       modelsToFire.map(async (modelId) => {
         const columnId = `col-${modelId}`
@@ -141,6 +182,7 @@ export function TranslateClient({
             columnId,
             clickId,
           })
+          localResults[modelId] = { text: out.text }
           setResults(prev => ({ ...prev, [modelId]: { status: "done", text: out.text } }))
         } catch (err) {
           // Use the localized friendly fallback rather than the raw oRPC
@@ -151,6 +193,8 @@ export function TranslateClient({
           // generic message is correct and safe.
           // eslint-disable-next-line no-console -- helps M6.5b debug provider failures without surfacing them to users
           console.warn("[translate] column failed", modelId, err)
+          const errMsg = err instanceof Error ? err.message : "translate failed"
+          localResults[modelId] = { error: errMsg }
           setResults(prev => ({
             ...prev,
             [modelId]: { status: "error", errorMessage: messages.page.cardErrorFallback },
@@ -158,8 +202,80 @@ export function TranslateClient({
         }
       }),
     )
+
+    // Persist to history. We always save (even if every column failed) so
+    // the user can see "I tried this on Tuesday and nothing worked" — this
+    // is more debuggable than silently dropping. saveHistory failures are
+    // non-fatal: the translation already happened, the history is bonus.
+    try {
+      const saved = await orpcClient.translate.saveHistory({
+        sourceText: trimmed,
+        sourceLang: source,
+        targetLang: target,
+        results: localResults,
+      })
+      setHistoryEntries(prev => [
+        {
+          id: saved.id,
+          sourceText: trimmed,
+          sourceLang: source,
+          targetLang: target,
+          results: localResults,
+          createdAt: new Date().toISOString(),
+        },
+        ...prev,
+      ])
+    } catch (err) {
+      // eslint-disable-next-line no-console -- non-fatal history persist failure
+      console.warn("[translate] saveHistory failed", err)
+    }
+
     setIsTranslating(false)
   }
+
+  /** Restore a history entry into input + 11 cards. No API call, no quota. */
+  const handleRestore = useCallback((entry: HistoryEntry) => {
+    setText(entry.sourceText)
+    setSource(entry.sourceLang)
+    setTarget(entry.targetLang)
+    setResults(() => {
+      const next = buildInitialResults(plan)
+      for (const [modelId, value] of Object.entries(entry.results)) {
+        const id = modelId as TranslateModelId
+        if ("text" in value) {
+          next[id] = { status: "done", text: value.text }
+        } else {
+          next[id] = { status: "error", errorMessage: value.error }
+        }
+      }
+      return next
+    })
+  }, [plan])
+
+  const handleDeleteHistory = useCallback(async (id: string) => {
+    // Optimistic — remove first, then call. On failure put it back.
+    const before = historyEntries
+    setHistoryEntries(prev => prev.filter(e => e.id !== id))
+    try {
+      await orpcClient.translate.deleteHistory({ id })
+    } catch (err) {
+      // eslint-disable-next-line no-console -- non-fatal; user can retry
+      console.warn("[translate] deleteHistory failed", err)
+      setHistoryEntries(before)
+    }
+  }, [historyEntries])
+
+  const handleClearHistory = useCallback(async () => {
+    const before = historyEntries
+    setHistoryEntries([])
+    try {
+      await orpcClient.translate.clearHistory({})
+    } catch (err) {
+      // eslint-disable-next-line no-console -- non-fatal; user can retry
+      console.warn("[translate] clearHistory failed", err)
+      setHistoryEntries(before)
+    }
+  }, [historyEntries])
 
   function handleUpgradeClick() {
     router.push(localeHref(locale, "/upgrade"))
@@ -174,6 +290,18 @@ export function TranslateClient({
   return (
     <TranslateShell locale={locale} labels={messages.shell}>
       <div className="translate-page">
+        {isAuthed && (
+          <HistoryDrawer
+            entries={historyEntries}
+            loading={historyLoading}
+            locale={locale}
+            labels={messages.history}
+            onRestore={handleRestore}
+            onDelete={handleDeleteHistory}
+            onClear={handleClearHistory}
+          />
+        )}
+        <div className="translate-page-main">
         <header className="translate-toolbar">
           <LangPicker
             source={source}
@@ -235,6 +363,7 @@ export function TranslateClient({
               onUpgradeClick={handleUpgradeClick}
             />
           </section>
+        </div>
         </div>
       </div>
     </TranslateShell>

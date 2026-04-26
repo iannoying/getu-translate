@@ -94,6 +94,21 @@ export type Messages = {
       cardLoading: string
       cardErrorFallback: string
     }
+    history: {
+      toggleOpen: string
+      toggleClose: string
+      searchPlaceholder: string
+      clearAllButton: string
+      emptyState: string
+      loading: string
+      groupToday: string
+      groupYesterday: string
+      groupThisWeek: string
+      groupOlder: string
+      /** Template `{count}` interpolated. */
+      clearConfirmTemplate: string
+      deleteEntryAriaLabel: string
+    }
   }
 }
 
@@ -486,6 +501,20 @@ export const messages: Record<Locale, Messages> = {
         cardLoading: "Translating…",
         cardErrorFallback: "Translation failed",
       },
+      history: {
+        toggleOpen: "Show history",
+        toggleClose: "Hide history",
+        searchPlaceholder: "Search history…",
+        clearAllButton: "Clear all",
+        emptyState: "No history yet. Translate something to see it here.",
+        loading: "Loading history…",
+        groupToday: "Today",
+        groupYesterday: "Yesterday",
+        groupThisWeek: "This week",
+        groupOlder: "Older",
+        clearConfirmTemplate: "Delete all {count} history entries? This cannot be undone.",
+        deleteEntryAriaLabel: "Delete this history entry",
+      },
     },
   },
   "zh-CN": {
@@ -874,6 +903,20 @@ export const messages: Record<Locale, Messages> = {
         cardLoading: "翻译中…",
         cardErrorFallback: "翻译失败",
       },
+      history: {
+        toggleOpen: "显示历史",
+        toggleClose: "隐藏历史",
+        searchPlaceholder: "搜索历史记录…",
+        clearAllButton: "清空全部",
+        emptyState: "暂无历史。翻译一段文本就会出现在这里。",
+        loading: "正在加载历史…",
+        groupToday: "今天",
+        groupYesterday: "昨天",
+        groupThisWeek: "本周",
+        groupOlder: "更早",
+        clearConfirmTemplate: "确定删除全部 {count} 条历史记录？此操作不可恢复。",
+        deleteEntryAriaLabel: "删除此条历史",
+      },
     },
   },
   "zh-TW": {
@@ -1261,6 +1304,20 @@ export const messages: Record<Locale, Messages> = {
         notImplementedToast: "M6.5 將接通真實翻譯。UI 已就緒 — 可以試試拖曳模型卡片重新排序。",
         cardLoading: "翻譯中…",
         cardErrorFallback: "翻譯失敗",
+      },
+      history: {
+        toggleOpen: "顯示歷史",
+        toggleClose: "隱藏歷史",
+        searchPlaceholder: "搜尋歷史紀錄…",
+        clearAllButton: "清空全部",
+        emptyState: "暫無歷史。翻譯一段文字就會出現在這裡。",
+        loading: "正在載入歷史…",
+        groupToday: "今天",
+        groupYesterday: "昨天",
+        groupThisWeek: "本週",
+        groupOlder: "更早",
+        clearConfirmTemplate: "確定刪除全部 {count} 條歷史紀錄？此操作不可恢復。",
+        deleteEntryAriaLabel: "刪除此條歷史",
       },
     },
   },
