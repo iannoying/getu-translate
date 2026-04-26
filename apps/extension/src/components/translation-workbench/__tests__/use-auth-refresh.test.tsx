@@ -59,7 +59,7 @@ describe("useAuthRefreshOnFocus", () => {
     visibilitySpy = null
   })
 
-  it("refetches the auth session on window focus and then invalidates entitlements for the user", async () => {
+  it("refetches the auth session on window focus and then invalidates the entitlements query family", async () => {
     let resolveSession!: () => void
     const refetchSession = vi.fn(() => new Promise<void>((resolve) => {
       resolveSession = resolve
@@ -74,22 +74,9 @@ describe("useAuthRefreshOnFocus", () => {
     resolveSession()
 
     await waitFor(() => {
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["entitlements", "user-1"] })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["entitlements"] })
     })
-  })
-
-  it("also invalidates entitlements for a user id returned by session refetch", async () => {
-    const refetchSession = vi.fn(async () => ({
-      data: { user: { id: "user-2" } },
-    }))
-    const { invalidateSpy } = renderUseAuthRefresh("user-1", refetchSession)
-
-    window.dispatchEvent(new Event("focus"))
-
-    await waitFor(() => {
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["entitlements", "user-1"] })
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["entitlements", "user-2"] })
-    })
+    expect(invalidateSpy).toHaveBeenCalledTimes(1)
   })
 
   it("does not refresh while the document is hidden", async () => {
@@ -113,8 +100,9 @@ describe("useAuthRefreshOnFocus", () => {
 
     await waitFor(() => {
       expect(refetchSession).toHaveBeenCalledTimes(1)
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["entitlements", "user-2"] })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["entitlements"] })
     })
+    expect(invalidateSpy).toHaveBeenCalledTimes(1)
   })
 
   it("removes focus and visibility listeners on unmount", async () => {

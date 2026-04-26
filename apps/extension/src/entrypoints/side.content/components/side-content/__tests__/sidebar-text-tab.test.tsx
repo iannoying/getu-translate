@@ -132,7 +132,7 @@ describe("sidebarTextTab", () => {
 
     await vi.waitFor(() => {
       expect(sessionRefetchMock).toHaveBeenCalledTimes(1)
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["entitlements", null] })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["entitlements"] })
     })
   })
 })
