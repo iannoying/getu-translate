@@ -1,11 +1,12 @@
-import type { TranslationResultState } from "@/components/translation-workbench/types"
+import type { TranslationRequestSnapshot, TranslationResultState } from "@/components/translation-workbench/types"
+import type { Config } from "@/types/config/config"
 import type { TranslateProviderConfig } from "@/types/config/provider"
 import { IconCornerDownLeft } from "@tabler/icons-react"
 import { useAtom, useAtomValue } from "jotai"
-import { useMemo, useState } from "react"
+import { useEffect, useEffectEvent, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { WorkbenchLanguagePicker } from "@/components/translation-workbench/language-picker"
-import { getTextTranslateCharLimit, planFromEntitlements } from "@/components/translation-workbench/provider-gating"
+import { getTextTranslateCharLimit, isGetuProProvider, planFromEntitlements } from "@/components/translation-workbench/provider-gating"
 import { ProviderMultiSelect } from "@/components/translation-workbench/provider-multi-select"
 import { TranslationWorkbenchResultCard } from "@/components/translation-workbench/result-card"
 import { runTranslationWorkbenchRequest } from "@/components/translation-workbench/translate-runner"
@@ -33,15 +34,23 @@ function resolvePortalContainer(): HTMLElement {
   return shadowWrapper ?? document.body
 }
 
+interface PendingSidebarTranslation {
+  providerIds: string[]
+  request: TranslationRequestSnapshot
+  languageLevel: Config["language"]["level"]
+}
+
 export function SidebarTextTab() {
   const [language, setLanguage] = useAtom(configFieldsAtomMap.language)
   const providersConfig = useAtomValue(configFieldsAtomMap.providersConfig)
   const session = authClient.useSession()
+  const sessionLoading = session?.isPending ?? false
   const userId = session.data?.user?.id ?? null
   useAuthRefreshOnFocus(userId, session.refetch)
-  const { data: entitlements } = useEntitlements(userId)
+  const { data: entitlements, isLoading: entitlementsLoading } = useEntitlements(userId)
   const plan = planFromEntitlements(userId, entitlements)
   const charLimit = getTextTranslateCharLimit(plan)
+  const authGateLoading = sessionLoading || entitlementsLoading
 
   const providers = useMemo<TranslateProviderConfig[]>(
     () => filterEnabledProvidersConfig(getTranslateProvidersConfig(providersConfig)) as TranslateProviderConfig[],
@@ -52,6 +61,7 @@ export function SidebarTextTab() {
   const [text, setText] = useState("")
   const [results, setResults] = useState<Record<string, TranslationResultState>>({})
   const [isTranslating, setIsTranslating] = useState(false)
+  const [pendingTranslation, setPendingTranslation] = useState<PendingSidebarTranslation | null>(null)
   const portalContainer = resolvePortalContainer()
   const selectedProviderIds = useMemo(() => {
     const providerIds = new Set(providers.map(provider => provider.id))
@@ -63,6 +73,7 @@ export function SidebarTextTab() {
     .map(id => providers.find(provider => provider.id === id))
     .filter((provider): provider is TranslateProviderConfig => provider !== undefined)
   const overLimit = text.length > charLimit
+  const isBusy = isTranslating || pendingTranslation !== null
 
   function swapLanguages() {
     if (language.sourceCode === "auto")
@@ -75,19 +86,17 @@ export function SidebarTextTab() {
     })
   }
 
-  async function translate(providerIds = selectedProviderIds) {
-    const trimmedText = text.trim()
-    if (!trimmedText || overLimit || isTranslating)
-      return
-
-    const providersToRun = providerIds
+  function getProvidersByIds(providerIds: string[]) {
+    return providerIds
       .map(id => providers.find(provider => provider.id === id))
       .filter((provider): provider is TranslateProviderConfig => provider !== undefined)
+  }
 
-    if (providersToRun.length === 0)
-      return
+  function shouldWaitForProviderGate(providersToRun: TranslateProviderConfig[]) {
+    return authGateLoading && providersToRun.some(isGetuProProvider)
+  }
 
-    setIsTranslating(true)
+  function setLoadingResults(providersToRun: TranslateProviderConfig[]) {
     setResults((current) => {
       const next = { ...current }
       for (const provider of providersToRun) {
@@ -95,19 +104,45 @@ export function SidebarTextTab() {
       }
       return next
     })
+  }
+
+  async function translate(providerIds = selectedProviderIds, pending?: PendingSidebarTranslation) {
+    if (!pending && (!text.trim() || overLimit || isBusy))
+      return
+
+    const providersToRun = getProvidersByIds(providerIds)
+
+    if (providersToRun.length === 0) {
+      if (pending)
+        setPendingTranslation(null)
+      return
+    }
+
+    const request = pending?.request ?? {
+      text: text.trim(),
+      sourceLanguage: language.sourceCode,
+      targetLanguage: language.targetCode,
+      clickId: createClickId(),
+    }
+    const languageLevel = pending?.languageLevel ?? language.level
+
+    if (shouldWaitForProviderGate(providersToRun)) {
+      setLoadingResults(providersToRun)
+      setPendingTranslation({ providerIds, request, languageLevel })
+      return
+    }
+
+    setPendingTranslation(null)
+    setIsTranslating(true)
+    setLoadingResults(providersToRun)
 
     try {
       const nextResults = await runTranslationWorkbenchRequest({
         plan,
         userId,
-        request: {
-          text: trimmedText,
-          sourceLanguage: language.sourceCode,
-          targetLanguage: language.targetCode,
-          clickId: createClickId(),
-        },
+        request,
         providers: providersToRun,
-        languageLevel: language.level,
+        languageLevel,
       })
 
       setResults((current) => {
@@ -137,6 +172,17 @@ export function SidebarTextTab() {
       setIsTranslating(false)
     }
   }
+
+  const continuePendingTranslation = useEffectEvent((pending: PendingSidebarTranslation) => {
+    void translate(pending.providerIds, pending)
+  })
+
+  useEffect(() => {
+    if (pendingTranslation === null || authGateLoading)
+      return
+
+    continuePendingTranslation(pendingTranslation)
+  }, [pendingTranslation, authGateLoading])
 
   function login() {
     void sendMessage("openPage", { url: `${WEBSITE_URL}/log-in?redirect=/` })
@@ -195,10 +241,10 @@ export function SidebarTextTab() {
           <Button
             type="button"
             className="absolute right-3 bottom-3 h-9 gap-2 px-4 text-sm font-semibold"
-            disabled={!text.trim() || overLimit || selectedProviderIds.length === 0 || isTranslating}
+            disabled={!text.trim() || overLimit || selectedProviderIds.length === 0 || isBusy}
             onClick={() => void translate()}
           >
-            {isTranslating ? i18n.t("translationWorkbench.loading") : i18n.t("translationWorkbench.translate")}
+            {isBusy ? i18n.t("translationWorkbench.loading") : i18n.t("translationWorkbench.translate")}
             <IconCornerDownLeft className="size-4" />
           </Button>
         </div>

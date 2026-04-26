@@ -223,6 +223,14 @@ describe("translation queue helpers", () => {
     )
   })
 
+  it("registers the translation workbench handler before async queue setup resolves", async () => {
+    const { setUpWebPageTranslationQueue } = await import("../translation-queues")
+    const setup = setUpWebPageTranslationQueue()
+
+    expect(onMessageMock.mock.calls.some(call => call[0] === "executeTranslationWorkbenchRequest")).toBe(true)
+    await setup
+  })
+
   it("exposes webpage summary generation as a separate background handler", async () => {
     const { setUpWebPageTranslationQueue } = await import("../translation-queues")
     await setUpWebPageTranslationQueue()
