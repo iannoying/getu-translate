@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
   TranslateProviderError,
+  _resetMicrosoftTokenCache,
   googleTranslate,
   microsoftTranslate,
 } from "../free-providers"
@@ -65,6 +66,10 @@ describe("googleTranslate", () => {
 })
 
 describe("microsoftTranslate", () => {
+  beforeEach(() => {
+    _resetMicrosoftTokenCache()
+  })
+
   function authedFetch(translatedText: string) {
     const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
       if (url.includes("/translate/auth")) {
@@ -120,6 +125,35 @@ describe("microsoftTranslate", () => {
       return jsonResponse([{ translations: [{}] }]) // missing .text
     })
     await expect(microsoftTranslate("hi", "en", "zh-CN", fetchMock as any)).rejects.toThrow(/missing translation/)
+  })
+
+  it("reuses cached auth token within TTL on subsequent calls", async () => {
+    const fetchMock = authedFetch("你好")
+    await microsoftTranslate("hello", "en", "zh-CN", fetchMock as any)
+    await microsoftTranslate("world", "en", "zh-CN", fetchMock as any)
+    // First call: 1 auth + 1 translate. Second call: 0 auth + 1 translate.
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    const authCalls = fetchMock.mock.calls.filter((c) =>
+      (c[0] as string).includes("/translate/auth"),
+    )
+    expect(authCalls).toHaveLength(1)
+  })
+
+  it("deduplicates concurrent auth requests via singleflight", async () => {
+    let authCallCount = 0
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.includes("/translate/auth")) {
+        authCallCount++
+        return new Response("token", { status: 200 })
+      }
+      return jsonResponse([{ translations: [{ text: "ok" }] }])
+    })
+    await Promise.all([
+      microsoftTranslate("a", "en", "zh-CN", fetchMock as any),
+      microsoftTranslate("b", "en", "zh-CN", fetchMock as any),
+      microsoftTranslate("c", "en", "zh-CN", fetchMock as any),
+    ])
+    expect(authCallCount).toBe(1)
   })
 })
 
