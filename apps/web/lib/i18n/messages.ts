@@ -91,6 +91,8 @@ export type Messages = {
       historyComingSoon: string
       upgradePromptShort: string
       notImplementedToast: string
+      cardLoading: string
+      cardErrorFallback: string
     }
   }
 }
@@ -481,6 +483,8 @@ export const messages: Record<Locale, Messages> = {
         historyComingSoon: "History is coming next.",
         upgradePromptShort: "Pro-only model. Upgrade to Pro for OpenAI, DeepSeek, Claude, Gemini and more.",
         notImplementedToast: "M6.5 will wire real translation. The UI shell is in place — try dragging a model card to reorder.",
+        cardLoading: "Translating…",
+        cardErrorFallback: "Translation failed",
       },
     },
   },
@@ -867,6 +871,8 @@ export const messages: Record<Locale, Messages> = {
         historyComingSoon: "翻译历史即将上线。",
         upgradePromptShort: "Pro 会员专用模型，升级 Pro 解锁 OpenAI、DeepSeek、Claude、Gemini 等。",
         notImplementedToast: "M6.5 将接通真实翻译。UI 已就绪 — 可以试试拖拽模型卡片重新排序。",
+        cardLoading: "翻译中…",
+        cardErrorFallback: "翻译失败",
       },
     },
   },
@@ -1253,6 +1259,8 @@ export const messages: Record<Locale, Messages> = {
         historyComingSoon: "翻譯歷史即將上線。",
         upgradePromptShort: "Pro 會員專用模型，升級 Pro 解鎖 OpenAI、DeepSeek、Claude、Gemini 等。",
         notImplementedToast: "M6.5 將接通真實翻譯。UI 已就緒 — 可以試試拖曳模型卡片重新排序。",
+        cardLoading: "翻譯中…",
+        cardErrorFallback: "翻譯失敗",
       },
     },
   },

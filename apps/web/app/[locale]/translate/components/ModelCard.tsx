@@ -11,6 +11,12 @@ export interface ModelCardState {
   errorMessage?: string
 }
 
+export interface ModelCardLabels {
+  upgradeButton: string
+  loading: string
+  errorFallback: string
+}
+
 /**
  * Single model column on /translate. Free users see 2 unlocked cards
  * (google + microsoft) plus 9 "locked" Pro cards that show an upgrade CTA
@@ -23,12 +29,14 @@ export function ModelCard({
   state,
   locked,
   upgradeMessage,
+  labels,
   onUpgradeClick,
 }: {
   model: TranslateModel
   state: ModelCardState
   locked: boolean
   upgradeMessage: string
+  labels: ModelCardLabels
   onUpgradeClick: () => void
 }) {
   // Locked cards (Pro-only models for free users) are excluded from drag
@@ -73,13 +81,13 @@ export function ModelCard({
           <div className="model-card-upgrade">
             <p>{upgradeMessage}</p>
             <button type="button" className="button primary small" onClick={onUpgradeClick}>
-              升级 Pro
+              {labels.upgradeButton}
             </button>
           </div>
         ) : state.status === "loading" ? (
-          <p className="model-card-loading">翻译中…</p>
+          <p className="model-card-loading">{labels.loading}</p>
         ) : state.status === "error" ? (
-          <p className="model-card-error">{state.errorMessage ?? "翻译失败"}</p>
+          <p className="model-card-error">{state.errorMessage ?? labels.errorFallback}</p>
         ) : (
           <p className="model-card-text">{state.text ?? "—"}</p>
         )}

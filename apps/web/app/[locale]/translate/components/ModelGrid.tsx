@@ -10,7 +10,7 @@ import {
   isFreeTranslateModel,
   type TranslateModelId,
 } from "@getu/definitions"
-import { ModelCard, type ModelCardState } from "./ModelCard"
+import { ModelCard, type ModelCardLabels, type ModelCardState } from "./ModelCard"
 
 const ORDER_STORAGE_KEY = "getu.translate.model-order.v1"
 
@@ -43,11 +43,13 @@ export function ModelGrid({
   plan,
   results,
   upgradeMessage,
+  cardLabels,
   onUpgradeClick,
 }: {
   plan: "anonymous" | "free" | "pro" | "enterprise"
   results: Partial<Record<TranslateModelId, ModelCardState>>
   upgradeMessage: string
+  cardLabels: ModelCardLabels
   onUpgradeClick: (modelId: TranslateModelId) => void
 }) {
   // SSR / static-export safe: server emits the default order, so the static
@@ -109,6 +111,7 @@ export function ModelGrid({
                 state={results[id] ?? { status: "idle" }}
                 locked={locked}
                 upgradeMessage={upgradeMessage}
+                labels={cardLabels}
                 onUpgradeClick={() => onUpgradeClick(id)}
               />
             )

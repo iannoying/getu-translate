@@ -158,6 +158,11 @@ export function TranslateClient({
               plan={plan}
               results={results}
               upgradeMessage={messages.page.upgradePromptShort}
+              cardLabels={{
+                upgradeButton: messages.shell.upgradePro,
+                loading: messages.page.cardLoading,
+                errorFallback: messages.page.cardErrorFallback,
+              }}
               onUpgradeClick={handleUpgradeClick}
             />
           </section>
