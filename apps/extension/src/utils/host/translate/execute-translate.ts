@@ -1,4 +1,4 @@
-import type { PromptResolver } from "./api/ai"
+import type { AiTranslateOptions, PromptResolver } from "./api/ai"
 import type { Config } from "@/types/config/config"
 import type { ProviderConfig } from "@/types/config/provider"
 import { ISO6393_TO_6391, LANG_CODE_TO_EN_NAME } from "@getu/definitions"
@@ -15,10 +15,8 @@ export async function executeTranslate<TContext>(
   langConfig: Config["language"],
   providerConfig: ProviderConfig,
   promptResolver: PromptResolver<TContext>,
-  options?: {
+  options?: AiTranslateOptions<TContext> & {
     forceBackgroundFetch?: boolean
-    isBatch?: boolean
-    context?: TContext
   },
 ) {
   const preparedText = prepareTranslationText(text)

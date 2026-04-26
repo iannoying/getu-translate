@@ -14,12 +14,18 @@ export type PromptResolver<TContext = unknown> = (
   options?: TranslatePromptOptions<TContext>,
 ) => Promise<TranslatePromptResult>
 
+export interface AiTranslateOptions<TContext = unknown> {
+  isBatch?: boolean
+  context?: TContext
+  headers?: Record<string, string | undefined>
+}
+
 export async function aiTranslate<TContext>(
   text: string,
   targetLangName: string,
   providerConfig: LLMProviderConfig,
   promptResolver: PromptResolver<TContext>,
-  options?: { isBatch?: boolean, context?: TContext },
+  options?: AiTranslateOptions<TContext>,
 ) {
   const { id: providerId, model: providerModel, provider, providerOptions: userProviderOptions, temperature } = providerConfig
   const modelName = resolveModelId(providerModel)
@@ -35,6 +41,7 @@ export async function aiTranslate<TContext>(
       prompt,
       temperature,
       providerOptions,
+      headers: options?.headers,
       maxRetries: 0, // Disable SDK built-in retries, let RequestQueue/BatchQueue handle it
     })
 
