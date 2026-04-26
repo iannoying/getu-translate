@@ -94,10 +94,12 @@ describe("microsoftTranslate", () => {
     expect((init.headers as Record<string, string>)["Authorization"]).toBe("Bearer fake-token-abc")
   })
 
-  it("converts 'auto' source to empty string (Microsoft semantics)", async () => {
+  it("omits 'from' param for auto-detect (Microsoft v3 semantics)", async () => {
     const fetchMock = authedFetch("hi")
     await microsoftTranslate("你好", "auto", "en", fetchMock as any)
-    expect((fetchMock.mock.calls[1][0] as string)).toContain("from=&")
+    const translateUrl = fetchMock.mock.calls[1][0] as string
+    const params = new URL(translateUrl).searchParams
+    expect(params.has("from")).toBe(false)
   })
 
   it("throws TranslateProviderError if auth endpoint fails", async () => {
@@ -154,6 +156,41 @@ describe("microsoftTranslate", () => {
       microsoftTranslate("c", "en", "zh-CN", fetchMock as any),
     ])
     expect(authCallCount).toBe(1)
+  })
+
+  it("omits the from query param when fromLang is 'auto'", async () => {
+    let capturedUrl = ""
+    const fetchMock = vi.fn(async (url: string | URL) => {
+      const u = typeof url === "string" ? url : url.toString()
+      if (u.includes("/auth")) {
+        return new Response("fake-token", { status: 200 })
+      }
+      capturedUrl = u
+      return new Response(JSON.stringify([{ translations: [{ text: "你好" }] }]), { status: 200 })
+    }) as unknown as typeof fetch
+
+    await microsoftTranslate("hello", "auto", "zh-Hans", fetchMock)
+
+    expect(capturedUrl).toContain("to=zh-Hans")
+    // No `from=` parameter at all
+    const params = new URL(capturedUrl).searchParams
+    expect(params.has("from")).toBe(false)
+  })
+
+  it("includes from query param when fromLang is explicit", async () => {
+    let capturedUrl = ""
+    const fetchMock = vi.fn(async (url: string | URL) => {
+      const u = typeof url === "string" ? url : url.toString()
+      if (u.includes("/auth")) return new Response("fake-token", { status: 200 })
+      capturedUrl = u
+      return new Response(JSON.stringify([{ translations: [{ text: "你好" }] }]), { status: 200 })
+    }) as unknown as typeof fetch
+
+    await microsoftTranslate("hello", "en", "zh-Hans", fetchMock)
+
+    const params = new URL(capturedUrl).searchParams
+    expect(params.get("from")).toBe("en")
+    expect(params.get("to")).toBe("zh-Hans")
   })
 })
 
