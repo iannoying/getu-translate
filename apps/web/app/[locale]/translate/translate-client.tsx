@@ -11,6 +11,7 @@ import {
   isFreeTranslateModel,
   type TranslateModelId,
 } from "@getu/definitions"
+import type { Entitlements } from "@getu/contract"
 import type { Messages } from "@/lib/i18n/messages"
 import { HistoryDrawer, type HistoryEntry } from "./components/HistoryDrawer"
 import { LangPicker } from "./components/LangPicker"
@@ -18,6 +19,7 @@ import { ModelGrid } from "./components/ModelGrid"
 import type { ModelCardState } from "./components/ModelCard"
 import { QuotaBadge } from "./components/QuotaBadge"
 import { TranslateShell } from "./components/TranslateShell"
+import { UpgradeModal, type UpgradeModalSource } from "./components/UpgradeModal"
 import { DEMO_INPUT, DEMO_RESULTS } from "./demo-data"
 
 /**
@@ -40,6 +42,25 @@ const FREE_CHAR_LIMIT = 2000
 const PRO_CHAR_LIMIT = 20000
 
 type Plan = "anonymous" | "free" | "pro" | "enterprise"
+
+/**
+ * Derives the plan tier from entitlements. Returns "anonymous" when the user
+ * is not signed in — entitlements are only fetched for authed users.
+ */
+function planFromEntitlements(e: Entitlements | null): Plan {
+  if (!e) return "anonymous"
+  return e.tier
+}
+
+/**
+ * Fires the pro_upgrade_triggered analytics event.
+ * TODO: wire to real analytics (apps/api/src/analytics or a client-side sink)
+ * once the analytics pipeline is implemented in M6.x.
+ */
+function trackUpgradeTriggered(source: UpgradeModalSource): void {
+  // eslint-disable-next-line no-console -- TODO: replace with real analytics once M6.x analytics pipeline is wired
+  console.info("pro_upgrade_triggered", { source })
+}
 
 function buildInitialResults(plan: Plan): Partial<Record<TranslateModelId, ModelCardState>> {
   const out: Partial<Record<TranslateModelId, ModelCardState>> = {}
@@ -78,11 +99,39 @@ export function TranslateClient({
   const session = authClient.useSession()
   const isLoadingSession = session.isPending
   const isAuthed = !!session.data?.user
-  // M6.5: tier resolution from entitlements lands in M6.7. For now everyone
-  // signed-in is treated as "free". Pro UI is exercised via the locked Pro
-  // model cards and the upgrade CTAs.
-  const plan: Plan = !isAuthed ? "anonymous" : "free"
-  const charLimit = plan === "free" ? FREE_CHAR_LIMIT : PRO_CHAR_LIMIT
+
+  // M6.7: real entitlements from billing.getEntitlements. Fetched once after
+  // auth resolves; null while loading or when anonymous.
+  const [entitlements, setEntitlements] = useState<Entitlements | null>(null)
+
+  useEffect(() => {
+    if (!isAuthed) {
+      setEntitlements(null)
+      return
+    }
+    let cancelled = false
+    orpcClient.billing.getEntitlements({}).then((e) => {
+      if (!cancelled) setEntitlements(e)
+    }).catch((err) => {
+      // Non-fatal — fall back to "free" tier so the page remains usable.
+      // eslint-disable-next-line no-console -- helps M6.7 ops trace entitlement fetch failures
+      console.warn("[translate] getEntitlements failed", err)
+    })
+    return () => { cancelled = true }
+  }, [isAuthed])
+
+  const plan: Plan = isAuthed ? planFromEntitlements(entitlements) : "anonymous"
+  const charLimit = plan === "pro" || plan === "enterprise" ? PRO_CHAR_LIMIT : FREE_CHAR_LIMIT
+
+  // Upgrade modal state
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
+  const [upgradeSource, setUpgradeSource] = useState<UpgradeModalSource | null>(null)
+
+  function openUpgradeModal(source: UpgradeModalSource) {
+    setUpgradeSource(source)
+    setUpgradeOpen(true)
+    trackUpgradeTriggered(source)
+  }
 
   const [text, setText] = useState(plan === "anonymous" ? DEMO_INPUT : "")
   const [source, setSource] = useState("auto")
@@ -199,6 +248,12 @@ export function TranslateClient({
             ...prev,
             [modelId]: { status: "error", errorMessage: messages.page.cardErrorFallback },
           }))
+          // Open upgrade modal on quota-exceeded errors from the server.
+          // oRPC surfaces the error code on err.data?.code (ORPCError shape).
+          const code = (err as any)?.data?.code ?? (err as any)?.code
+          if (code === "QUOTA_EXCEEDED" || code === "INSUFFICIENT_QUOTA") {
+            openUpgradeModal("free_quota_exceeded")
+          }
         }
       }),
     )
@@ -304,8 +359,8 @@ export function TranslateClient({
     }
   }, [])
 
-  function handleUpgradeClick() {
-    router.push(localeHref(locale, "/upgrade"))
+  function handleUpgradeClick(_modelId?: string) {
+    openUpgradeModal("pro_model_clicked")
   }
 
   const translateLabel = !isAuthed
@@ -316,6 +371,13 @@ export function TranslateClient({
 
   return (
     <TranslateShell locale={locale} labels={messages.shell}>
+      <UpgradeModal
+        open={upgradeOpen}
+        source={upgradeSource}
+        onClose={() => setUpgradeOpen(false)}
+        locale={locale}
+        labels={messages.upgradeModal}
+      />
       <div className="translate-page">
         {isAuthed && (
           <HistoryDrawer
@@ -338,7 +400,11 @@ export function TranslateClient({
             onSwap={handleSwap}
           />
           <div className="translate-toolbar-spacer" />
-          <QuotaBadge used={0} limit={plan === "free" ? 100 : null} label={messages.page.quotaLabel} />
+          <QuotaBadge
+            quota={entitlements?.quota ?? {}}
+            label={messages.page.quotaLabel}
+            tooltipTemplate={messages.quotaBadge.tooltip}
+          />
         </header>
 
         <div className="translate-body">
@@ -355,7 +421,15 @@ export function TranslateClient({
               <span className={`char-counter ${overLimit ? "char-counter-over" : charCount > charLimit * 0.8 ? "char-counter-warn" : ""}`}>
                 {formatTemplate(messages.page.charCounterTemplate, { used: charCount, limit: charLimit })}
               </span>
-              {overLimit && <span className="char-counter-msg">{messages.page.charLimitExceeded}</span>}
+              {overLimit && (
+                <button
+                  type="button"
+                  className="char-counter-msg char-counter-msg-button"
+                  onClick={() => openUpgradeModal("char_limit_exceeded")}
+                >
+                  {messages.page.charLimitExceeded}
+                </button>
+              )}
               <div className="translate-input-actions">
                 <button
                   type="button"
