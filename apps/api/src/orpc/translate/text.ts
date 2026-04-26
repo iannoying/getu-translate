@@ -3,6 +3,10 @@ import { and, desc, eq, lt } from "drizzle-orm"
 import { createDb } from "@getu/db"
 import { schema } from "@getu/db"
 import {
+  clearHistoryInputSchema,
+  clearHistoryOutputSchema,
+  deleteHistoryInputSchema,
+  deleteHistoryOutputSchema,
   listHistoryInputSchema,
   listHistoryOutputSchema,
   saveHistoryInputSchema,
@@ -220,8 +224,59 @@ export const listTextHistory = authed
     return { items, nextCursor }
   })
 
+/**
+ * Delete a single history row owned by the current user. Returns
+ * `{ deleted: true }` even if the row didn't exist (idempotent — caller
+ * shouldn't have to distinguish "already gone" from "never existed").
+ *
+ * Security: the WHERE clause includes `user_id = currentUser`, so a user
+ * passing another user's row id silently no-ops rather than leaks data.
+ */
+export const deleteTextHistory = authed
+  .input(deleteHistoryInputSchema)
+  .output(deleteHistoryOutputSchema)
+  .handler(async ({ context, input }) => {
+    const db = createDb(context.env.DB)
+    const userId = context.session.user.id
+
+    await db
+      .delete(textTranslations)
+      .where(and(eq(textTranslations.id, input.id), eq(textTranslations.userId, userId)))
+      .run()
+
+    // We do not fetch row-affected from D1 prepared writes (extra round trip
+    // for negligible client value); a missing row simply yields no-op.
+    return { deleted: true }
+  })
+
+/** Wipe every history row for the current user. Returns the row count. */
+export const clearTextHistory = authed
+  .input(clearHistoryInputSchema)
+  .output(clearHistoryOutputSchema)
+  .handler(async ({ context }) => {
+    const db = createDb(context.env.DB)
+    const userId = context.session.user.id
+
+    // Count first so the client can show "Cleared N entries" feedback. The
+    // 2-statement pattern is acceptable here because (a) clearing is rare,
+    // (b) D1 has no atomic SELECT-COUNT-then-DELETE in a single round trip,
+    // and (c) a small race (concurrent insert between count and delete) is
+    // self-resolving — the count under-reports by at most a handful.
+    const rows = await db
+      .select({ id: textTranslations.id })
+      .from(textTranslations)
+      .where(eq(textTranslations.userId, userId))
+      .all()
+
+    await db.delete(textTranslations).where(eq(textTranslations.userId, userId)).run()
+
+    return { deletedCount: rows.length }
+  })
+
 export const textRouter = {
   translate: translateText,
   saveHistory: saveTextHistory,
   listHistory: listTextHistory,
+  deleteHistory: deleteTextHistory,
+  clearHistory: clearTextHistory,
 }

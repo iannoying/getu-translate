@@ -129,6 +129,22 @@ export const listHistoryOutputSchema = z
   })
   .strict()
 
+// ---- history mutations ----
+
+export const deleteHistoryInputSchema = z.object({ id: z.string().min(1) }).strict()
+export type DeleteHistoryInput = z.infer<typeof deleteHistoryInputSchema>
+
+export const deleteHistoryOutputSchema = z
+  .object({ deleted: z.boolean() })
+  .strict()
+export type DeleteHistoryOutput = z.infer<typeof deleteHistoryOutputSchema>
+
+export const clearHistoryInputSchema = z.object({}).strict()
+export const clearHistoryOutputSchema = z
+  .object({ deletedCount: z.number().int().nonnegative() })
+  .strict()
+export type ClearHistoryOutput = z.infer<typeof clearHistoryOutputSchema>
+
 // ---- document translation ----
 
 export const TRANSLATE_DOCUMENT_MAX_PAGES = 200
@@ -222,6 +238,8 @@ export const translateContract = oc.router({
   translate: oc.input(translateTextInputSchema).output(translateTextOutputSchema),
   saveHistory: oc.input(saveHistoryInputSchema).output(saveHistoryOutputSchema),
   listHistory: oc.input(listHistoryInputSchema).output(listHistoryOutputSchema),
+  deleteHistory: oc.input(deleteHistoryInputSchema).output(deleteHistoryOutputSchema),
+  clearHistory: oc.input(clearHistoryInputSchema).output(clearHistoryOutputSchema),
   document: oc.router({
     create: oc.input(documentCreateInputSchema).output(documentCreateOutputSchema),
     status: oc.input(documentStatusInputSchema).output(documentStatusOutputSchema),

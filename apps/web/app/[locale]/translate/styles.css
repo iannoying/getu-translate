@@ -83,8 +83,24 @@
 
 .translate-page {
   display: flex;
+  flex-direction: row;
+  gap: 16px;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.translate-page-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+@media (max-width: 720px) {
+  .translate-page {
+    flex-direction: column;
+  }
 }
 
 .translate-toolbar {
@@ -340,4 +356,169 @@
 .button.small {
   font-size: 13px;
   padding: 6px 12px;
+}
+
+/* ── History drawer (M6.6) ───────────────────────────────────────────── */
+
+.history-drawer {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  background: var(--surface-soft, #fafafa);
+  border: 1px solid var(--border-soft, #e3e3e8);
+  border-radius: 12px;
+  padding: 8px;
+  transition: width 0.2s ease;
+}
+
+.history-drawer-closed {
+  width: 44px;
+}
+
+.history-drawer-open {
+  width: 320px;
+  max-width: 80vw;
+}
+
+.history-drawer-toggle {
+  background: transparent;
+  border: 0;
+  font-size: 13px;
+  color: var(--ink-soft, #555);
+  cursor: pointer;
+  padding: 6px 8px;
+  text-align: left;
+  white-space: nowrap;
+  border-radius: 6px;
+}
+
+.history-drawer-toggle:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.history-drawer-closed .history-drawer-toggle {
+  /* When closed, rotate the label so it reads vertically and the column
+   * stays narrow. Avoid CSS writing-mode for broader browser-quirk safety. */
+  transform: rotate(-90deg);
+  transform-origin: center;
+  margin-top: 24px;
+}
+
+.history-drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.history-drawer-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.history-drawer-search {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border-soft, #e3e3e8);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.history-drawer-empty {
+  margin: 0;
+  padding: 16px 8px;
+  color: var(--ink-soft, #777);
+  font-size: 13px;
+  text-align: center;
+}
+
+.history-drawer-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.history-drawer-group-title {
+  margin: 0 0 4px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft, #888);
+}
+
+.history-drawer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.history-drawer-item {
+  display: flex;
+  align-items: stretch;
+  border-radius: 6px;
+}
+
+.history-drawer-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.history-drawer-item-restore {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  padding: 8px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.history-drawer-item-text {
+  font-size: 13px;
+  color: var(--ink, #222);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-drawer-item-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ink-soft, #888);
+  align-items: center;
+}
+
+.history-drawer-lang-badge {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.history-drawer-time {
+  margin-left: auto;
+}
+
+.history-drawer-item-delete {
+  background: transparent;
+  border: 0;
+  color: var(--ink-soft, #999);
+  cursor: pointer;
+  padding: 0 8px;
+  font-size: 14px;
+}
+
+.history-drawer-item-delete:hover {
+  color: #c0392b;
 }
