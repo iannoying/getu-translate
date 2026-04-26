@@ -221,6 +221,58 @@ describe("handleChatCompletions", () => {
     )
   })
 
+  it("falls back to the default quota bucket for unknown bucket headers", async () => {
+    const { verifyAiJwt } = await import("../jwt")
+    const { consumeQuota } = await import("../../billing/quota")
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    const sse = [
+      `data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n`,
+      `data: {"choices":[{"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":1}}\n\n`,
+      `data: [DONE]\n\n`,
+    ].join("")
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(sse, {
+            status: 200,
+            headers: { "content-type": "text/event-stream" },
+          }),
+      ),
+    )
+    const ctx = fakeCtx()
+    const req = new Request("https://x/ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer ok",
+        "x-request-id": "req-unknown-bucket",
+        "x-getu-quota-bucket": "not-a-real-bucket",
+      },
+      body: JSON.stringify({
+        model: "deepseek-v4-pro",
+        messages: [{ role: "user", content: "hi" }],
+        stream: true,
+      }),
+    })
+
+    const r = await handleChatCompletions(req, env, ctx as any)
+    const reader = r.body!.getReader()
+    while (!(await reader.read()).done) {}
+    await ctx.drain()
+
+    expect(consumeQuota).toHaveBeenCalledWith(
+      expect.anything(),
+      "u1",
+      "ai_translate_monthly",
+      14,
+      "req-unknown-bucket",
+      undefined,
+      "deepseek-v4-pro",
+      10,
+      1,
+    )
+  })
+
   it("429 when rate limited", async () => {
     const { verifyAiJwt } = await import("../jwt")
     const { checkRateLimit } = await import("../rate-limit")
