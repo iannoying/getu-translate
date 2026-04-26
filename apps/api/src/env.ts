@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { D1Database } from "@cloudflare/workers-types"
+import type { D1Database, Queue, R2Bucket } from "@cloudflare/workers-types"
 
 /** Workers env bindings.
  *  D1 is injected as a binding (not a URL). Secrets come from `wrangler secret put`. */
@@ -14,6 +14,19 @@ export interface WorkerEnv {
   AI_JWT_SECRET: string
   // Phase 4: billing feature flag ("true" | "false")
   BILLING_ENABLED: string
+  // M6.8 — PDF translation: R2 bucket + queue producer.
+  // Both optional so dev / vitest with no binding falls back gracefully
+  // (presign endpoint returns 503; documentCreate keeps client page count
+  // and skips enqueue with a console.warn).
+  BUCKET_PDFS?: R2Bucket
+  TRANSLATE_QUEUE?: Queue<{ jobId: string }>
+  // M6.8 — R2 S3-compatible credentials for browser presigned PUT.
+  // Provisioned out-of-band via `wrangler secret put R2_ACCESS_KEY_ID` etc.
+  // Without these the presign endpoint returns 503 — staging/dev fallback.
+  R2_ACCOUNT_ID?: string
+  R2_ACCESS_KEY_ID?: string
+  R2_SECRET_ACCESS_KEY?: string
+  R2_BUCKET_PDFS_NAME?: string
   // Phase 4: paddle billing (sandbox until vendor approval; prod values come later)
   PADDLE_API_KEY: string
   PADDLE_WEBHOOK_SECRET: string

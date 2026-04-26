@@ -9,8 +9,10 @@ import {
   documentListOutputSchema,
   documentStatusInputSchema,
   documentStatusOutputSchema,
+  TRANSLATE_DOCUMENT_MAX_PAGES,
 } from "@getu/contract"
 import { loadEntitlements } from "../../billing/entitlements"
+import { readPdfPageCount } from "../../translate/document"
 import { authed } from "../context"
 import { requireModelAccess, type Plan } from "./models"
 import { consumeTranslateQuota } from "./quota"
@@ -89,13 +91,49 @@ export const documentCreate = authed
       })
     }
 
-    // Atomic page-count decrement.
+    // Server-side page count: pull the uploaded PDF from R2 and parse its
+    // metadata. This overrides the client-supplied `sourcePages` so a
+    // malicious client can't fudge a 200-page PDF as "1 page" to skip the
+    // quota check. Falls back to client value when BUCKET_PDFS isn't bound
+    // (dev / vitest with no R2 binding) — defensive only, prod always has it.
+    let pages = input.sourcePages
+    const bucket = context.env.BUCKET_PDFS
+    if (bucket) {
+      const obj = await bucket.get(input.sourceKey)
+      if (!obj) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "未找到上传的 PDF — 请先完成上传，再调用 documentCreate",
+          data: { code: "SOURCE_NOT_FOUND" },
+        })
+      }
+      const buf = await obj.arrayBuffer()
+      try {
+        pages = await readPdfPageCount(new Uint8Array(buf))
+      } catch (err) {
+        const code = (err as { code?: string }).code ?? "SCANNED_PDF"
+        throw new ORPCError("BAD_REQUEST", {
+          message: "无法读取 PDF 页数（可能是扫描件或加密文件）",
+          data: { code },
+        })
+      }
+      if (pages > TRANSLATE_DOCUMENT_MAX_PAGES) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: `PDF 页数 ${pages} 超过 ${TRANSLATE_DOCUMENT_MAX_PAGES} 上限`,
+          data: { code: "TOO_MANY_PAGES", limit: TRANSLATE_DOCUMENT_MAX_PAGES, actual: pages },
+        })
+      }
+    } else {
+      // Dev fallback only — log so ops can spot it, never silently in prod.
+      console.warn("[documentCreate] BUCKET_PDFS missing — trusting client sourcePages (dev)")
+    }
+
+    // Atomic page-count decrement using the SERVER-side page value.
     const jobId = crypto.randomUUID()
     await consumeTranslateQuota(
       db,
       userId,
       "web_pdf_translate_monthly",
-      input.sourcePages,
+      pages,
       `web-pdf:${userId}:${jobId}`,
     )
 
@@ -106,7 +144,7 @@ export const documentCreate = authed
       id: jobId,
       userId,
       sourceKey: input.sourceKey,
-      sourcePages: input.sourcePages,
+      sourcePages: pages,
       sourceFilename: input.sourceFilename ?? null,
       sourceBytes: input.sourceBytes,
       modelId,
@@ -117,6 +155,15 @@ export const documentCreate = authed
       createdAt: new Date(now),
       expiresAt: new Date(expiresAtMs),
     })
+
+    // Cloudflare Queue dispatch — consumer worker (M6.9) drains this and
+    // flips status queued → processing → done. Optional binding so dev
+    // without queues set up degrades to "row stays in queued forever".
+    if (context.env.TRANSLATE_QUEUE) {
+      await context.env.TRANSLATE_QUEUE.send({ jobId })
+    } else {
+      console.warn("[documentCreate] TRANSLATE_QUEUE missing — job will not auto-start")
+    }
 
     return { jobId }
   })

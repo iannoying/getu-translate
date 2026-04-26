@@ -1,0 +1,124 @@
+/* /document page styles. Reuses translate-shell + translate-toolbar from
+   ../translate/styles.css (imported alongside this file in page.tsx). */
+
+.document-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px 0;
+}
+
+.document-from-url-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  border: 1px solid var(--accent);
+  background: var(--surface);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.document-from-url-link {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: var(--ink-soft);
+  word-break: break-all;
+}
+
+.document-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  border: 2px dashed var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  text-align: center;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.document-dropzone.drag-over {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.document-dropzone-hint {
+  margin: 0;
+  font-size: 16px;
+  color: var(--ink-soft);
+}
+
+.document-dropzone-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.document-file-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.document-options {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.document-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.document-option select {
+  min-width: 220px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.document-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.document-result-placeholder {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.document-result-placeholder code {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 8px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+}
+
+.document-error {
+  padding: 12px 16px;
+  border: 1px solid #c33;
+  background: color-mix(in srgb, #c33 6%, var(--surface));
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.document-error strong {
+  display: block;
+  margin-bottom: 4px;
+}
