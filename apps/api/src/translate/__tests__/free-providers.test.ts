@@ -63,6 +63,18 @@ describe("googleTranslate", () => {
       message: expect.stringContaining("ECONNRESET"),
     })
   })
+
+  it("Google translate handles null translatedText chunks gracefully", async () => {
+    // Google returns shape: [[[<translation>, <source>, ...], ...], ...]
+    // Some chunks can have null translation
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify([[[null, "hi"], [null, "world"]]]), { status: 200 }),
+    ) as unknown as typeof fetch
+
+    const out = await googleTranslate("hi world", "auto", "zh-Hans", fetchMock)
+    // Expect graceful handling — should not crash, should return a string (possibly empty)
+    expect(typeof out).toBe("string")
+  })
 })
 
 describe("microsoftTranslate", () => {
@@ -191,6 +203,26 @@ describe("microsoftTranslate", () => {
     const params = new URL(capturedUrl).searchParams
     expect(params.get("from")).toBe("en")
     expect(params.get("to")).toBe("zh-Hans")
+  })
+
+  it("Microsoft auth 403 surfaces as throwable error", async () => {
+    const fetchMock = vi.fn(async (url: string | URL) => {
+      const u = typeof url === "string" ? url : url.toString()
+      if (u.includes("/auth")) return new Response("forbidden", { status: 403 })
+      throw new Error("should not reach translate endpoint")
+    }) as unknown as typeof fetch
+
+    await expect(microsoftTranslate("hi", "auto", "zh-Hans", fetchMock)).rejects.toThrow()
+  })
+
+  it("Microsoft auth empty body throws", async () => {
+    const fetchMock = vi.fn(async (url: string | URL) => {
+      const u = typeof url === "string" ? url : url.toString()
+      if (u.includes("/auth")) return new Response("", { status: 200 })
+      throw new Error("should not reach translate endpoint")
+    }) as unknown as typeof fetch
+
+    await expect(microsoftTranslate("hi", "auto", "zh-Hans", fetchMock)).rejects.toThrow()
   })
 })
 
