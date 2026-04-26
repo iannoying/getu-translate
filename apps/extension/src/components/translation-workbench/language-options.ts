@@ -27,6 +27,6 @@ export function fromSidebarLanguageCode(code: SidebarLanguageCode): LangCodeISO6
   return SIDEBAR_SOURCE_LANGUAGES.find(l => l.code === code)?.iso6393 ?? "eng"
 }
 
-export function toSidebarLanguageCode(code: LangCodeISO6393 | "auto"): SidebarLanguageCode {
-  return SIDEBAR_SOURCE_LANGUAGES.find(l => l.iso6393 === code)?.code ?? "en"
+export function toSidebarLanguageCode(code: LangCodeISO6393 | "auto"): SidebarLanguageCode | undefined {
+  return SIDEBAR_SOURCE_LANGUAGES.find(l => l.iso6393 === code)?.code
 }

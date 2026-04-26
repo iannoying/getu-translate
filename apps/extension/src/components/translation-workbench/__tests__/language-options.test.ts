@@ -27,4 +27,8 @@ describe("language-options", () => {
     expect(toSidebarLanguageCode("cmn-Hant")).toBe("zh-TW")
     expect(toSidebarLanguageCode("kor")).toBe("ko")
   })
+
+  it("does not silently map unsupported extension language codes to English", () => {
+    expect(toSidebarLanguageCode("ita")).toBeUndefined()
+  })
 })
