@@ -11,6 +11,7 @@ const REQUIRED_KEYS = [
   "textTab",
   "documentTab",
   "closeSidebar",
+  "openPanel",
   "textTitle",
   "documentTitle",
   "documentDescription",
@@ -50,6 +51,10 @@ const REQUIRED_KEYS = [
 ] as const
 
 describe("translation workbench i18n copy", () => {
+  it("tracks the floating-button open-panel label", () => {
+    expect(REQUIRED_KEYS).toContain("openPanel")
+  })
+
   it.each(LOCALE_FILES)("%s defines every translationWorkbench.* key with a non-empty value", (fileName) => {
     const path = join(LOCALES_DIR, fileName)
     const text = readFileSync(path, "utf-8")
