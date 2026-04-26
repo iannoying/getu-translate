@@ -156,7 +156,7 @@ export default function FloatingButton() {
         className={cn(
           "border-border invisible flex h-8 items-center gap-1.5 rounded-l-full border border-r-0 bg-white px-2 text-xs font-medium text-neutral-700 opacity-0 shadow-lg dark:bg-neutral-900 dark:text-neutral-200",
           "transition-opacity duration-300",
-          "group-hover:visible group-hover:opacity-100 focus:visible focus:opacity-100 focus-visible:visible focus-visible:opacity-100",
+          "group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 focus:visible focus:opacity-100 focus-visible:visible focus-visible:opacity-100",
           isSideOpen && "visible opacity-100",
           attachSideClassName,
         )}

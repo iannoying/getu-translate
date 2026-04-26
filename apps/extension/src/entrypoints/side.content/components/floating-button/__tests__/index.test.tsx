@@ -160,6 +160,8 @@ describe("floatingButton open panel tab", () => {
     expect(openPanelTab).toHaveClass("opacity-0")
     expect(openPanelTab).toHaveClass("group-hover:visible")
     expect(openPanelTab).toHaveClass("group-hover:opacity-100")
+    expect(openPanelTab).toHaveClass("group-focus-within:visible")
+    expect(openPanelTab).toHaveClass("group-focus-within:opacity-100")
     expect(openPanelTab).toHaveClass("focus-visible:visible")
     expect(openPanelTab).toHaveClass("focus-visible:opacity-100")
     expect(openPanelTab).not.toHaveClass("hidden")
