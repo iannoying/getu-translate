@@ -10,7 +10,7 @@ export function deriveTitle(file: SegmentsFile): string {
   if (file.segments.length === 0) return "翻译结果"
   const raw = file.segments[0].source.trim()
   if (!raw) return "翻译结果"
-  return raw.slice(0, 100)
+  return [...raw].slice(0, 100).join("")
 }
 
 function escapeHtml(s: string): string {

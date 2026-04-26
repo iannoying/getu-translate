@@ -125,12 +125,14 @@ describe("queue translate-document handler", () => {
     const { batch, ack } = makeBatch("j1")
     await handler.queue(batch as any, {} as any, {} as any)
 
-    // R2 put called three times: segments.json, output.html, output.md
+    // R2 put called three times in order: segments.json, output.html, output.md
     expect(r2Put).toHaveBeenCalledTimes(3)
     const putKeys = r2Put.mock.calls.map((c) => (c as unknown[])[0] as string)
-    expect(putKeys).toContain("pdfs/u1/j1/segments.json")
-    expect(putKeys).toContain("pdfs/u1/j1/output.html")
-    expect(putKeys).toContain("pdfs/u1/j1/output.md")
+    expect(putKeys).toEqual([
+      "pdfs/u1/j1/segments.json",
+      "pdfs/u1/j1/output.html",
+      "pdfs/u1/j1/output.md",
+    ])
 
     // Message acked
     expect(ack).toHaveBeenCalled()
@@ -316,6 +318,12 @@ describe("queue translate-document handler", () => {
     const [job] = await db.select().from(schema.translationJobs).where(eq(schema.translationJobs.id, "j-out"))
     expect(job.status).toBe("failed")
     expect(job.errorMessage).toMatch(/结果保存失败/)
+
+    // Verify put ordering: segments.json succeeded (call #1), output.html threw (call #2), md never reached
+    const outPutKeys = r2Put.mock.calls.map((c) => (c as unknown[])[0] as string)
+    expect(outPutKeys[0]).toMatch(/segments\.json$/)
+    expect(outPutKeys[1]).toMatch(/output\.html$/)
+    expect(putCount).toBe(2)
 
     // Refund row exists
     const refunds = await db
