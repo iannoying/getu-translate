@@ -1,12 +1,26 @@
 import { isProModel, normalizeTokens, type ProModel } from "@getu/contract"
 import { createDb } from "@getu/db"
-import { consumeQuota } from "../billing/quota"
+import {
+  normalizeTranslateTokens,
+  type TranslateModelId,
+} from "@getu/definitions"
+import { assertCanConsumeQuotaBucket, consumeQuota } from "../billing/quota"
 import { verifyAiJwt } from "./jwt"
 import { checkRateLimit, RATE_LIMIT_PER_MINUTE } from "./rate-limit"
 import { extractUsageFromSSE } from "./usage-parser"
 import type { WorkerEnv } from "../env"
 
 type AiProxyQuotaBucket = "ai_translate_monthly" | "web_text_translate_token_monthly"
+
+const PRO_MODEL_TO_TRANSLATE_MODEL_ID = {
+  "deepseek-v4-pro": "deepseek-v4-pro",
+  "qwen3.5-plus": "qwen-3.5-plus",
+  "glm-5.1": "glm-5.1",
+  "gemini-3-flash-preview": "gemini-3-flash-preview",
+  "gemini-3.1-pro-preview": "gemini-3.1-pro-preview",
+  "gpt-5.5": "gpt-5.5",
+  "claude-sonnet-4-6": "claude-sonnet-4-6",
+} as const satisfies Record<ProModel, TranslateModelId>
 
 function resolveAiProxyQuotaBucket(req: Request): AiProxyQuotaBucket {
   const raw = req.headers.get("x-getu-quota-bucket")
@@ -52,6 +66,21 @@ export async function handleChatCompletions(
   if (!isProModel(body.model))
     return json({ error: `model '${body.model}' not in Pro whitelist` }, 400)
   const model: ProModel = body.model
+  const quotaBucket = resolveAiProxyQuotaBucket(req)
+
+  try {
+    await assertCanConsumeQuotaBucket(db, userId, quotaBucket)
+  } catch (err) {
+    if (hasErrorCode(err, "FORBIDDEN")) {
+      return json({ error: getErrorMessage(err, "quota bucket forbidden") }, 403)
+    }
+    console.warn("[ai-proxy] quota preflight failed", {
+      userId,
+      quotaBucket,
+      err: String(err),
+    })
+    return json({ error: "quota preflight failed" }, 500)
+  }
 
   // 3. Forward to bianxie.ai — force stream_options.include_usage so we can charge
   // Note: client's own stream_options is intentionally overwritten to guarantee
@@ -71,7 +100,6 @@ export async function handleChatCompletions(
   }
 
   const requestId = req.headers.get("x-request-id") ?? crypto.randomUUID()
-  const quotaBucket = resolveAiProxyQuotaBucket(req)
 
   // 4. Stream branch
   const isStream =
@@ -115,7 +143,7 @@ async function chargeAfterStream(
 ): Promise<void> {
   try {
     const usage = await usageP
-    const units = usage == null ? 1 : normalizeTokens(model, usage)
+    const units = usage == null ? 1 : normalizeQuotaTokens(quotaBucket, model, usage)
     if (units < 1) return
     await consumeQuota(
       db, userId, quotaBucket, units, requestId,
@@ -133,6 +161,25 @@ async function chargeAfterStream(
       err: String(err),
     })
   }
+}
+
+function normalizeQuotaTokens(
+  quotaBucket: AiProxyQuotaBucket,
+  model: ProModel,
+  usage: { input: number; output: number },
+): number {
+  if (quotaBucket === "web_text_translate_token_monthly") {
+    return normalizeTranslateTokens(PRO_MODEL_TO_TRANSLATE_MODEL_ID[model], usage)
+  }
+  return normalizeTokens(model, usage)
+}
+
+function hasErrorCode(err: unknown, code: string): boolean {
+  return typeof err === "object" && err !== null && "code" in err && err.code === code
+}
+
+function getErrorMessage(err: unknown, fallback: string): string {
+  return err instanceof Error && err.message ? err.message : fallback
 }
 
 function filterResponseHeaders(h: Headers): HeadersInit {

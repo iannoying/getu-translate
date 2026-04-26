@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
-import { consumeQuota } from "../quota"
+import { assertCanConsumeQuotaBucket, consumeQuota } from "../quota"
 
 const NOW = new Date("2026-04-22T15:03:00.000Z")
 const USER_ID = "user-1"
@@ -204,5 +204,31 @@ describe("consumeQuota", () => {
       expect(res.remaining).toBeNull() // enterprise ai_translate_monthly = unlimited
       expect(batchFn).toHaveBeenCalledTimes(1)
     })
+  })
+})
+
+describe("assertCanConsumeQuotaBucket", () => {
+  it("throws FORBIDDEN for a free-tier zero-limit bucket without writing usage", async () => {
+    const { db, batchFn } = makeFakeDbByOrder([
+      undefined, // userEntitlements — no row → defaults to free
+    ])
+
+    await expect(
+      assertCanConsumeQuotaBucket(db, USER_ID, "web_text_translate_token_monthly", NOW),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" })
+
+    expect(batchFn).not.toHaveBeenCalled()
+  })
+
+  it("allows a pro-tier bucket preflight without consuming quota", async () => {
+    const { db, batchFn } = makeFakeDbByOrder([
+      { tier: "pro", expiresAt: new Date("2099-01-01"), features: "[]" },
+    ])
+
+    await expect(
+      assertCanConsumeQuotaBucket(db, USER_ID, "web_text_translate_token_monthly", NOW),
+    ).resolves.toBeUndefined()
+
+    expect(batchFn).not.toHaveBeenCalled()
   })
 })

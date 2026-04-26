@@ -9,6 +9,7 @@ vi.mock("../rate-limit", () => ({
   RATE_LIMIT_PER_MINUTE: 300,
 }))
 vi.mock("../../billing/quota", () => ({
+  assertCanConsumeQuotaBucket: vi.fn(async () => undefined),
   consumeQuota: vi.fn(async () => ({
     bucket: "ai_translate_monthly",
     remaining: 99000,
@@ -39,7 +40,11 @@ function fakeCtx() {
 }
 
 describe("handleChatCompletions", () => {
-  beforeEach(() => vi.restoreAllMocks())
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.clearAllMocks()
+    vi.unstubAllGlobals()
+  })
 
   it("401 when missing Bearer", async () => {
     const req = new Request("https://x/ai/v1/chat/completions", { method: "POST", body: "{}" })
@@ -169,13 +174,13 @@ describe("handleChatCompletions", () => {
     )
   })
 
-  it("charges the web text token bucket when requested by header", async () => {
+  it("charges the web text token bucket with web /translate token coefficients", async () => {
     const { verifyAiJwt } = await import("../jwt")
     const { consumeQuota } = await import("../../billing/quota")
     vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
     const sse = [
       `data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n`,
-      `data: {"choices":[{"finish_reason":"stop"}],"usage":{"prompt_tokens":20,"completion_tokens":5}}\n\n`,
+      `data: {"choices":[{"finish_reason":"stop"}],"usage":{"prompt_tokens":100,"completion_tokens":200}}\n\n`,
       `data: [DONE]\n\n`,
     ].join("")
     vi.stubGlobal(
@@ -197,7 +202,7 @@ describe("handleChatCompletions", () => {
         "x-getu-quota-bucket": "web_text_translate_token_monthly",
       },
       body: JSON.stringify({
-        model: "deepseek-v4-pro",
+        model: "claude-sonnet-4-6",
         messages: [{ role: "user", content: "hi" }],
         stream: true,
       }),
@@ -212,13 +217,57 @@ describe("handleChatCompletions", () => {
       expect.anything(),
       "u1",
       "web_text_translate_token_monthly",
-      40,
+      17000,
       "sidebar-token-req",
       undefined,
-      "deepseek-v4-pro",
-      20,
-      5,
+      "claude-sonnet-4-6",
+      100,
+      200,
     )
+  })
+
+  it("403s before upstream fetch when quota bucket preflight is forbidden", async () => {
+    const { verifyAiJwt } = await import("../jwt")
+    const { assertCanConsumeQuotaBucket, consumeQuota } = await import("../../billing/quota")
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    vi.mocked(assertCanConsumeQuotaBucket).mockRejectedValueOnce(
+      Object.assign(new Error("Tier 'free' cannot access bucket 'web_text_translate_token_monthly'"), {
+        code: "FORBIDDEN",
+      }),
+    )
+    const fetchSpy = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ usage: { prompt_tokens: 100, completion_tokens: 200 } }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    )
+    vi.stubGlobal("fetch", fetchSpy)
+
+    const req = new Request("https://x/ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer ok",
+        "x-getu-quota-bucket": "web_text_translate_token_monthly",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    })
+
+    const r = await handleChatCompletions(req, env, fakeCtx() as any)
+    const body = (await r.json()) as { error: string }
+
+    expect(r.status).toBe(403)
+    expect(body.error).toMatch(/forbidden|cannot access/i)
+    expect(assertCanConsumeQuotaBucket).toHaveBeenCalledWith(
+      expect.anything(),
+      "u1",
+      "web_text_translate_token_monthly",
+    )
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(consumeQuota).not.toHaveBeenCalled()
   })
 
   it("falls back to the default quota bucket for unknown bucket headers", async () => {
