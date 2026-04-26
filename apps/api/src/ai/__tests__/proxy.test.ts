@@ -169,6 +169,58 @@ describe("handleChatCompletions", () => {
     )
   })
 
+  it("charges the web text token bucket when requested by header", async () => {
+    const { verifyAiJwt } = await import("../jwt")
+    const { consumeQuota } = await import("../../billing/quota")
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    const sse = [
+      `data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n`,
+      `data: {"choices":[{"finish_reason":"stop"}],"usage":{"prompt_tokens":20,"completion_tokens":5}}\n\n`,
+      `data: [DONE]\n\n`,
+    ].join("")
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(sse, {
+            status: 200,
+            headers: { "content-type": "text/event-stream" },
+          }),
+      ),
+    )
+    const ctx = fakeCtx()
+    const req = new Request("https://x/ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer ok",
+        "x-request-id": "sidebar-token-req",
+        "x-getu-quota-bucket": "web_text_translate_token_monthly",
+      },
+      body: JSON.stringify({
+        model: "deepseek-v4-pro",
+        messages: [{ role: "user", content: "hi" }],
+        stream: true,
+      }),
+    })
+
+    const r = await handleChatCompletions(req, env, ctx as any)
+    const reader = r.body!.getReader()
+    while (!(await reader.read()).done) {}
+    await ctx.drain()
+
+    expect(consumeQuota).toHaveBeenCalledWith(
+      expect.anything(),
+      "u1",
+      "web_text_translate_token_monthly",
+      40,
+      "sidebar-token-req",
+      undefined,
+      "deepseek-v4-pro",
+      20,
+      5,
+    )
+  })
+
   it("429 when rate limited", async () => {
     const { verifyAiJwt } = await import("../jwt")
     const { checkRateLimit } = await import("../rate-limit")

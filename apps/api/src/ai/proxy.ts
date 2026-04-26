@@ -6,6 +6,19 @@ import { checkRateLimit, RATE_LIMIT_PER_MINUTE } from "./rate-limit"
 import { extractUsageFromSSE } from "./usage-parser"
 import type { WorkerEnv } from "../env"
 
+type AiProxyQuotaBucket = "ai_translate_monthly" | "web_text_translate_token_monthly"
+
+function resolveAiProxyQuotaBucket(req: Request): AiProxyQuotaBucket {
+  const raw = req.headers.get("x-getu-quota-bucket")
+  if (raw === null || raw === "" || raw === "ai_translate_monthly") {
+    return "ai_translate_monthly"
+  }
+  if (raw === "web_text_translate_token_monthly") {
+    return raw
+  }
+  return "ai_translate_monthly"
+}
+
 export async function handleChatCompletions(
   req: Request,
   env: WorkerEnv,
@@ -58,6 +71,7 @@ export async function handleChatCompletions(
   }
 
   const requestId = req.headers.get("x-request-id") ?? crypto.randomUUID()
+  const quotaBucket = resolveAiProxyQuotaBucket(req)
 
   // 4. Stream branch
   const isStream =
@@ -65,7 +79,7 @@ export async function handleChatCompletions(
     (upstream.headers.get("content-type") ?? "").includes("text/event-stream")
   if (isStream) {
     const [forward, usageP] = extractUsageFromSSE(upstream.body)
-    ctx.waitUntil(chargeAfterStream(db, userId, model, usageP, requestId))
+    ctx.waitUntil(chargeAfterStream(db, userId, model, usageP, requestId, quotaBucket))
     return new Response(forward, {
       status: 200,
       headers: filterResponseHeaders(upstream.headers),
@@ -84,7 +98,7 @@ export async function handleChatCompletions(
     parsed.usage?.prompt_tokens != null && parsed.usage?.completion_tokens != null
       ? { input: parsed.usage.prompt_tokens, output: parsed.usage.completion_tokens }
       : null
-  ctx.waitUntil(chargeAfterStream(db, userId, model, Promise.resolve(usage), requestId))
+  ctx.waitUntil(chargeAfterStream(db, userId, model, Promise.resolve(usage), requestId, quotaBucket))
   return new Response(text, {
     status: 200,
     headers: filterResponseHeaders(upstream.headers),
@@ -97,20 +111,27 @@ async function chargeAfterStream(
   model: ProModel,
   usageP: Promise<{ input: number; output: number } | null>,
   requestId: string,
+  quotaBucket: AiProxyQuotaBucket,
 ): Promise<void> {
   try {
     const usage = await usageP
     const units = usage == null ? 1 : normalizeTokens(model, usage)
     if (units < 1) return
     await consumeQuota(
-      db, userId, "ai_translate_monthly", units, requestId,
+      db, userId, quotaBucket, units, requestId,
       undefined,
       model,
       usage?.input,
       usage?.output,
     )
   } catch (err) {
-    console.warn("[ai-proxy] charge failed", { userId, model, requestId, err: String(err) })
+    console.warn("[ai-proxy] charge failed", {
+      userId,
+      model,
+      requestId,
+      quotaBucket,
+      err: String(err),
+    })
   }
 }
 
