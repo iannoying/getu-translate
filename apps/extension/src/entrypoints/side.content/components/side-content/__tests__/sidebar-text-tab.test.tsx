@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { SidebarTextTab } from "../sidebar-text-tab"
 
 const sendMessageMock = vi.hoisted(() => vi.fn(() => Promise.resolve()))
+const useAuthRefreshOnFocusMock = vi.hoisted(() => vi.fn())
 
 vi.mock("#imports", () => ({
   browser: { tabs: { create: vi.fn() } },
@@ -60,6 +61,10 @@ vi.mock("@/hooks/use-entitlements", () => ({
   }),
 }))
 
+vi.mock("@/components/translation-workbench/use-auth-refresh", () => ({
+  useAuthRefreshOnFocus: useAuthRefreshOnFocusMock,
+}))
+
 vi.mock("../../../index", () => ({
   shadowWrapper: document.body,
 }))
@@ -94,10 +99,13 @@ vi.mock("@/components/translation-workbench/translate-runner", () => ({
 describe("sidebarTextTab", () => {
   beforeEach(() => {
     sendMessageMock.mockClear()
+    useAuthRefreshOnFocusMock.mockClear()
   })
 
   it("opens login and upgrade links through background messaging", () => {
     render(<SidebarTextTab />)
+
+    expect(useAuthRefreshOnFocusMock).toHaveBeenCalledWith(null)
 
     fireEvent.click(screen.getByRole("button", { name: "login" }))
     fireEvent.click(screen.getByRole("button", { name: "upgrade" }))

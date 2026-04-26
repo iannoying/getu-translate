@@ -9,6 +9,7 @@ import { getTextTranslateCharLimit, planFromEntitlements } from "@/components/tr
 import { ProviderMultiSelect } from "@/components/translation-workbench/provider-multi-select"
 import { TranslationWorkbenchResultCard } from "@/components/translation-workbench/result-card"
 import { runTranslationWorkbenchRequest } from "@/components/translation-workbench/translate-runner"
+import { useAuthRefreshOnFocus } from "@/components/translation-workbench/use-auth-refresh"
 import { Button } from "@/components/ui/base-ui/button"
 import { Textarea } from "@/components/ui/base-ui/textarea"
 import { useEntitlements } from "@/hooks/use-entitlements"
@@ -37,6 +38,7 @@ export function SidebarTextTab() {
   const providersConfig = useAtomValue(configFieldsAtomMap.providersConfig)
   const session = authClient.useSession()
   const userId = session.data?.user?.id ?? null
+  useAuthRefreshOnFocus(userId)
   const { data: entitlements } = useEntitlements(userId)
   const plan = planFromEntitlements(userId, entitlements)
   const charLimit = getTextTranslateCharLimit(plan)
