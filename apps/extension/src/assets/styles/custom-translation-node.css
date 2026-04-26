@@ -35,7 +35,8 @@
 }
 
 [data-read-frog-custom-translation-style="textColor"] {
-  color: var(--read-frog-primary) !important;
+  color: inherit !important;
+  font-feature-settings: normal;
 }
 
 [data-read-frog-custom-translation-style="background"] {

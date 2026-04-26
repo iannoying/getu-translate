@@ -24,6 +24,13 @@
   text-decoration: inherit;
 }
 
+a.read-frog-translated-block-content[href],
+a.read-frog-translated-inline-content[href],
+.read-frog-translated-content-wrapper a[href] {
+  color: revert !important;
+  text-decoration: revert !important;
+}
+
 /* Simplified Chinese - macOS > Windows > Cross-platform > Fallback */
 .read-frog-translated-content-wrapper[lang="zh"],
 .read-frog-translated-content-wrapper[lang="zh"] * {
