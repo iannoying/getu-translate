@@ -16,7 +16,11 @@
   },
   "dependencies": {
     "@better-auth/passkey": "1.6.3",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@getu/contract": "workspace:*",
+    "@getu/definitions": "workspace:*",
     "@orpc/client": "^1.13.14",
     "better-auth": "^1.6.3",
     "next": "^15.1.4",
