@@ -18,6 +18,9 @@ export async function runColumnTranslations(
         return { modelId: task.modelId, ...out }
       } catch (e) {
         const err = e as { name?: string; message?: string; code?: string }
+        // `signal.aborted` is a safety net: if a custom `run` rejects with an
+        // error that lost the `name === "AbortError"` tag (e.g., a wrapper that
+        // remaps fetch errors), we still detect the abort and return ABORTED.
         if (err?.name === "AbortError" || signal.aborted) {
           return { modelId: task.modelId, error: { code: "ABORTED" } }
         }

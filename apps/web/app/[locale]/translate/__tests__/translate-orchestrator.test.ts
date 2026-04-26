@@ -52,4 +52,27 @@ describe("runColumnTranslations", () => {
     const failed = results.find(r => r.modelId === "fail")!
     expect("error" in failed && failed.error.code).toBe("UNKNOWN")
   })
+
+  it("captures synchronously-thrown errors as UNKNOWN", async () => {
+    const tasks = [
+      {
+        modelId: "sync-fail",
+        run: () => {
+          throw new Error("sync explosion")
+        },
+      },
+    ]
+    const ac = new AbortController()
+    const results = await runColumnTranslations(tasks, ac.signal)
+    expect(results).toHaveLength(1)
+    const r = results[0]
+    expect("error" in r && r.error.code).toBe("UNKNOWN")
+    expect("error" in r && r.error.message).toBe("sync explosion")
+  })
+
+  it("returns [] when given no tasks", async () => {
+    const ac = new AbortController()
+    const results = await runColumnTranslations([], ac.signal)
+    expect(results).toEqual([])
+  })
 })
