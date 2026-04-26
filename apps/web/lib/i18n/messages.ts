@@ -133,6 +133,37 @@ export type Messages = {
       tooltip: string
     }
   }
+  document: {
+    metaTitle: string
+    metaDescription: string
+    uploadButton: string
+    dragDropHint: string
+    /** Template `{maxMB}` `{maxPages}`. */
+    limitsTemplate: string
+    clearFile: string
+    modelPicker: string
+    modelLockedSuffix: string
+    submit: string
+    /** Template `{pct}` interpolated. */
+    uploadingTemplate: string
+    creating: string
+    /** Template `{jobId}`. */
+    resultPlaceholder: string
+    fromUrl: {
+      heading: string
+      loading: string
+    }
+    errors: {
+      heading: string
+      notPdf: string
+      fileTooLarge: string
+      r2Unavailable: string
+      presignFailed: string
+      uploadFailed: string
+      fromUrlFailed: string
+      scannedPdfError: string
+    }
+  }
 }
 
 const EMPTY_POLICY_SECTIONS: PolicySectionMessage[] = []
@@ -561,6 +592,34 @@ export const messages: Record<Locale, Messages> = {
         tooltip: "Requests {textUsed}/{textLimit} · Tokens {tokenUsed}/{tokenLimit} · PDF {pdfUsed}/{pdfLimit}",
       },
     },
+    document: {
+      metaTitle: "Document translation · GetU Translate",
+      metaDescription: "Translate PDF documents with multilingual AI. Upload your PDF and get a fully translated copy.",
+      uploadButton: "Choose a PDF",
+      dragDropHint: "Drop a PDF here, or click to browse.",
+      limitsTemplate: "Up to {maxMB} MB · {maxPages} pages",
+      clearFile: "Remove",
+      modelPicker: "Model",
+      modelLockedSuffix: "(Pro)",
+      submit: "Translate document",
+      uploadingTemplate: "Uploading {pct}%",
+      creating: "Creating job…",
+      resultPlaceholder: "Your translation job has been queued. Job id: {jobId}",
+      fromUrl: {
+        heading: "Translating PDF from URL",
+        loading: "Fetching PDF from the source URL…",
+      },
+      errors: {
+        heading: "Something went wrong",
+        notPdf: "That file isn't a PDF.",
+        fileTooLarge: "File is over the 50 MB limit.",
+        r2Unavailable: "PDF upload is temporarily unavailable. Please try again later.",
+        presignFailed: "Could not initialize the upload.",
+        uploadFailed: "Upload failed.",
+        fromUrlFailed: "Could not fetch the PDF from that URL.",
+        scannedPdfError: "Could not read the PDF — it may be a scanned image or encrypted file.",
+      },
+    },
   },
   "zh-CN": {
     meta: {
@@ -985,6 +1044,34 @@ export const messages: Record<Locale, Messages> = {
         tooltip: "请求 {textUsed}/{textLimit} · Token {tokenUsed}/{tokenLimit} · PDF {pdfUsed}/{pdfLimit}",
       },
     },
+    document: {
+      metaTitle: "文档翻译 · GetU Translate",
+      metaDescription: "用多语种 AI 翻译 PDF 文档。上传 PDF，获取完整译文。",
+      uploadButton: "选择 PDF",
+      dragDropHint: "拖拽 PDF 到这里，或点击选择文件。",
+      limitsTemplate: "最大 {maxMB} MB · {maxPages} 页",
+      clearFile: "移除",
+      modelPicker: "模型",
+      modelLockedSuffix: "（Pro）",
+      submit: "翻译文档",
+      uploadingTemplate: "上传中 {pct}%",
+      creating: "正在创建任务…",
+      resultPlaceholder: "翻译任务已排队。Job id：{jobId}",
+      fromUrl: {
+        heading: "正在通过 URL 翻译 PDF",
+        loading: "正在从源链接抓取 PDF…",
+      },
+      errors: {
+        heading: "出错了",
+        notPdf: "这个文件不是 PDF。",
+        fileTooLarge: "文件超过 50 MB 上限。",
+        r2Unavailable: "PDF 上传服务暂不可用，请稍后再试。",
+        presignFailed: "无法初始化上传。",
+        uploadFailed: "上传失败。",
+        fromUrlFailed: "无法从该 URL 抓取 PDF。",
+        scannedPdfError: "无法读取 PDF — 可能是扫描件或加密文件。",
+      },
+    },
   },
   "zh-TW": {
     meta: {
@@ -1407,6 +1494,34 @@ export const messages: Record<Locale, Messages> = {
       },
       quotaBadge: {
         tooltip: "請求 {textUsed}/{textLimit} · Token {tokenUsed}/{tokenLimit} · PDF {pdfUsed}/{pdfLimit}",
+      },
+    },
+    document: {
+      metaTitle: "文件翻譯 · GetU Translate",
+      metaDescription: "用多語種 AI 翻譯 PDF 文件。上傳 PDF，獲取完整譯文。",
+      uploadButton: "選擇 PDF",
+      dragDropHint: "拖曳 PDF 到此處，或點擊選擇檔案。",
+      limitsTemplate: "最大 {maxMB} MB · {maxPages} 頁",
+      clearFile: "移除",
+      modelPicker: "模型",
+      modelLockedSuffix: "（Pro）",
+      submit: "翻譯文件",
+      uploadingTemplate: "上傳中 {pct}%",
+      creating: "正在建立任務…",
+      resultPlaceholder: "翻譯任務已排入佇列。Job id：{jobId}",
+      fromUrl: {
+        heading: "正在透過 URL 翻譯 PDF",
+        loading: "正在從來源連結抓取 PDF…",
+      },
+      errors: {
+        heading: "發生錯誤",
+        notPdf: "這個檔案不是 PDF。",
+        fileTooLarge: "檔案超過 50 MB 上限。",
+        r2Unavailable: "PDF 上傳服務暫不可用，請稍後再試。",
+        presignFailed: "無法初始化上傳。",
+        uploadFailed: "上傳失敗。",
+        fromUrlFailed: "無法從該 URL 抓取 PDF。",
+        scannedPdfError: "無法讀取 PDF — 可能是掃描件或加密檔案。",
       },
     },
   },
