@@ -943,6 +943,7 @@ translationWorkbench:
   textTab: Văn bản
   documentTab: Tài liệu
   closeSidebar: Đóng thanh bên
+  openPanel: Mở bảng điều khiển
   textTitle: Dịch văn bản
   documentTitle: Dịch tài liệu
   documentDescription: Tải tài liệu lên GetU Translate Web để dịch PDF, ebook, tệp Office, tài liệu web, văn bản thuần, Markdown và phụ đề.

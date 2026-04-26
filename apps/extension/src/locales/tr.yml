@@ -943,6 +943,7 @@ translationWorkbench:
   textTab: Metin
   documentTab: Belge
   closeSidebar: Kenar çubuğunu kapat
+  openPanel: Paneli aç
   textTitle: Metin çevir
   documentTitle: Belge çevirisi
   documentDescription: PDF, e-kitap, Office dosyası, web belgesi, düz metin, Markdown ve altyazıları çevirmek için belgeleri GetU Translate Web'e yükleyin.

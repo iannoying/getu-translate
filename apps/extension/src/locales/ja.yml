@@ -943,6 +943,7 @@ translationWorkbench:
   textTab: テキスト
   documentTab: ドキュメント
   closeSidebar: サイドバーを閉じる
+  openPanel: パネルを開く
   textTitle: テキスト翻訳
   documentTitle: ドキュメント翻訳
   documentDescription: GetU Translate Web にドキュメントをアップロードして、PDF、電子書籍、Office ファイル、Web ドキュメント、プレーンテキスト、Markdown、字幕を翻訳できます。

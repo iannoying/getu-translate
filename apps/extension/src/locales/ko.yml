@@ -943,6 +943,7 @@ translationWorkbench:
   textTab: 텍스트
   documentTab: 문서
   closeSidebar: 사이드바 닫기
+  openPanel: 패널 열기
   textTitle: 텍스트 번역
   documentTitle: 문서 번역
   documentDescription: GetU Translate 웹에 문서를 업로드하여 PDF, 전자책, Office 파일, 웹 문서, 일반 텍스트, Markdown, 자막을 번역할 수 있습니다.

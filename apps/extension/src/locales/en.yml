@@ -1061,6 +1061,7 @@ translationWorkbench:
   textTab: Text
   documentTab: Document
   closeSidebar: Close sidebar
+  openPanel: Open panel
   textTitle: Translate text
   documentTitle: Document translation
   documentDescription: Upload documents on GetU Translate Web to translate PDFs, ebooks, office files, web documents, plain text, Markdown, and subtitles.

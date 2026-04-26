@@ -1,6 +1,6 @@
 import { browser } from "#imports"
 import { APP_NAME as BRAND_APP_NAME } from "@getu/definitions"
-import { IconSettings, IconX } from "@tabler/icons-react"
+import { IconLayoutSidebarRightCollapse, IconSettings, IconX } from "@tabler/icons-react"
 import { useAtom, useAtomValue } from "jotai"
 import { useEffect, useRef, useState } from "react"
 import readFrogLogo from "@/assets/icons/read-frog.png?url&no-inline"
@@ -36,6 +36,7 @@ export default function FloatingButton() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [dragPosition, setDragPosition] = useState<number | null>(null)
   const initialClientYRef = useRef<number | null>(null)
+  const openPanelLabel = i18n.t("translationWorkbench.openPanel")
 
   // 按钮拖动处理
   useEffect(() => {
@@ -125,6 +126,12 @@ export default function FloatingButton() {
     document.addEventListener("mousemove", handleMouseMove)
   }
 
+  const handleOpenPanelClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsSideOpen(true)
+  }
+
   const attachSideClassName = isDraggingButton || isSideOpen || isDropdownOpen ? "translate-x-0" : ""
 
   if (!floatingButton.enabled || floatingButton.disabledFloatingButtonPatterns.some(pattern => matchDomainPattern(window.location.href, pattern))) {
@@ -142,6 +149,23 @@ export default function FloatingButton() {
       }}
     >
       <TranslateButton className={attachSideClassName} />
+      <button
+        type="button"
+        aria-label={openPanelLabel}
+        title={openPanelLabel}
+        className={cn(
+          "border-border invisible flex h-8 items-center gap-1.5 rounded-l-full border border-r-0 bg-white px-2 text-xs font-medium text-neutral-700 opacity-0 shadow-lg dark:bg-neutral-900 dark:text-neutral-200",
+          "transition-opacity duration-300",
+          "group-hover:visible group-hover:opacity-100 focus:visible focus:opacity-100 focus-visible:visible focus-visible:opacity-100",
+          isSideOpen && "visible opacity-100",
+          attachSideClassName,
+        )}
+        onMouseDown={e => e.stopPropagation()}
+        onClick={handleOpenPanelClick}
+      >
+        <IconLayoutSidebarRightCollapse className="h-4 w-4" aria-hidden="true" />
+        <span className="whitespace-nowrap">{openPanelLabel}</span>
+      </button>
       <div
         className={cn(
           "border-border flex h-10 w-11 items-center rounded-l-full border border-r-0 bg-white opacity-60 shadow-lg group-hover:opacity-100 dark:bg-neutral-900",

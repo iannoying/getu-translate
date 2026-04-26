@@ -1,8 +1,15 @@
 // @vitest-environment jsdom
+import type { ReactNode } from "react"
 import { fireEvent, render, screen } from "@testing-library/react"
-import { atom } from "jotai"
-import { beforeAll, describe, expect, it, vi } from "vitest"
+import { atom, createStore, Provider as JotaiProvider, useAtomValue } from "jotai"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+import { configFieldsAtomMap } from "@/utils/atoms/config"
 import FloatingButton from ".."
+import { isSideOpenAtom } from "../../../atoms"
+
+const { sendMessageMock } = vi.hoisted(() => ({
+  sendMessageMock: vi.fn(() => Promise.resolve()),
+}))
 
 vi.mock("#imports", () => ({
   browser: {
@@ -13,6 +20,10 @@ vi.mock("#imports", () => ({
   i18n: {
     t: (key: string) => key,
   },
+}))
+
+vi.mock("@/utils/i18n", () => ({
+  i18n: { t: (key: string) => key },
 }))
 
 vi.mock("@/utils/atoms/config", () => ({
@@ -50,7 +61,7 @@ vi.mock("../components/hidden-button", () => ({
 }))
 
 vi.mock("@/utils/message", () => ({
-  sendMessage: vi.fn(),
+  sendMessage: sendMessageMock,
 }))
 
 beforeAll(() => {
@@ -63,9 +74,53 @@ beforeAll(() => {
   vi.stubGlobal("ResizeObserver", ResizeObserverMock)
 })
 
+beforeEach(() => {
+  sendMessageMock.mockClear()
+})
+
+interface FloatingButtonConfig {
+  enabled: boolean
+  position: number
+  clickAction: "translate" | "panel"
+  disabledFloatingButtonPatterns: string[]
+}
+
+const defaultFloatingButton: FloatingButtonConfig = {
+  enabled: true,
+  position: 0.66,
+  clickAction: "panel",
+  disabledFloatingButtonPatterns: [],
+}
+
+function SideOpenProbe() {
+  const isSideOpen = useAtomValue(isSideOpenAtom)
+
+  return <div data-testid="side-open-state">{String(isSideOpen)}</div>
+}
+
+function renderWithStore(
+  ui: ReactNode,
+  {
+    floatingButton = defaultFloatingButton,
+    isSideOpen = false,
+  }: {
+    floatingButton?: FloatingButtonConfig
+    isSideOpen?: boolean
+  } = {},
+) {
+  const store = createStore()
+  void store.set(configFieldsAtomMap.floatingButton, floatingButton)
+  void store.set(isSideOpenAtom, isSideOpen)
+
+  return {
+    store,
+    ...render(<JotaiProvider store={store}>{ui}</JotaiProvider>),
+  }
+}
+
 describe("floatingButton close trigger", () => {
   it("keeps the main logo button fully visible by default", () => {
-    const { container } = render(<FloatingButton />)
+    const { container } = renderWithStore(<FloatingButton />)
 
     const logoButton = container.querySelector("img")?.parentElement
 
@@ -74,7 +129,7 @@ describe("floatingButton close trigger", () => {
   })
 
   it("keeps the close trigger in the layout with visibility classes instead of display:none", () => {
-    render(<FloatingButton />)
+    renderWithStore(<FloatingButton />)
 
     const closeTrigger = screen.getByTitle("Close floating button")
 
@@ -85,12 +140,66 @@ describe("floatingButton close trigger", () => {
   })
 
   it("forces the close trigger visible while the dropdown is open", () => {
-    render(<FloatingButton />)
+    renderWithStore(<FloatingButton />)
 
     const closeTrigger = screen.getByTitle("Close floating button")
     fireEvent.click(closeTrigger)
 
     expect(closeTrigger).toHaveClass("visible")
     expect(screen.getByText("options.floatingButtonAndToolbar.floatingButton.closeMenu.disableForSite")).toBeInTheDocument()
+  })
+})
+
+describe("floatingButton open panel tab", () => {
+  it("renders an open-panel tab button with visibility and opacity reveal classes", () => {
+    renderWithStore(<FloatingButton />)
+
+    const openPanelTab = screen.getByRole("button", { name: "translationWorkbench.openPanel" })
+
+    expect(openPanelTab).toHaveClass("invisible")
+    expect(openPanelTab).toHaveClass("opacity-0")
+    expect(openPanelTab).toHaveClass("group-hover:visible")
+    expect(openPanelTab).toHaveClass("group-hover:opacity-100")
+    expect(openPanelTab).toHaveClass("focus-visible:visible")
+    expect(openPanelTab).toHaveClass("focus-visible:opacity-100")
+    expect(openPanelTab).not.toHaveClass("hidden")
+    expect(openPanelTab).not.toHaveClass("group-hover:block")
+  })
+
+  it("opens the sidebar without sending the page translation message when the main logo action is translate", () => {
+    const { store } = renderWithStore(
+      <>
+        <FloatingButton />
+        <SideOpenProbe />
+      </>,
+      {
+        floatingButton: {
+          ...defaultFloatingButton,
+          clickAction: "translate",
+        },
+      },
+    )
+
+    const openPanelTab = screen.getByRole("button", { name: "translationWorkbench.openPanel" })
+
+    fireEvent.mouseDown(openPanelTab, { clientY: 20 })
+    fireEvent.mouseUp(document)
+    fireEvent.click(openPanelTab)
+
+    expect(store.get(isSideOpenAtom)).toBe(true)
+    expect(screen.getByTestId("side-open-state")).toHaveTextContent("true")
+    expect(sendMessageMock).not.toHaveBeenCalled()
+  })
+
+  it("keeps the open-panel tab visible and attached while the sidebar is open", () => {
+    renderWithStore(<FloatingButton />, { isSideOpen: true })
+
+    const openPanelTab = screen.getByRole("button", { name: "translationWorkbench.openPanel" })
+
+    expect(openPanelTab).toHaveClass("visible")
+    expect(openPanelTab).toHaveClass("opacity-100")
+    expect(openPanelTab).toHaveClass("translate-x-0")
+    expect(screen.getByTestId("translate-button")).toHaveClass("translate-x-0")
+    expect(screen.getByTestId("hidden-button")).toHaveClass("translate-x-0")
   })
 })

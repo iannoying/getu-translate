@@ -943,6 +943,7 @@ translationWorkbench:
   textTab: Текст
   documentTab: Документ
   closeSidebar: Закрыть боковую панель
+  openPanel: Открыть панель
   textTitle: Перевод текста
   documentTitle: Перевод документов
   documentDescription: Загрузите документы в GetU Translate Web, чтобы переводить PDF, электронные книги, файлы Office, веб-документы, обычный текст, Markdown и субтитры.

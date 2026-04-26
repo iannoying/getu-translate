@@ -943,6 +943,7 @@ translationWorkbench:
   textTab: 文字
   documentTab: 文件
   closeSidebar: 關閉側邊欄
+  openPanel: 開啟面板
   textTitle: 文字翻譯
   documentTitle: 文件翻譯
   documentDescription: 在 GetU Translate 網頁版上傳文件，可翻譯 PDF、電子書、Office 文件、網頁文件、純文字、Markdown 和字幕。
