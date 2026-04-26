@@ -253,29 +253,56 @@ export function TranslateClient({
   }, [plan])
 
   const handleDeleteHistory = useCallback(async (id: string) => {
-    // Optimistic — remove first, then call. On failure put it back.
-    const before = historyEntries
-    setHistoryEntries(prev => prev.filter(e => e.id !== id))
+    // Optimistic remove. On failure we re-insert ONLY the removed row, not
+    // the entire pre-call list — otherwise a concurrent translate that
+    // prepended a new entry between the click and the failure would be
+    // silently stomped by `setHistoryEntries(before)`.
+    let removed: HistoryEntry | undefined
+    setHistoryEntries((prev) => {
+      const idx = prev.findIndex(e => e.id === id)
+      if (idx === -1) return prev
+      removed = prev[idx]
+      return [...prev.slice(0, idx), ...prev.slice(idx + 1)]
+    })
     try {
       await orpcClient.translate.deleteHistory({ id })
     } catch (err) {
       // eslint-disable-next-line no-console -- non-fatal; user can retry
       console.warn("[translate] deleteHistory failed", err)
-      setHistoryEntries(before)
+      const r = removed
+      if (!r) return
+      setHistoryEntries((prev) => {
+        // If something else (rare retry, server-push) put it back, leave alone.
+        if (prev.some(e => e.id === r.id)) return prev
+        return [r, ...prev]
+      })
     }
-  }, [historyEntries])
+  }, [])
 
   const handleClearHistory = useCallback(async () => {
-    const before = historyEntries
-    setHistoryEntries([])
+    // Same rollback story as deleteHistory: snapshot the cleared rows in a
+    // local var (NOT a captured `before` array) so a concurrent translate's
+    // prepend during the failed clear isn't lost on rollback.
+    let removed: HistoryEntry[] = []
+    setHistoryEntries((prev) => {
+      removed = prev
+      return []
+    })
     try {
       await orpcClient.translate.clearHistory({})
     } catch (err) {
       // eslint-disable-next-line no-console -- non-fatal; user can retry
       console.warn("[translate] clearHistory failed", err)
-      setHistoryEntries(before)
+      const r = removed
+      setHistoryEntries((prev) => {
+        // Merge: keep any entries the user added during the in-flight clear,
+        // re-add the cleared rows that aren't already back. Dedupe by id.
+        const seenIds = new Set(prev.map(e => e.id))
+        const restored = r.filter(e => !seenIds.has(e.id))
+        return [...prev, ...restored]
+      })
     }
-  }, [historyEntries])
+  }, [])
 
   function handleUpgradeClick() {
     router.push(localeHref(locale, "/upgrade"))
