@@ -9,7 +9,9 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "test": "vitest run"
+    "test": "node scripts/check-meta.mjs && vitest run",
+    "generate": "drizzle-kit generate",
+    "check:meta": "node scripts/check-meta.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2"
