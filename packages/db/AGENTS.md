@@ -69,7 +69,7 @@ Code reviewers flagged that `translation_jobs.status` / `engine` (text+enum colu
 3. **Adding CHECK to existing SQLite tables requires a full table rebuild** (`CREATE _new + INSERT + DROP + RENAME` per table, FK + index recreation, careful with snapshots). Cost is ~8 statements × 2 tables, plus the meta-snapshot dance documented above.
 4. **Tables are empty in production** (M6 not yet shipped), so the failure mode this would protect against has never been observed.
 
-**When to revisit**: if a real production bug surfaces a row with corrupt JSON or an unknown enum value, add the rebuild migration then. Until then, the handler-layer Zod parse is the canonical defense.
+**When to revisit (concrete trigger, not reactive)**: add CHECK constraints **before M6.5/M6.8 ships to production traffic** — i.e. the migration must be in the same release wave that opens `text_translations` and `translation_jobs` to organic writes. Rebuilding empty tables takes seconds; rebuilding tables with millions of rows takes hours of downtime. Don't defer past the empty-table window. A second valid trigger is "real production corruption observed" but that's the late-and-painful path.
 
 ### Testing Requirements
 
