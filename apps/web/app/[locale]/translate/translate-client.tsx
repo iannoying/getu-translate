@@ -143,10 +143,17 @@ export function TranslateClient({
           })
           setResults(prev => ({ ...prev, [modelId]: { status: "done", text: out.text } }))
         } catch (err) {
-          const message = err instanceof Error ? err.message : "翻译失败"
+          // Use the localized friendly fallback rather than the raw oRPC
+          // error.message — that string can include upstream provider HTTP
+          // bodies which are not user-friendly and may leak provider tracking
+          // identifiers. M6.5b will key off err.data.code (PROVIDER_FAILED,
+          // RATE_LIMITED, ...) for more specific UX, but for M6.5a the
+          // generic message is correct and safe.
+          // eslint-disable-next-line no-console -- helps M6.5b debug provider failures without surfacing them to users
+          console.warn("[translate] column failed", modelId, err)
           setResults(prev => ({
             ...prev,
-            [modelId]: { status: "error", errorMessage: message },
+            [modelId]: { status: "error", errorMessage: messages.page.cardErrorFallback },
           }))
         }
       }),
