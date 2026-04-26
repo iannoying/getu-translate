@@ -9,6 +9,7 @@ import {
   documentListOutputSchema,
   documentStatusInputSchema,
   documentStatusOutputSchema,
+  TRANSLATE_DOCUMENT_MAX_BYTES,
   TRANSLATE_DOCUMENT_MAX_PAGES,
 } from "@getu/contract"
 import { loadEntitlements } from "../../billing/entitlements"
@@ -106,6 +107,12 @@ export const documentCreate = authed
           data: { code: "SOURCE_NOT_FOUND" },
         })
       }
+      if (obj.size > TRANSLATE_DOCUMENT_MAX_BYTES) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: `PDF 大小 ${obj.size} 超过 ${TRANSLATE_DOCUMENT_MAX_BYTES} 上限`,
+          data: { code: "TOO_LARGE", limit: TRANSLATE_DOCUMENT_MAX_BYTES, actual: obj.size },
+        })
+      }
       const buf = await obj.arrayBuffer()
       try {
         pages = await readPdfPageCount(new Uint8Array(buf))
@@ -140,21 +147,32 @@ export const documentCreate = authed
     const now = Date.now()
     const expiresAtMs = now + (plan === "free" ? FREE_PDF_RETENTION_MS : PRO_PDF_RETENTION_MS)
 
-    await db.insert(translationJobs).values({
-      id: jobId,
-      userId,
-      sourceKey: input.sourceKey,
-      sourcePages: pages,
-      sourceFilename: input.sourceFilename ?? null,
-      sourceBytes: input.sourceBytes,
-      modelId,
-      sourceLang: input.sourceLang,
-      targetLang: input.targetLang,
-      status: "queued",
-      engine: "simple",
-      createdAt: new Date(now),
-      expiresAt: new Date(expiresAtMs),
-    })
+    try {
+      await db.insert(translationJobs).values({
+        id: jobId,
+        userId,
+        sourceKey: input.sourceKey,
+        sourcePages: pages,
+        sourceFilename: input.sourceFilename ?? null,
+        sourceBytes: input.sourceBytes,
+        modelId,
+        sourceLang: input.sourceLang,
+        targetLang: input.targetLang,
+        status: "queued",
+        engine: "simple",
+        createdAt: new Date(now),
+        expiresAt: new Date(expiresAtMs),
+      })
+    } catch (err) {
+      const msg = (err as { message?: string }).message ?? ""
+      if (msg.includes("UNIQUE constraint failed: translation_jobs.user_id")) {
+        throw new ORPCError("CONFLICT", {
+          message: "已有 PDF 翻译任务正在进行，请等其完成后再上传",
+          data: { code: "PDF_JOB_INFLIGHT" },
+        })
+      }
+      throw err
+    }
 
     // Cloudflare Queue dispatch — consumer worker (M6.9) drains this and
     // flips status queued → processing → done. Optional binding so dev

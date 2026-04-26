@@ -197,7 +197,7 @@ export function TranslateClient({
 
   async function handleTranslate() {
     if (!isAuthed) {
-      router.push(localeHref(locale, "/log-in?next=/translate"))
+      router.push(localeHref(locale, "/log-in?redirect=/translate"))
       return
     }
     const trimmed = text.trim()

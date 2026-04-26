@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm"
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core"
 import { user } from "./auth"
 
 const unixMsDefault = sql`(CAST(unixepoch('now','subsec') * 1000 AS INTEGER))`
@@ -100,5 +100,8 @@ export const translationJobs = sqliteTable(
     byUserCreated: index("translation_jobs_user_created_idx").on(t.userId, t.createdAt),
     byStatus: index("translation_jobs_status_idx").on(t.status, t.createdAt),
     byExpires: index("translation_jobs_expires_idx").on(t.expiresAt),
+    uqOneActivePdfPerUser: uniqueIndex("uq_one_active_pdf_per_user")
+      .on(t.userId)
+      .where(sql`status IN ('queued', 'processing')`),
   }),
 )

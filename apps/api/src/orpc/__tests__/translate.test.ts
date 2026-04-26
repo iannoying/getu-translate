@@ -507,6 +507,70 @@ describe("translate.document.create", () => {
     })
     expect(queue.send).toHaveBeenCalledWith({ jobId: out.jobId })
   })
+
+  it("M6.8 Item 2: rejects when R2 object size exceeds byte cap before arrayBuffer()", async () => {
+    // Simulates a stale large object in R2 bypassing the presign content-length guard.
+    const overSizeBytes = 60 * 1024 * 1024 // 60 MB > 50 MB cap
+    const bucket = {
+      get: vi.fn(async () => ({
+        size: overSizeBytes,
+        arrayBuffer: vi.fn(async () => new ArrayBuffer(0)), // must not be called
+      })),
+      put: vi.fn(),
+    }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { BUCKET_PDFS: bucket as any }),
+    })
+    await expect(
+      client.translate.document.create({
+        sourceKey: "pdfs/u-free/abc/source.pdf",
+        sourcePages: 5,
+        sourceBytes: 100_000,
+        modelId: "google",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+      }),
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { code: "TOO_LARGE", limit: 50 * 1024 * 1024, actual: overSizeBytes },
+    })
+    // arrayBuffer() must NOT have been called — the guard fires before memory load
+    expect(bucket.get.mock.results[0]?.value).resolves.toMatchObject({ size: overSizeBytes })
+    const fakeObj = await bucket.get.mock.results[0]?.value
+    expect((fakeObj as any).arrayBuffer).not.toHaveBeenCalled()
+  })
+
+  it("M6.8 Item 1: catches DB unique-constraint error on INSERT and surfaces CONFLICT/PDF_JOB_INFLIGHT", async () => {
+    // Simulates the race window: SELECT found no active job, but by INSERT time
+    // another concurrent request already inserted one and the unique partial
+    // index fires.
+    const constraintError = new Error(
+      "D1_ERROR: UNIQUE constraint failed: translation_jobs.user_id: SQLITE_CONSTRAINT_UNIQUE",
+    )
+    const insertValuesStub = vi.fn(async () => {
+      throw constraintError
+    })
+    const originalInsert = fakeDb.insert
+    fakeDb.insert = vi.fn(() => ({ values: insertValuesStub })) as any
+    try {
+      const client = createRouterClient(router, { context: ctx(freeSession) })
+      await expect(
+        client.translate.document.create({
+          sourceKey: "pdfs/u-free/abc/source.pdf",
+          sourcePages: 5,
+          sourceBytes: 100_000,
+          modelId: "google",
+          sourceLang: "en",
+          targetLang: "zh-CN",
+        }),
+      ).rejects.toMatchObject({
+        code: "CONFLICT",
+        data: { code: "PDF_JOB_INFLIGHT" },
+      })
+    } finally {
+      fakeDb.insert = originalInsert
+    }
+  })
 })
 
 describe("translate.document.status", () => {
