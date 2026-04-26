@@ -1055,6 +1055,27 @@ translationHub:
   translationFailedFallback: 翻译失败
   retryTranslation: 重试翻译
 translationWorkbench:
+  sidebarTitle: GetU Translate
+  textTab: 文本
+  documentTab: 文档
+  closeSidebar: 关闭侧边栏
+  textTitle: 文本翻译
+  documentTitle: 文档翻译
+  documentDescription: 在 GetU Translate 网页端上传文档，可翻译 PDF、电子书、Office 文件、网页文档、纯文本、Markdown 和字幕。
+  documentFormats: 支持格式
+  documentFeatures: 文档能力
+  uploadDocument: 上传文档
+  learnMore: 了解更多
+  pdfProTitle: PDF Pro
+  pdfProBody: 在网页端翻译长 PDF，支持版面感知处理和导出。
+  babelDocTitle: BabelDOC 版式
+  babelDocBody: 保留文档结构，生成适合阅读的双语结果。
+  subtitleFilesTitle: 字幕文件
+  subtitleFilesBody: 翻译常见字幕格式，适合视频学习工作流。
+  inputPlaceholder: 输入要翻译的文本...
+  translate: 翻译
+  charLimitExceeded: 文本已超过 $1 字符限制。
+  noProviders: 请先在设置中启用至少一个翻译服务。
   languages:
     auto: 自动检测
   swapLanguages: 交换语言

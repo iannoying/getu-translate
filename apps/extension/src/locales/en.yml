@@ -1057,6 +1057,27 @@ translationHub:
   translationFailedFallback: Translation failed
   retryTranslation: Retry translation
 translationWorkbench:
+  sidebarTitle: GetU Translate
+  textTab: Text
+  documentTab: Document
+  closeSidebar: Close sidebar
+  textTitle: Translate text
+  documentTitle: Document translation
+  documentDescription: Upload documents on GetU Translate Web to translate PDFs, ebooks, office files, web documents, plain text, Markdown, and subtitles.
+  documentFormats: Supported formats
+  documentFeatures: Document tools
+  uploadDocument: Upload document
+  learnMore: Learn more
+  pdfProTitle: PDF Pro
+  pdfProBody: Translate long PDFs with layout-aware processing and export options on the web app.
+  babelDocTitle: BabelDOC layout
+  babelDocBody: Preserve document structure while producing bilingual reading output.
+  subtitleFilesTitle: Subtitle files
+  subtitleFilesBody: Translate common subtitle formats for video learning workflows.
+  inputPlaceholder: Enter text to translate...
+  translate: Translate
+  charLimitExceeded: Text exceeds the $1 character limit.
+  noProviders: Enable at least one translation provider in settings.
   languages:
     auto: Auto detect
   swapLanguages: Swap languages
