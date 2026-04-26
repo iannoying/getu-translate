@@ -16,7 +16,7 @@ describe("language-options", () => {
     expect(fromSidebarLanguageCode("auto")).toBe("auto")
     expect(fromSidebarLanguageCode("en")).toBe("eng")
     expect(fromSidebarLanguageCode("zh-CN")).toBe("cmn")
-    expect(fromSidebarLanguageCode("zh-TW")).toBe("cmnHant")
+    expect(fromSidebarLanguageCode("zh-TW")).toBe("cmn-Hant")
     expect(fromSidebarLanguageCode("ja")).toBe("jpn")
   })
 
@@ -24,7 +24,7 @@ describe("language-options", () => {
     expect(toSidebarLanguageCode("auto")).toBe("auto")
     expect(toSidebarLanguageCode("eng")).toBe("en")
     expect(toSidebarLanguageCode("cmn")).toBe("zh-CN")
-    expect(toSidebarLanguageCode("cmnHant")).toBe("zh-TW")
+    expect(toSidebarLanguageCode("cmn-Hant")).toBe("zh-TW")
     expect(toSidebarLanguageCode("kor")).toBe("ko")
   })
 })

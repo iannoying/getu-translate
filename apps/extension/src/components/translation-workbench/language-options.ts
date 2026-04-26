@@ -12,7 +12,7 @@ export const SIDEBAR_SOURCE_LANGUAGES: SidebarLanguageOption[] = [
   { code: "auto", iso6393: "auto", labelKey: "translationWorkbench.languages.auto" },
   { code: "en", iso6393: "eng", labelKey: "languages.eng" },
   { code: "zh-CN", iso6393: "cmn", labelKey: "languages.cmn" },
-  { code: "zh-TW", iso6393: "cmnHant", labelKey: "languages.cmnHant" },
+  { code: "zh-TW", iso6393: "cmn-Hant", labelKey: "languages.cmnHant" },
   { code: "ja", iso6393: "jpn", labelKey: "languages.jpn" },
   { code: "ko", iso6393: "kor", labelKey: "languages.kor" },
   { code: "fr", iso6393: "fra", labelKey: "languages.fra" },
