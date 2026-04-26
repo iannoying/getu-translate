@@ -5,14 +5,7 @@ import { renderHook, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useAuthRefreshOnFocus } from "../use-auth-refresh"
 
-const getSessionMock = vi.hoisted(() => vi.fn())
 const loggerWarnMock = vi.hoisted(() => vi.fn())
-
-vi.mock("@/utils/auth/auth-client", () => ({
-  authClient: {
-    getSession: getSessionMock,
-  },
-}))
 
 vi.mock("@/utils/logger", () => ({
   logger: {
@@ -36,7 +29,7 @@ function createQueryClient() {
   })
 }
 
-function renderUseAuthRefresh(userId: string | null) {
+function renderUseAuthRefresh(userId: string | null, refetchSession = vi.fn()) {
   const queryClient = createQueryClient()
   const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue()
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -44,8 +37,9 @@ function renderUseAuthRefresh(userId: string | null) {
   )
 
   return {
-    ...renderHook(() => useAuthRefreshOnFocus(userId), { wrapper }),
+    ...renderHook(() => useAuthRefreshOnFocus(userId, refetchSession), { wrapper }),
     invalidateSpy,
+    refetchSession,
   }
 }
 
@@ -56,7 +50,6 @@ async function flushMicrotasks() {
 
 describe("useAuthRefreshOnFocus", () => {
   beforeEach(() => {
-    getSessionMock.mockReset()
     loggerWarnMock.mockReset()
     setVisibilityState("visible")
   })
@@ -66,16 +59,16 @@ describe("useAuthRefreshOnFocus", () => {
     visibilitySpy = null
   })
 
-  it("refreshes the auth session on window focus and then invalidates entitlements for the user", async () => {
+  it("refetches the auth session on window focus and then invalidates entitlements for the user", async () => {
     let resolveSession!: () => void
-    getSessionMock.mockReturnValue(new Promise<void>((resolve) => {
+    const refetchSession = vi.fn(() => new Promise<void>((resolve) => {
       resolveSession = resolve
     }))
-    const { invalidateSpy } = renderUseAuthRefresh("user-1")
+    const { invalidateSpy } = renderUseAuthRefresh("user-1", refetchSession)
 
     window.dispatchEvent(new Event("focus"))
 
-    expect(getSessionMock).toHaveBeenCalledTimes(1)
+    expect(refetchSession).toHaveBeenCalledTimes(1)
     expect(invalidateSpy).not.toHaveBeenCalled()
 
     resolveSession()
@@ -85,48 +78,62 @@ describe("useAuthRefreshOnFocus", () => {
     })
   })
 
+  it("also invalidates entitlements for a user id returned by session refetch", async () => {
+    const refetchSession = vi.fn(async () => ({
+      data: { user: { id: "user-2" } },
+    }))
+    const { invalidateSpy } = renderUseAuthRefresh("user-1", refetchSession)
+
+    window.dispatchEvent(new Event("focus"))
+
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["entitlements", "user-1"] })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["entitlements", "user-2"] })
+    })
+  })
+
   it("does not refresh while the document is hidden", async () => {
     setVisibilityState("hidden")
-    getSessionMock.mockResolvedValue(undefined)
-    const { invalidateSpy } = renderUseAuthRefresh("user-1")
+    const refetchSession = vi.fn(async () => undefined)
+    const { invalidateSpy } = renderUseAuthRefresh("user-1", refetchSession)
 
     window.dispatchEvent(new Event("focus"))
     document.dispatchEvent(new Event("visibilitychange"))
     await flushMicrotasks()
 
-    expect(getSessionMock).not.toHaveBeenCalled()
+    expect(refetchSession).not.toHaveBeenCalled()
     expect(invalidateSpy).not.toHaveBeenCalled()
   })
 
   it("refreshes the auth session on visibilitychange when the document is visible", async () => {
-    getSessionMock.mockResolvedValue(undefined)
-    const { invalidateSpy } = renderUseAuthRefresh("user-2")
+    const refetchSession = vi.fn(async () => undefined)
+    const { invalidateSpy } = renderUseAuthRefresh("user-2", refetchSession)
 
     document.dispatchEvent(new Event("visibilitychange"))
 
     await waitFor(() => {
-      expect(getSessionMock).toHaveBeenCalledTimes(1)
+      expect(refetchSession).toHaveBeenCalledTimes(1)
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["entitlements", "user-2"] })
     })
   })
 
   it("removes focus and visibility listeners on unmount", async () => {
-    getSessionMock.mockResolvedValue(undefined)
-    const { invalidateSpy, unmount } = renderUseAuthRefresh("user-1")
+    const refetchSession = vi.fn(async () => undefined)
+    const { invalidateSpy, unmount } = renderUseAuthRefresh("user-1", refetchSession)
 
     unmount()
     window.dispatchEvent(new Event("focus"))
     document.dispatchEvent(new Event("visibilitychange"))
     await flushMicrotasks()
 
-    expect(getSessionMock).not.toHaveBeenCalled()
+    expect(refetchSession).not.toHaveBeenCalled()
     expect(invalidateSpy).not.toHaveBeenCalled()
   })
 
   it("catches session refresh failures", async () => {
     const error = new Error("session unavailable")
-    getSessionMock.mockRejectedValue(error)
-    const { invalidateSpy } = renderUseAuthRefresh("user-1")
+    const refetchSession = vi.fn(async () => Promise.reject(error))
+    const { invalidateSpy } = renderUseAuthRefresh("user-1", refetchSession)
 
     window.dispatchEvent(new Event("focus"))
 
@@ -138,8 +145,8 @@ describe("useAuthRefreshOnFocus", () => {
 
   it("catches entitlement invalidation failures", async () => {
     const error = new Error("query cache unavailable")
-    getSessionMock.mockResolvedValue(undefined)
-    const { invalidateSpy } = renderUseAuthRefresh(null)
+    const refetchSession = vi.fn(async () => undefined)
+    const { invalidateSpy } = renderUseAuthRefresh(null, refetchSession)
     invalidateSpy.mockRejectedValue(error)
 
     window.dispatchEvent(new Event("focus"))

@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent, render, screen } from "@testing-library/react"
 import { atom } from "jotai"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { SidebarTextTab } from "../sidebar-text-tab"
 
 const sendMessageMock = vi.hoisted(() => vi.fn(() => Promise.resolve()))
-const useAuthRefreshOnFocusMock = vi.hoisted(() => vi.fn())
+const sessionRefetchMock = vi.hoisted(() => vi.fn(async () => undefined))
 
 vi.mock("#imports", () => ({
   browser: { tabs: { create: vi.fn() } },
@@ -41,7 +42,7 @@ vi.mock("@/utils/atoms/config", () => ({
 
 vi.mock("@/utils/auth/auth-client", () => ({
   authClient: {
-    useSession: () => ({ data: null, isPending: false }),
+    useSession: () => ({ data: null, isPending: false, refetch: sessionRefetchMock }),
   },
 }))
 
@@ -59,10 +60,6 @@ vi.mock("@/hooks/use-entitlements", () => ({
     isLoading: false,
     isFromCache: false,
   }),
-}))
-
-vi.mock("@/components/translation-workbench/use-auth-refresh", () => ({
-  useAuthRefreshOnFocus: useAuthRefreshOnFocusMock,
 }))
 
 vi.mock("../../../index", () => ({
@@ -96,21 +93,46 @@ vi.mock("@/components/translation-workbench/translate-runner", () => ({
   runTranslationWorkbenchRequest: vi.fn(),
 }))
 
+function renderSidebarTextTab() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue()
+
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <SidebarTextTab />
+      </QueryClientProvider>,
+    ),
+    invalidateSpy,
+  }
+}
+
 describe("sidebarTextTab", () => {
   beforeEach(() => {
     sendMessageMock.mockClear()
-    useAuthRefreshOnFocusMock.mockClear()
+    sessionRefetchMock.mockClear()
   })
 
   it("opens login and upgrade links through background messaging", () => {
-    render(<SidebarTextTab />)
-
-    expect(useAuthRefreshOnFocusMock).toHaveBeenCalledWith(null)
+    renderSidebarTextTab()
 
     fireEvent.click(screen.getByRole("button", { name: "login" }))
     fireEvent.click(screen.getByRole("button", { name: "upgrade" }))
 
     expect(sendMessageMock).toHaveBeenCalledWith("openPage", { url: "https://getutranslate.com/log-in?redirect=/" })
     expect(sendMessageMock).toHaveBeenCalledWith("openPage", { url: "https://getutranslate.com/pricing" })
+  })
+
+  it("refetches the better-auth session when the visible sidebar regains focus", async () => {
+    const { invalidateSpy } = renderSidebarTextTab()
+
+    window.dispatchEvent(new Event("focus"))
+
+    await vi.waitFor(() => {
+      expect(sessionRefetchMock).toHaveBeenCalledTimes(1)
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["entitlements", null] })
+    })
   })
 })

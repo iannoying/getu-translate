@@ -38,7 +38,7 @@ export function SidebarTextTab() {
   const providersConfig = useAtomValue(configFieldsAtomMap.providersConfig)
   const session = authClient.useSession()
   const userId = session.data?.user?.id ?? null
-  useAuthRefreshOnFocus(userId)
+  useAuthRefreshOnFocus(userId, session.refetch)
   const { data: entitlements } = useEntitlements(userId)
   const plan = planFromEntitlements(userId, entitlements)
   const charLimit = getTextTranslateCharLimit(plan)

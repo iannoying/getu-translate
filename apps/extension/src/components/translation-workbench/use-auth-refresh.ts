@@ -1,9 +1,32 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
-import { authClient } from "@/utils/auth/auth-client"
 import { logger } from "@/utils/logger"
 
-export function useAuthRefreshOnFocus(userId: string | null): void {
+type RefetchSession = () => Promise<unknown> | unknown
+
+function getObjectValue(value: unknown, key: string): unknown {
+  if (value === null || typeof value !== "object")
+    return undefined
+
+  return (value as Record<string, unknown>)[key]
+}
+
+function getUserIdFromRefetchResult(result: unknown): string | null {
+  const directUser = getObjectValue(result, "user")
+  const directId = getObjectValue(directUser, "id")
+  if (typeof directId === "string")
+    return directId
+
+  const data = getObjectValue(result, "data")
+  const dataUser = getObjectValue(data, "user")
+  const dataUserId = getObjectValue(dataUser, "id")
+  if (typeof dataUserId === "string")
+    return dataUserId
+
+  return null
+}
+
+export function useAuthRefreshOnFocus(userId: string | null, refetchSession: RefetchSession): void {
   const queryClient = useQueryClient()
 
   useEffect(() => {
@@ -15,8 +38,17 @@ export function useAuthRefreshOnFocus(userId: string | null): void {
         return
 
       try {
-        await authClient.getSession()
-        await queryClient.invalidateQueries({ queryKey: ["entitlements", userId] as const })
+        const refetchResult = await refetchSession()
+        const nextUserId = getUserIdFromRefetchResult(refetchResult)
+        const userIdsToInvalidate = nextUserId !== null && nextUserId !== userId
+          ? [userId, nextUserId]
+          : [userId]
+
+        await Promise.all(
+          userIdsToInvalidate.map(id =>
+            queryClient.invalidateQueries({ queryKey: ["entitlements", id] as const }),
+          ),
+        )
       }
       catch (error) {
         logger.warn("[auth] refresh on focus failed", error)
@@ -34,5 +66,5 @@ export function useAuthRefreshOnFocus(userId: string | null): void {
       window.removeEventListener("focus", handleRefreshEvent)
       document.removeEventListener("visibilitychange", handleRefreshEvent)
     }
-  }, [queryClient, userId])
+  }, [queryClient, refetchSession, userId])
 }
