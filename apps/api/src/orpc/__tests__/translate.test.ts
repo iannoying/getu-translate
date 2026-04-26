@@ -532,3 +532,68 @@ describe("translate.clearHistory", () => {
     expect(deleteCalls).toHaveLength(1)
   })
 })
+
+describe("translate.listHistory — JSON parse hardening (#191 handler-layer)", () => {
+  it("returns valid rows with parsed results", async () => {
+    pendingListRows = [
+      {
+        id: "h1",
+        userId: "u-free",
+        sourceText: "hello",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+        results: JSON.stringify({
+          google: { text: "你好" },
+          microsoft: { text: "您好" },
+        }),
+        createdAt: new Date("2026-04-26T00:00:00Z"),
+      },
+    ]
+    const client = createRouterClient(router, { context: ctx(freeSession) })
+    const out = await client.translate.listHistory({ limit: 50 })
+    expect(out.items).toHaveLength(1)
+    expect(out.items[0].results).toEqual({
+      google: { text: "你好" },
+      microsoft: { text: "您好" },
+    })
+  })
+
+  it("falls back to empty results when JSON.parse throws (corrupt row)", async () => {
+    pendingListRows = [
+      {
+        id: "h-corrupt",
+        userId: "u-free",
+        sourceText: "hi",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+        results: "{not valid json", // truncated write or wire-corruption
+        createdAt: new Date("2026-04-26T00:00:00Z"),
+      },
+    ]
+    const client = createRouterClient(router, { context: ctx(freeSession) })
+    const out = await client.translate.listHistory({ limit: 50 })
+    expect(out.items).toHaveLength(1)
+    // Row stays in the listing — UX preferred over 500 — but with empty results.
+    expect(out.items[0].results).toEqual({})
+  })
+
+  it("falls back to empty results when JSON parses but shape is wrong", async () => {
+    // Regression: prior typeof-object-only check accepted ANY object,
+    // including ones with non-string entries. The Zod safeParse rejects.
+    pendingListRows = [
+      {
+        id: "h-bad-shape",
+        userId: "u-free",
+        sourceText: "hi",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+        results: JSON.stringify({ google: 42, microsoft: { wrong: "field" } }),
+        createdAt: new Date("2026-04-26T00:00:00Z"),
+      },
+    ]
+    const client = createRouterClient(router, { context: ctx(freeSession) })
+    const out = await client.translate.listHistory({ limit: 50 })
+    expect(out.items).toHaveLength(1)
+    expect(out.items[0].results).toEqual({})
+  })
+})

@@ -47,6 +47,16 @@ describe("@getu/definitions translate-models", () => {
     expect(isTranslateModelId("nonexistent-model")).toBe(false)
   })
 
+  it("isTranslateModelId rejects prototype-chain properties (regression for #188)", () => {
+    // Using the `in` operator would return true for these because they
+    // exist on Object.prototype. `Object.hasOwn` correctly rejects.
+    expect(isTranslateModelId("constructor")).toBe(false)
+    expect(isTranslateModelId("toString")).toBe(false)
+    expect(isTranslateModelId("hasOwnProperty")).toBe(false)
+    expect(isTranslateModelId("__proto__")).toBe(false)
+    expect(isTranslateModelId("valueOf")).toBe(false)
+  })
+
   it("isFreeTranslateModel reflects the freeAvailable flag", () => {
     expect(isFreeTranslateModel("google")).toBe(true)
     expect(isFreeTranslateModel("microsoft")).toBe(true)
