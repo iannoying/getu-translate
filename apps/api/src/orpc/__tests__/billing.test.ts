@@ -17,6 +17,36 @@ vi.mock("../../billing/quota", () => ({
     remaining: 99_900,
     reset_at: "2026-05-01T00:00:00.000Z",
   })),
+  // QUOTA_LIMITS is not a function — export the real const so entitlements.ts can read it
+  QUOTA_LIMITS: {
+    free: {
+      input_translate_daily: 50,
+      pdf_translate_daily: 50,
+      vocab_count: 100,
+      ai_translate_monthly: 0,
+      web_text_translate_monthly: 100,
+      web_text_translate_token_monthly: 0,
+      web_pdf_translate_monthly: 10,
+    },
+    pro: {
+      input_translate_daily: null,
+      pdf_translate_daily: null,
+      vocab_count: null,
+      ai_translate_monthly: 100_000,
+      web_text_translate_monthly: null,
+      web_text_translate_token_monthly: 2_000_000,
+      web_pdf_translate_monthly: 500,
+    },
+    enterprise: {
+      input_translate_daily: null,
+      pdf_translate_daily: null,
+      vocab_count: null,
+      ai_translate_monthly: null,
+      web_text_translate_monthly: null,
+      web_text_translate_token_monthly: null,
+      web_pdf_translate_monthly: null,
+    },
+  },
 }))
 vi.mock("../../billing/checkout", () => ({
   createCheckoutSession: vi.fn(async () => ({ url: "https://pay.paddle.io/hsc_01" })),
