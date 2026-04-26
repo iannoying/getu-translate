@@ -4,6 +4,14 @@ import { Textarea } from "@/components/ui/base-ui/textarea"
 import { i18n } from "@/utils/i18n"
 import { inputTextAtom, sourceLangCodeAtom, targetLangCodeAtom, translateRequestAtom } from "../atoms"
 
+function createClickId(): string {
+  const randomUUID = globalThis.crypto?.randomUUID
+  if (typeof randomUUID === "function")
+    return randomUUID.call(globalThis.crypto)
+
+  return `${Date.now()}:${Math.random().toString(36).slice(2)}`
+}
+
 export function TextInput() {
   const [value, setValue] = useAtom(inputTextAtom)
   const sourceLangCode = useAtomValue(sourceLangCodeAtom)
@@ -18,6 +26,7 @@ export function TextInput() {
       sourceLanguage: sourceLangCode,
       targetLanguage: targetLangCode,
       timestamp: Date.now(),
+      clickId: createClickId(),
     })
   }
 

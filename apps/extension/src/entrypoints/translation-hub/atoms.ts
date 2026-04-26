@@ -79,6 +79,7 @@ export interface TranslateRequest {
   sourceLanguage: LangCodeISO6393 | "auto"
   targetLanguage: LangCodeISO6393
   timestamp: number
+  clickId: string
 }
 
 export const translateRequestAtom = atom<TranslateRequest | null>(null)

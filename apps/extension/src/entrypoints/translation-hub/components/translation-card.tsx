@@ -5,6 +5,7 @@ import { useEffect, useEffectEvent, useRef } from "react"
 import { toast } from "sonner"
 import ProviderIcon from "@/components/provider-icon"
 import { useTheme } from "@/components/providers/theme-provider"
+import { buildSidebarTokenRequestId, isGetuProProvider } from "@/components/translation-workbench/provider-gating"
 import { Button } from "@/components/ui/base-ui/button"
 import { ANALYTICS_FEATURE, ANALYTICS_SURFACE } from "@/types/analytics"
 import { createFeatureUsageContext, trackFeatureAttempt } from "@/utils/analytics"
@@ -51,11 +52,19 @@ export function TranslationCard({ providerId, isExpanded, onExpandedChange }: Tr
             throw new Error("Provider not found")
 
           const myRequestId = ++requestIdRef.current
-          const result = await executeTranslate(req.inputText, {
+          const languageConfig = {
             sourceCode: req.sourceLanguage,
             targetCode: req.targetLanguage,
             level: language.level,
-          }, provider, getTranslatePrompt)
+          }
+          const result = isGetuProProvider(provider)
+            ? await executeTranslate(req.inputText, languageConfig, provider, getTranslatePrompt, {
+                headers: {
+                  "x-request-id": buildSidebarTokenRequestId(req.clickId, provider.id),
+                  "x-getu-quota-bucket": "web_text_translate_token_monthly",
+                },
+              })
+            : await executeTranslate(req.inputText, languageConfig, provider, getTranslatePrompt)
 
           // Ignore stale responses - return undefined to silently discard
           if (requestIdRef.current !== myRequestId) {
