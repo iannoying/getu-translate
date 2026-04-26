@@ -224,8 +224,35 @@ describe("translate.text — auth & gating", () => {
         }),
       ).rejects.toMatchObject({
         code: "INTERNAL_SERVER_ERROR",
-        data: { code: "PROVIDER_FAILED", providerId: "google", statusCode: 429 },
+        data: { code: "PROVIDER_FAILED", providerId: "google" },
       })
+    } finally {
+      fetchSpy.mockRestore()
+    }
+  })
+
+  it("does not leak statusCode in PROVIDER_FAILED error data", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("Service Unavailable", { status: 503 }),
+    )
+    try {
+      const client = createRouterClient(router, { context: ctx(freeSession) })
+      let caughtError: unknown
+      try {
+        await client.translate.translate({
+          text: "hello",
+          sourceLang: "en",
+          targetLang: "zh-CN",
+          modelId: "google",
+          columnId: "col-google",
+          clickId: SAMPLE_CLICK_ID,
+        })
+      } catch (err) {
+        caughtError = err
+      }
+      expect(caughtError).toBeDefined()
+      expect((caughtError as any).code).toBe("INTERNAL_SERVER_ERROR")
+      expect((caughtError as any).data).not.toHaveProperty("statusCode")
     } finally {
       fetchSpy.mockRestore()
     }

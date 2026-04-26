@@ -89,12 +89,20 @@ export async function microsoftTranslate(
   toLang: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<string> {
-  // Microsoft requires `from=""` for auto-detect rather than `from=auto`.
-  const effectiveFrom = fromLang === "auto" ? "" : fromLang
-
   const token = await refreshMicrosoftToken(fetchImpl)
 
-  const url = `${MICROSOFT_TRANSLATE_BASE}?from=${encodeURIComponent(effectiveFrom)}&to=${encodeURIComponent(toLang)}&api-version=3.0&textType=plain`
+  // Microsoft auto-detect requires the `from` param to be omitted entirely,
+  // not sent as an empty string (`from=`). Sending `from=` is undefined per
+  // the v3 docs and 400's in some edge configurations.
+  const queryParams = new URLSearchParams({
+    "api-version": "3.0",
+    textType: "plain",
+    to: toLang,
+  })
+  if (fromLang !== "auto") {
+    queryParams.set("from", fromLang)
+  }
+  const url = `${MICROSOFT_TRANSLATE_BASE}?${queryParams.toString()}`
   const resp = await fetchImpl(url, {
     method: "POST",
     headers: {

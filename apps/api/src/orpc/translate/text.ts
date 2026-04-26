@@ -117,6 +117,11 @@ export const translateText = authed
       }
     } catch (err) {
       if (err instanceof TranslateProviderError) {
+        console.error("[translate.providerFailed]", {
+          provider: err.providerId,
+          statusCode: err.statusCode,
+          message: err.message,
+        })
         throw new ORPCError("INTERNAL_SERVER_ERROR", {
           message: err.message,
           data: {
@@ -124,7 +129,6 @@ export const translateText = authed
             providerId: err.providerId,
             modelId,
             columnId: input.columnId,
-            statusCode: err.statusCode,
           },
         })
       }
