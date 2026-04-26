@@ -5,11 +5,18 @@ import { useEffect, useEffectEvent, useRef } from "react"
 import { toast } from "sonner"
 import ProviderIcon from "@/components/provider-icon"
 import { useTheme } from "@/components/providers/theme-provider"
-import { buildSidebarTokenRequestId, isGetuProProvider } from "@/components/translation-workbench/provider-gating"
+import {
+  buildSidebarTokenRequestId,
+  getProviderGate,
+  isGetuProProvider,
+  planFromEntitlements,
+} from "@/components/translation-workbench/provider-gating"
 import { Button } from "@/components/ui/base-ui/button"
+import { useEntitlements } from "@/hooks/use-entitlements"
 import { ANALYTICS_FEATURE, ANALYTICS_SURFACE } from "@/types/analytics"
 import { createFeatureUsageContext, trackFeatureAttempt } from "@/utils/analytics"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
+import { authClient } from "@/utils/auth/auth-client"
 import { getProviderConfigById } from "@/utils/config/helpers"
 import { PROVIDER_ITEMS } from "@/utils/constants/providers"
 import { executeTranslate } from "@/utils/host/translate/execute-translate"
@@ -31,6 +38,10 @@ export function TranslationCard({ providerId, isExpanded, onExpandedChange }: Tr
   const providersConfig = useAtomValue(configFieldsAtomMap.providersConfig)
   const [selectedProviderIds, setSelectedProviderIds] = useAtom(selectedProviderIdsAtom)
   const setExpandedById = useSetAtom(translationCardExpandedStateAtom)
+  const session = authClient.useSession()
+  const userId = session.data?.user?.id ?? null
+  const { data: entitlements } = useEntitlements(userId)
+  const plan = planFromEntitlements(userId, entitlements)
 
   const provider = getProviderConfigById(providersConfig, providerId)
   const providerItem = provider ? PROVIDER_ITEMS[provider.provider as keyof typeof PROVIDER_ITEMS] : undefined
@@ -52,6 +63,14 @@ export function TranslationCard({ providerId, isExpanded, onExpandedChange }: Tr
             throw new Error("Provider not found")
 
           const myRequestId = ++requestIdRef.current
+          if (isGetuProProvider(provider)) {
+            const gate = getProviderGate(provider, plan)
+            if (gate === "login-required")
+              throw new Error(i18n.t("translationWorkbench.loginRequired"))
+            if (gate === "upgrade-required")
+              throw new Error(i18n.t("translationWorkbench.upgradeRequired"))
+          }
+
           const languageConfig = {
             sourceCode: req.sourceLanguage,
             targetCode: req.targetLanguage,
