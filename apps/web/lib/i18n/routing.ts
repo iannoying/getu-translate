@@ -10,6 +10,11 @@ const KNOWN_PAGE_PATHS = new Set([
   "terms-and-conditions",
   "refund",
   "upgrade/success",
+  // M6 — web /translate & /document. Without these, the language switcher
+  // sends a user on /<locale>/translate/ back to / instead of preserving
+  // the page across locales.
+  "translate",
+  "document",
 ])
 
 function trimSlashes(path: string): string {

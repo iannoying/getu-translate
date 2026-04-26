@@ -1,0 +1,343 @@
+/* /translate-specific styles. Uses the design tokens defined in
+   apps/web/app/globals.css (--ink / --ink-soft / --paper / --surface /
+   --line / --accent / --accent-ink / --gold / --shadow). Do NOT introduce
+   new CSS variables here — extend globals.css instead. */
+
+.translate-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+  min-height: calc(100vh - 200px);
+  padding: 24px 0;
+}
+
+@media (max-width: 800px) {
+  .translate-shell {
+    grid-template-columns: 1fr;
+  }
+}
+
+.translate-sidenav {
+  border-right: 1px solid var(--line);
+  padding-right: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 400px;
+}
+
+@media (max-width: 800px) {
+  .translate-sidenav {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding-right: 0;
+    padding-bottom: 16px;
+    min-height: auto;
+  }
+}
+
+.translate-sidenav nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.translate-sidenav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--ink);
+  transition: background-color 120ms ease;
+}
+
+.translate-sidenav-item:hover {
+  background-color: rgb(13 107 100 / 8%);
+}
+
+.translate-sidenav-item.active {
+  background-color: rgb(13 107 100 / 12%);
+  color: var(--accent-ink);
+  font-weight: 500;
+}
+
+.translate-sidenav-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.translate-sidenav-foot {
+  padding: 16px 0;
+}
+
+.translate-canvas {
+  display: flex;
+  flex-direction: column;
+}
+
+.translate-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.translate-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.translate-toolbar-spacer {
+  flex: 1;
+}
+
+.lang-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lang-picker select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.lang-swap {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.lang-swap[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.quota-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.quota-badge.tone-warn {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.quota-badge.tone-danger {
+  /* Danger tone is intentionally outside the brand palette: red is the
+     universal "stop" cue and isn't represented in --ink/--accent/--gold. */
+  border-color: #c0392b;
+  color: #c0392b;
+}
+
+.quota-badge-label {
+  color: var(--ink-soft);
+}
+
+.quota-badge-value {
+  font-weight: 600;
+}
+
+.translate-body {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.4fr);
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .translate-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.translate-input-pane,
+.translate-output-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--surface);
+}
+
+.translate-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 240px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  font: inherit;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.translate-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+
+.translate-input-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.char-counter {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.char-counter-warn {
+  color: var(--gold);
+}
+
+.char-counter-over {
+  color: #c0392b;
+  font-weight: 600;
+}
+
+.char-counter-msg {
+  color: #c0392b;
+  font-size: 13px;
+}
+
+.translate-input-actions {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.translate-output-pane {
+  background: transparent;
+  padding: 0;
+  border: 0;
+}
+
+.model-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.model-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.model-card-locked {
+  background: var(--paper);
+  border-style: dashed;
+}
+
+.model-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.model-card-handle {
+  background: transparent;
+  border: 0;
+  cursor: grab;
+  font-size: 14px;
+  padding: 2px 4px;
+  color: var(--ink-soft);
+}
+
+.model-card-handle:active {
+  cursor: grabbing;
+}
+
+.model-card-handle[disabled] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.model-card-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+}
+
+.model-card-lock {
+  font-size: 12px;
+}
+
+.model-card-body {
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.55;
+  min-height: 64px;
+  color: var(--ink);
+}
+
+.model-card-text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.model-card-loading {
+  margin: 0;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.model-card-error {
+  margin: 0;
+  color: #c0392b;
+  font-style: italic;
+}
+
+.model-card-upgrade {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.model-card-upgrade p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.button.small {
+  font-size: 13px;
+  padding: 6px 12px;
+}

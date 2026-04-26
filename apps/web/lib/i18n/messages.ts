@@ -73,6 +73,28 @@ export type Messages = {
     openPricing: string
     openHome: string
   }
+  translate: {
+    metaTitle: string
+    metaDescription: string
+    shell: { text: string; document: string; upgradePro: string }
+    page: {
+      inputPlaceholder: string
+      translateButton: string
+      translateLoginButton: string
+      translateLoadingButton: string
+      clearButton: string
+      /** Template like "{used} / {limit} chars" — page replaces {used}/{limit}. */
+      charCounterTemplate: string
+      charLimitExceeded: string
+      quotaLabel: string
+      historyToggle: string
+      historyComingSoon: string
+      upgradePromptShort: string
+      notImplementedToast: string
+      cardLoading: string
+      cardErrorFallback: string
+    }
+  }
 }
 
 const EMPTY_POLICY_SECTIONS: PolicySectionMessage[] = []
@@ -440,6 +462,31 @@ export const messages: Record<Locale, Messages> = {
       openPricing: "View pricing",
       openHome: "Go to home",
     },
+    translate: {
+      metaTitle: "Text translation · GetU Translate",
+      metaDescription: "Translate text with 11 AI models side by side. Compare Google, Microsoft, GPT, Claude, Gemini, DeepSeek and more.",
+      shell: {
+        text: "Text",
+        document: "Document",
+        upgradePro: "Upgrade Pro",
+      },
+      page: {
+        inputPlaceholder: "Type or paste text to translate…",
+        translateButton: "Translate",
+        translateLoginButton: "Log in to translate",
+        translateLoadingButton: "Loading…",
+        clearButton: "Clear",
+        charCounterTemplate: "{used} / {limit}",
+        charLimitExceeded: "Over limit — split the text or upgrade to Pro.",
+        quotaLabel: "This month",
+        historyToggle: "History",
+        historyComingSoon: "History is coming next.",
+        upgradePromptShort: "Pro-only model. Upgrade to Pro for OpenAI, DeepSeek, Claude, Gemini and more.",
+        notImplementedToast: "M6.5 will wire real translation. The UI shell is in place — try dragging a model card to reorder.",
+        cardLoading: "Translating…",
+        cardErrorFallback: "Translation failed",
+      },
+    },
   },
   "zh-CN": {
     meta: {
@@ -803,6 +850,31 @@ export const messages: Record<Locale, Messages> = {
       openPricing: "查看价格",
       openHome: "回到首页",
     },
+    translate: {
+      metaTitle: "文本翻译 · GetU Translate",
+      metaDescription: "11 个 AI 模型并排对比翻译：谷歌、微软、GPT、Claude、Gemini、DeepSeek 等。",
+      shell: {
+        text: "文本",
+        document: "文档",
+        upgradePro: "升级 Pro",
+      },
+      page: {
+        inputPlaceholder: "请输入或粘贴文本进行翻译…",
+        translateButton: "翻译",
+        translateLoginButton: "登录后翻译",
+        translateLoadingButton: "加载中…",
+        clearButton: "清空",
+        charCounterTemplate: "{used} / {limit}",
+        charLimitExceeded: "超出字符上限 — 请拆分文本或升级 Pro。",
+        quotaLabel: "本月剩余",
+        historyToggle: "历史",
+        historyComingSoon: "翻译历史即将上线。",
+        upgradePromptShort: "Pro 会员专用模型，升级 Pro 解锁 OpenAI、DeepSeek、Claude、Gemini 等。",
+        notImplementedToast: "M6.5 将接通真实翻译。UI 已就绪 — 可以试试拖拽模型卡片重新排序。",
+        cardLoading: "翻译中…",
+        cardErrorFallback: "翻译失败",
+      },
+    },
   },
   "zh-TW": {
     meta: {
@@ -1165,6 +1237,31 @@ export const messages: Record<Locale, Messages> = {
       tryBody: "釘選完成後，開啟任意網頁，點擊工具列中的 GetU Translate 圖示即可開始翻譯。",
       openPricing: "查看價格",
       openHome: "回到首頁",
+    },
+    translate: {
+      metaTitle: "文字翻譯 · GetU Translate",
+      metaDescription: "11 個 AI 模型並排對比翻譯：Google、Microsoft、GPT、Claude、Gemini、DeepSeek 等。",
+      shell: {
+        text: "文字",
+        document: "文件",
+        upgradePro: "升級 Pro",
+      },
+      page: {
+        inputPlaceholder: "請輸入或貼上文字進行翻譯…",
+        translateButton: "翻譯",
+        translateLoginButton: "登入後翻譯",
+        translateLoadingButton: "載入中…",
+        clearButton: "清除",
+        charCounterTemplate: "{used} / {limit}",
+        charLimitExceeded: "超出字元上限 — 請拆分文字或升級 Pro。",
+        quotaLabel: "本月剩餘",
+        historyToggle: "歷史",
+        historyComingSoon: "翻譯歷史即將上線。",
+        upgradePromptShort: "Pro 會員專用模型，升級 Pro 解鎖 OpenAI、DeepSeek、Claude、Gemini 等。",
+        notImplementedToast: "M6.5 將接通真實翻譯。UI 已就緒 — 可以試試拖曳模型卡片重新排序。",
+        cardLoading: "翻譯中…",
+        cardErrorFallback: "翻譯失敗",
+      },
     },
   },
 }
