@@ -264,6 +264,17 @@ export async function setUpWebPageTranslationQueue() {
     return result
   })
 
+  onMessage("executeTranslationWorkbenchRequest", async (message) => {
+    const { text, langConfig, providerConfig, headers } = message.data
+    return await executeTranslate(
+      text,
+      langConfig,
+      providerConfig,
+      getTranslatePrompt,
+      headers ? { headers } : undefined,
+    )
+  })
+
   onMessage("getOrGenerateWebPageSummary", async (message) => {
     const { webTitle, webContent, providerConfig } = message.data
 

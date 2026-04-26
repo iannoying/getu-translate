@@ -1,9 +1,8 @@
 import type { TranslationRequestSnapshot, TranslationResultState, TranslationWorkbenchPlan } from "./types"
 import type { Config } from "@/types/config/config"
 import type { TranslateProviderConfig } from "@/types/config/provider"
-import { executeTranslate } from "@/utils/host/translate/execute-translate"
+import { sendMessage } from "@/utils/message"
 import { orpcClient } from "@/utils/orpc/client"
-import { getTranslatePrompt } from "@/utils/prompts/translate"
 import {
   buildSidebarClickRequestId,
   buildSidebarTokenRequestId,
@@ -116,17 +115,18 @@ export async function runTranslationWorkbenchRequest({
             }
           : undefined
 
-        const text = await executeTranslate(
-          request.text,
-          {
-            sourceCode: request.sourceLanguage,
-            targetCode: request.targetLanguage,
-            level: languageLevel,
-          },
-          provider,
-          getTranslatePrompt,
-          headers ? { headers } : undefined,
-        )
+        const langConfig = {
+          sourceCode: request.sourceLanguage,
+          targetCode: request.targetLanguage,
+          level: languageLevel,
+        }
+
+        const text = await sendMessage("executeTranslationWorkbenchRequest", {
+          text: request.text,
+          langConfig,
+          providerConfig: provider,
+          ...(headers ? { headers } : {}),
+        })
 
         return { providerId: provider.id, status: "success", text }
       }

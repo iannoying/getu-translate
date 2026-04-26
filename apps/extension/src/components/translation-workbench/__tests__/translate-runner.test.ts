@@ -2,15 +2,38 @@ import type { TranslateProviderConfig } from "@/types/config/provider"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { runTranslationWorkbenchRequest } from "../translate-runner"
 
-const executeTranslateMock = vi.hoisted(() => vi.fn())
+const sendMessageMock = vi.hoisted(() => vi.fn())
 const consumeQuotaMock = vi.hoisted(() => vi.fn())
+const dispatchFreeTranslateMock = vi.hoisted(() => vi.fn())
+const generateTextMock = vi.hoisted(() => vi.fn())
+const getModelByIdMock = vi.hoisted(() => vi.fn())
+const resolveModelIdMock = vi.hoisted(() => vi.fn())
 
-vi.mock("@/utils/host/translate/execute-translate", () => ({
-  executeTranslate: executeTranslateMock,
+vi.mock("@/utils/message", () => ({
+  sendMessage: sendMessageMock,
 }))
 
-vi.mock("@/utils/prompts/translate", () => ({
-  getTranslatePrompt: vi.fn(),
+vi.mock("@/utils/host/translate/api/dispatch", () => ({
+  DEFAULT_ORDER: ["google", "microsoft", "bing", "yandex"],
+  defaultHealth: {},
+  defaultImpls: {},
+  dispatchFreeTranslate: dispatchFreeTranslateMock,
+}))
+
+vi.mock("ai", () => ({
+  generateText: generateTextMock,
+}))
+
+vi.mock("@/utils/providers/model", () => ({
+  getModelById: getModelByIdMock,
+}))
+
+vi.mock("@/utils/providers/model-id", () => ({
+  resolveModelId: resolveModelIdMock,
+}))
+
+vi.mock("@/utils/providers/options", () => ({
+  getProviderOptionsWithOverride: vi.fn(() => ({})),
 }))
 
 vi.mock("@/utils/orpc/client", () => ({
@@ -38,14 +61,22 @@ const proProvider = {
 
 describe("runTranslationWorkbenchRequest", () => {
   beforeEach(() => {
-    executeTranslateMock.mockReset()
-    executeTranslateMock.mockResolvedValue("translated")
+    sendMessageMock.mockReset()
+    sendMessageMock.mockResolvedValue("translated")
     consumeQuotaMock.mockReset()
     consumeQuotaMock.mockResolvedValue({
       bucket: "web_text_translate_monthly",
       remaining: 99,
       reset_at: null,
     })
+    dispatchFreeTranslateMock.mockReset()
+    dispatchFreeTranslateMock.mockResolvedValue({ text: "direct translated", usedProvider: "google" })
+    generateTextMock.mockReset()
+    generateTextMock.mockResolvedValue({ text: "direct translated" })
+    getModelByIdMock.mockReset()
+    getModelByIdMock.mockResolvedValue({ provider: "model" })
+    resolveModelIdMock.mockReset()
+    resolveModelIdMock.mockReturnValue("deepseek-v4-pro")
   })
 
   it("does not call any provider for anonymous users", async () => {
@@ -62,7 +93,7 @@ describe("runTranslationWorkbenchRequest", () => {
       languageLevel: "intermediate",
     })
 
-    expect(executeTranslateMock).not.toHaveBeenCalled()
+    expect(sendMessageMock).not.toHaveBeenCalled()
     expect(consumeQuotaMock).not.toHaveBeenCalled()
     expect(results).toEqual([
       { providerId: "google-translate-default", status: "login-required" },
@@ -84,7 +115,7 @@ describe("runTranslationWorkbenchRequest", () => {
       languageLevel: "intermediate",
     })
 
-    expect(executeTranslateMock).not.toHaveBeenCalled()
+    expect(sendMessageMock).not.toHaveBeenCalled()
     expect(consumeQuotaMock).not.toHaveBeenCalled()
     expect(results).toEqual([
       { providerId: "getu-pro-default", status: "upgrade-required" },
@@ -112,9 +143,9 @@ describe("runTranslationWorkbenchRequest", () => {
     })
   })
 
-  it("uses a separate token request id for each GetU Pro provider call", async () => {
+  it("sends runnable non-GetU provider calls to the background without headers", async () => {
     await runTranslationWorkbenchRequest({
-      plan: "pro",
+      plan: "free",
       userId: "user-1",
       request: {
         text: "hello",
@@ -122,21 +153,65 @@ describe("runTranslationWorkbenchRequest", () => {
         targetLanguage: "cmn",
         clickId: "click-4",
       },
-      providers: [proProvider],
+      providers: [googleProvider],
       languageLevel: "intermediate",
     })
 
-    expect(executeTranslateMock).toHaveBeenCalledWith(
-      "hello",
-      { sourceCode: "auto", targetCode: "cmn", level: "intermediate" },
-      proProvider,
-      expect.any(Function),
-      expect.objectContaining({
+    expect(sendMessageMock).toHaveBeenCalledWith(
+      "executeTranslationWorkbenchRequest",
+      {
+        text: "hello",
+        langConfig: { sourceCode: "auto", targetCode: "cmn", level: "intermediate" },
+        providerConfig: googleProvider,
+      },
+    )
+  })
+
+  it("uses separate token request headers for each GetU Pro provider background call", async () => {
+    const secondProProvider = {
+      ...proProvider,
+      id: "getu-pro-backup",
+      name: "DeepSeek-V4-Pro Backup",
+    } as TranslateProviderConfig
+
+    await runTranslationWorkbenchRequest({
+      plan: "pro",
+      userId: "user-1",
+      request: {
+        text: "hello",
+        sourceLanguage: "auto",
+        targetLanguage: "cmn",
+        clickId: "click-5",
+      },
+      providers: [proProvider, secondProProvider],
+      languageLevel: "intermediate",
+    })
+
+    expect(sendMessageMock).toHaveBeenNthCalledWith(
+      1,
+      "executeTranslationWorkbenchRequest",
+      {
+        text: "hello",
+        langConfig: { sourceCode: "auto", targetCode: "cmn", level: "intermediate" },
+        providerConfig: proProvider,
         headers: {
-          "x-request-id": "sidebar-web-text-token:click-4:getu-pro-default",
+          "x-request-id": "sidebar-web-text-token:click-5:getu-pro-default",
           "x-getu-quota-bucket": "web_text_translate_token_monthly",
         },
-      }),
+      },
+    )
+    expect(sendMessageMock).toHaveBeenNthCalledWith(
+      2,
+      "executeTranslationWorkbenchRequest",
+      {
+        text: "hello",
+        langConfig: { sourceCode: "auto", targetCode: "cmn", level: "intermediate" },
+        providerConfig: secondProProvider,
+        headers: {
+          "x-request-id": "sidebar-web-text-token:click-5:getu-pro-backup",
+          "x-getu-quota-bucket": "web_text_translate_token_monthly",
+        },
+      },
     )
   })
 
@@ -179,7 +254,7 @@ describe("runTranslationWorkbenchRequest", () => {
     expect(results).toEqual([
       { providerId: "google-translate-default", status: "quota-exhausted", errorMessage: "quota exhausted" },
     ])
-    expect(executeTranslateMock).not.toHaveBeenCalled()
+    expect(sendMessageMock).not.toHaveBeenCalled()
   })
 
   it("returns error results and skips providers when click quota check fails for a non-quota error", async () => {
@@ -201,11 +276,11 @@ describe("runTranslationWorkbenchRequest", () => {
     expect(results).toEqual([
       { providerId: "google-translate-default", status: "error", errorMessage: "network down" },
     ])
-    expect(executeTranslateMock).not.toHaveBeenCalled()
+    expect(sendMessageMock).not.toHaveBeenCalled()
   })
 
   it("returns an error result for one failed provider without clearing successful results", async () => {
-    executeTranslateMock
+    sendMessageMock
       .mockResolvedValueOnce("first ok")
       .mockRejectedValueOnce(new Error("network failed"))
 
