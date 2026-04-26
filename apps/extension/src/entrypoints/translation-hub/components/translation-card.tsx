@@ -39,12 +39,19 @@ export function TranslationCard({ providerId, isExpanded, onExpandedChange }: Tr
   const [selectedProviderIds, setSelectedProviderIds] = useAtom(selectedProviderIdsAtom)
   const setExpandedById = useSetAtom(translationCardExpandedStateAtom)
   const session = authClient.useSession()
+  const sessionLoading = session?.isPending ?? false
   const userId = session.data?.user?.id ?? null
-  const { data: entitlements } = useEntitlements(userId)
+  const { data: entitlements, isLoading: entitlementsLoading } = useEntitlements(userId)
   const plan = planFromEntitlements(userId, entitlements)
 
   const provider = getProviderConfigById(providersConfig, providerId)
   const providerItem = provider ? PROVIDER_ITEMS[provider.provider as keyof typeof PROVIDER_ITEMS] : undefined
+  const isGetuPro = provider != null && isGetuProProvider(provider)
+  const providerGate = isGetuPro ? getProviderGate(provider, plan) : "available"
+  const shouldWaitForGetuProGate = isGetuPro && (sessionLoading || entitlementsLoading)
+  const translationTriggerKey = isGetuPro
+    ? `${sessionLoading ? "session-loading" : "session-ready"}:${entitlementsLoading ? "entitlements-loading" : "entitlements-ready"}:${providerGate}`
+    : "unrestricted"
 
   // Track request IDs to ignore stale responses from slow providers
   const requestIdRef = useRef(0)
@@ -64,6 +71,9 @@ export function TranslationCard({ providerId, isExpanded, onExpandedChange }: Tr
 
           const myRequestId = ++requestIdRef.current
           if (isGetuProProvider(provider)) {
+            if (shouldWaitForGetuProGate)
+              return undefined
+
             const gate = getProviderGate(provider, plan)
             if (gate === "login-required")
               throw new Error(i18n.t("translationWorkbench.loginRequired"))
@@ -98,6 +108,9 @@ export function TranslationCard({ providerId, isExpanded, onExpandedChange }: Tr
 
   const requestTranslation = () => {
     if (request?.inputText.trim()) {
+      if (shouldWaitForGetuProGate)
+        return
+
       mutation.mutate(request)
     }
   }
@@ -107,7 +120,7 @@ export function TranslationCard({ providerId, isExpanded, onExpandedChange }: Tr
 
   useEffect(() => {
     triggerTranslation()
-  }, [request?.timestamp])
+  }, [request?.timestamp, translationTriggerKey])
 
   const handleCopy = () => {
     if (mutation.data) {

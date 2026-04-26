@@ -2,7 +2,7 @@
 import type { TranslateProviderConfig } from "@/types/config/provider"
 import type { Entitlements } from "@/types/entitlements"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { act, render, screen, waitFor } from "@testing-library/react"
 import { createStore, Provider as JotaiProvider } from "jotai"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { translateRequestAtom } from "../../atoms"
@@ -112,7 +112,7 @@ function renderTranslationCard(providerId: string, clickId = "click-1") {
     },
   })
 
-  return render(
+  const renderCard = () => (
     <JotaiProvider store={store}>
       <QueryClientProvider client={queryClient}>
         <TranslationCard
@@ -121,8 +121,14 @@ function renderTranslationCard(providerId: string, clickId = "click-1") {
           onExpandedChange={vi.fn()}
         />
       </QueryClientProvider>
-    </JotaiProvider>,
+    </JotaiProvider>
   )
+
+  const result = render(renderCard())
+  return {
+    ...result,
+    rerenderCard: () => result.rerender(renderCard()),
+  }
 }
 
 function setAnonymousUser() {
@@ -192,6 +198,52 @@ describe("translation hub TranslationCard", () => {
       {
         headers: {
           "x-request-id": "sidebar-web-text-token:click-pro:getu-pro-default",
+          "x-getu-quota-bucket": "web_text_translate_token_monthly",
+        },
+      },
+    )
+  })
+
+  it("waits for GetU Pro entitlements before translating the same request", async () => {
+    const proProvider = providersConfig[0] as TranslateProviderConfig
+    let entitlementsState = {
+      data: FREE_ENTITLEMENTS,
+      isLoading: true,
+      isFromCache: false,
+    }
+    useSessionMock.mockReturnValue({ data: { user: { id: "user-pro" } }, isPending: false })
+    useEntitlementsMock.mockImplementation(() => entitlementsState)
+
+    const { rerenderCard } = renderTranslationCard(proProvider.id, "click-pro-loading")
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(executeTranslateMock).not.toHaveBeenCalled()
+    expect(screen.queryByText("translationWorkbench.upgradeRequired")).not.toBeInTheDocument()
+    expect(screen.queryByText("translationWorkbench.loginRequired")).not.toBeInTheDocument()
+
+    entitlementsState = {
+      data: PRO_ENTITLEMENTS,
+      isLoading: false,
+      isFromCache: false,
+    }
+    rerenderCard()
+
+    await waitFor(() => {
+      expect(executeTranslateMock).toHaveBeenCalledTimes(1)
+    })
+
+    expect(executeTranslateMock).toHaveBeenCalledWith(
+      "hello",
+      { sourceCode: "auto", targetCode: "cmn", level: "intermediate" },
+      proProvider,
+      expect.any(Function),
+      {
+        headers: {
+          "x-request-id": "sidebar-web-text-token:click-pro-loading:getu-pro-default",
           "x-getu-quota-bucket": "web_text_translate_token_monthly",
         },
       },
