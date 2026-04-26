@@ -190,7 +190,7 @@ export function DocumentClient({
     if (!srcUrl) return
     if (isLoadingSession) return
     if (!isAuthed) {
-      router.push(localeHref(locale, `/log-in?next=${encodeURIComponent(loginNext)}`))
+      router.push(localeHref(locale, `/log-in?redirect=${encodeURIComponent(loginNext)}`))
       return
     }
     if (fromUrlFiredRef.current) return
@@ -243,7 +243,7 @@ export function DocumentClient({
 
   async function handleSubmit() {
     if (!isAuthed) {
-      router.push(localeHref(locale, `/log-in?next=${encodeURIComponent(loginNext)}`))
+      router.push(localeHref(locale, `/log-in?redirect=${encodeURIComponent(loginNext)}`))
       return
     }
     if (!file) return
@@ -256,7 +256,7 @@ export function DocumentClient({
       // 1. Presign.
       const presignRes = await presignUpload(file.name, file.size)
       if (presignRes.status === 401) {
-        router.push(localeHref(locale, `/log-in?next=${encodeURIComponent(loginNext)}`))
+        router.push(localeHref(locale, `/log-in?redirect=${encodeURIComponent(loginNext)}`))
         return
       }
       if (presignRes.status === 503) {

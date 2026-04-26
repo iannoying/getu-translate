@@ -4,6 +4,7 @@ import {
   fetchPdfFromUrl,
   isPrivateHostname,
   looksLikePdf,
+  presignPut,
   readPdfPageCount,
   tryBuildR2Signer,
 } from "../document"
@@ -24,6 +25,10 @@ describe("isPrivateHostname", () => {
     ["::1", true],
     ["fe80::1", true],
     ["fd00::1", true],
+    // IPv4-mapped IPv6 — must be caught even though they look like v6 addresses
+    ["::ffff:127.0.0.1", true],
+    ["::ffff:169.254.169.254", true], // metadata service via v6 notation
+    ["::ffff:10.0.0.1", true],
   ])("rejects private hostname %s", (host, expected) => {
     expect(isPrivateHostname(host)).toBe(expected)
   })
@@ -34,6 +39,7 @@ describe("isPrivateHostname", () => {
     ["8.8.8.8", false],
     ["172.32.0.1", false], // outside the 172.16-31 private range
     ["172.15.0.1", false],
+    ["::ffff:8.8.8.8", false], // public IPv4 via v6 mapping is allowed
   ])("accepts public hostname %s", (host, expected) => {
     expect(isPrivateHostname(host)).toBe(expected)
   })
@@ -110,6 +116,23 @@ describe("tryBuildR2Signer", () => {
     expect(signer).not.toBeNull()
     expect(signer?.endpoint).toBe("https://acc.r2.cloudflarestorage.com")
     expect(signer?.bucket).toBe("getu-pdfs")
+  })
+})
+
+describe("presignPut — signed headers", () => {
+  it("includes content-length and content-type in X-Amz-SignedHeaders", async () => {
+    const signer = tryBuildR2Signer({
+      R2_ACCOUNT_ID: "acc",
+      R2_ACCESS_KEY_ID: "key",
+      R2_SECRET_ACCESS_KEY: "secret",
+      R2_BUCKET_PDFS_NAME: "getu-pdfs",
+    } as any)
+    expect(signer).not.toBeNull()
+    const url = await presignPut(signer!, "pdfs/user/job/source.pdf", 12345)
+    const parsed = new URL(url)
+    const signedHeaders = parsed.searchParams.get("X-Amz-SignedHeaders") ?? ""
+    expect(signedHeaders).toContain("content-length")
+    expect(signedHeaders).toContain("content-type")
   })
 })
 

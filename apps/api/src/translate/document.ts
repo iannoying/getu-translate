@@ -98,6 +98,11 @@ export function isPrivateHostname(host: string): boolean {
   }
   // IPv6 literal — Workers exposes URL.hostname unbracketed for v6
   if (h === "::1" || h === "::") return true
+  // IPv4-mapped IPv6 (::ffff:<ipv4>) — recurse the embedded IPv4 so all
+  // private ranges are caught the same way as plain IPv4 literals.
+  if (h.startsWith("::ffff:")) {
+    return isPrivateHostname(h.slice("::ffff:".length))
+  }
   if (h.startsWith("fe80")) return true // link-local
   if (h.startsWith("fc") || h.startsWith("fd")) return true // unique-local
   return false
@@ -141,16 +146,29 @@ export function tryBuildR2Signer(env: WorkerEnv): { client: AwsClient; endpoint:
  * Sign a PUT URL for the given key, expiring in 5 minutes. The URL embeds
  * the auth via query string so the browser can `fetch(url, { method: "PUT", body })`
  * without crafting Authorization headers (CORS-friendly).
+ *
+ * contentLength and contentType are included as signed headers so R2 rejects
+ * any PUT that doesn't match — prevents a client from uploading a larger blob
+ * than was declared at presign time.
  */
 export async function presignPut(
   signer: { client: AwsClient; endpoint: string; bucket: string },
   sourceKey: string,
+  contentLength: number,
+  contentType = "application/pdf",
 ): Promise<string> {
   const url = new URL(`${signer.endpoint}/${signer.bucket}/${sourceKey}`)
   url.searchParams.set("X-Amz-Expires", String(PRESIGN_EXPIRES_SECONDS))
   const signed = await signer.client.sign(url.toString(), {
     method: "PUT",
-    aws: { signQuery: true, service: "s3" },
+    headers: {
+      "Content-Length": String(contentLength),
+      "Content-Type": contentType,
+    },
+    // allHeaders: true forces aws4fetch to include content-length and content-type
+    // in X-Amz-SignedHeaders (they are in its UNSIGNABLE_HEADERS list by default).
+    // R2 will then reject any PUT whose headers don't match the signature.
+    aws: { signQuery: true, service: "s3", allHeaders: true },
   })
   return signed.url
 }
@@ -304,7 +322,7 @@ documentRoutes.post("/presign", async (c) => {
 
   const jobUuid = crypto.randomUUID()
   const sourceKey = `pdfs/${session.user.id}/${jobUuid}/source.pdf`
-  const uploadUrl = await presignPut(signer, sourceKey)
+  const uploadUrl = await presignPut(signer, sourceKey, body.contentLength)
   return c.json({ uploadUrl, sourceKey, expiresInSeconds: PRESIGN_EXPIRES_SECONDS })
 })
 
