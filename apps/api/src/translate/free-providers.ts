@@ -16,6 +16,11 @@ const GOOGLE_BASE = "https://translate.googleapis.com/translate_a/single"
 const MICROSOFT_AUTH_URL = "https://edge.microsoft.com/translate/auth"
 const MICROSOFT_TRANSLATE_BASE = "https://api-edge.cognitive.microsofttranslator.com/translate"
 
+// Microsoft edge auth tokens are JWTs valid ~1 hour. Cache them module-locally
+// so a single 11-column /translate burst fires one auth fetch, not eleven.
+let _msToken: { value: string; expiresAt: number } | null = null
+let _msTokenInflight: Promise<string> | null = null
+
 export class TranslateProviderError extends Error {
   readonly providerId: string
   readonly statusCode?: number
@@ -128,18 +133,55 @@ export async function microsoftTranslate(
 }
 
 async function refreshMicrosoftToken(fetchImpl: typeof fetch): Promise<string> {
-  const resp = await fetchImpl(MICROSOFT_AUTH_URL).catch((cause) => {
-    throw new TranslateProviderError(
-      "microsoft",
-      `auth network error: ${(cause as Error).message}`,
-    )
-  })
-  if (!resp.ok) {
-    throw new TranslateProviderError(
-      "microsoft",
-      `auth failed: ${resp.status} ${resp.statusText}`,
-      resp.status,
-    )
+  if (_msToken && Date.now() < _msToken.expiresAt - 60_000) {
+    return _msToken.value
   }
-  return resp.text()
+  if (_msTokenInflight) return _msTokenInflight
+
+  _msTokenInflight = (async () => {
+    try {
+      const resp = await fetchImpl(MICROSOFT_AUTH_URL).catch((cause) => {
+        throw new TranslateProviderError(
+          "microsoft",
+          `auth network error: ${(cause as Error).message}`,
+        )
+      })
+      if (!resp.ok) {
+        throw new TranslateProviderError(
+          "microsoft",
+          `auth failed: ${resp.status} ${resp.statusText}`,
+          resp.status,
+        )
+      }
+      const value = await resp.text()
+      const expFromJwt = decodeJwtExpMs(value)
+      const expiresAt = expFromJwt ?? Date.now() + 55 * 60 * 1000
+      _msToken = { value, expiresAt }
+      return value
+    } finally {
+      _msTokenInflight = null
+    }
+  })()
+
+  return _msTokenInflight
+}
+
+function decodeJwtExpMs(token: string): number | null {
+  try {
+    const parts = token.split(".")
+    if (parts.length !== 3) return null
+    const b64url = parts[1]
+    const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/")
+    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4)
+    const payload = JSON.parse(atob(padded)) as { exp?: number }
+    return typeof payload.exp === "number" ? payload.exp * 1000 : null
+  } catch {
+    return null
+  }
+}
+
+/** Test-only: reset the module-level Microsoft auth token cache. */
+export function _resetMicrosoftTokenCache(): void {
+  _msToken = null
+  _msTokenInflight = null
 }
