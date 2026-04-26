@@ -184,7 +184,9 @@ export const documentCreate = authed
       // Best-effort rollback: if DELETE fails, log and still re-throw the
       // quota error. The retention worker will eventually clean the orphan.
       try {
-        await db.delete(translationJobs).where(eq(translationJobs.id, jobId)).run()
+        await db.delete(translationJobs)
+          .where(and(eq(translationJobs.id, jobId), eq(translationJobs.userId, userId)))
+          .run()
       } catch (delErr) {
         console.warn("[documentCreate] failed to rollback job row after quota failure", delErr)
       }

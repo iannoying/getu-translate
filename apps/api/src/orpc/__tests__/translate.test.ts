@@ -606,26 +606,12 @@ describe("translate.document.create", () => {
   it("race fix: quota exhaustion after INSERT → job row deleted + INSUFFICIENT_QUOTA surfaced", async () => {
     // INSERT succeeds (race winner), but the user has no remaining quota.
     // The handler must DELETE the just-inserted row and re-throw.
-    let deletedJobId: string | null = null
+    let capturedDeleteWhere: unknown = null
     const originalDelete = fakeDb.delete
     fakeDb.delete = vi.fn(() => ({
-      where: vi.fn((...whereArgs: unknown[]) => {
-        // Capture the jobId from the eq() expression for assertion
-        deleteCalls.push({ table: "history", whereArgs })
-        return {
-          run: vi.fn(async () => {
-            // Record which jobId the rollback targeted
-            const expr = whereArgs[0] as { queryChunks?: Array<{ value?: unknown[] }> }
-            const chunks = expr?.queryChunks ?? []
-            for (const chunk of chunks) {
-              for (const val of chunk.value ?? []) {
-                if (typeof val === "string" && val.length === 36) {
-                  deletedJobId = val
-                }
-              }
-            }
-          }),
-        }
+      where: vi.fn((arg: unknown) => {
+        capturedDeleteWhere = arg
+        return { run: async () => undefined }
       }),
     })) as any
 
@@ -660,10 +646,18 @@ describe("translate.document.create", () => {
         expect(insertedJobs).toHaveLength(1)
         // DELETE was called to roll back the orphan row
         expect(fakeDb.delete).toHaveBeenCalled()
-        // The jobId passed to DELETE matches what was inserted
-        if (insertedJobId) {
-          expect(deletedJobId ?? insertedJobId).toBe(insertedJobId)
+        // The WHERE arg was captured — verify it references the inserted jobId.
+        // Drizzle expression objects are circular so we walk the object
+        // recursively (with a visited set) looking for the UUID string.
+        expect(capturedDeleteWhere).toBeDefined()
+        function containsValue(obj: unknown, needle: string, visited = new Set<object>()): boolean {
+          if (obj === needle) return true
+          if (obj === null || typeof obj !== "object") return false
+          if (visited.has(obj)) return false
+          visited.add(obj)
+          return Object.values(obj as Record<string, unknown>).some(v => containsValue(v, needle, visited))
         }
+        expect(containsValue(capturedDeleteWhere, insertedJobId!)).toBe(true)
       } finally {
         fakeDb.insert = originalInsert
       }
