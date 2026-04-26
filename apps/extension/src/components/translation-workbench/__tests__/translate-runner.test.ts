@@ -257,6 +257,29 @@ describe("runTranslationWorkbenchRequest", () => {
     expect(sendMessageMock).not.toHaveBeenCalled()
   })
 
+  it("returns quota-exhausted when a GetU Pro token request exhausts token quota", async () => {
+    sendMessageMock.mockRejectedValueOnce(Object.assign(new Error("token quota exhausted"), {
+      code: "QUOTA_EXCEEDED",
+    }))
+
+    const results = await runTranslationWorkbenchRequest({
+      plan: "pro",
+      userId: "user-1",
+      request: {
+        text: "hello",
+        sourceLanguage: "auto",
+        targetLanguage: "cmn",
+        clickId: "click-token-quota",
+      },
+      providers: [proProvider],
+      languageLevel: "intermediate",
+    })
+
+    expect(results).toEqual([
+      { providerId: "getu-pro-default", status: "quota-exhausted", errorMessage: "token quota exhausted" },
+    ])
+  })
+
   it("returns error results and skips providers when click quota check fails for a non-quota error", async () => {
     consumeQuotaMock.mockRejectedValueOnce(new Error("network down"))
 

@@ -1,3 +1,4 @@
+import type { ProAiQuotaBucket } from "../ai/getu-pro-jwt"
 import type { Config } from "@/types/config/config"
 import { storage } from "#imports"
 import { createAlibaba } from "@ai-sdk/alibaba"
@@ -65,7 +66,11 @@ const CUSTOM_HEADER_MAP: Partial<Record<keyof typeof CREATE_AI_MAPPER, Record<st
   anthropic: { "anthropic-dangerous-direct-browser-access": "true" },
 }
 
-async function getLanguageModelById(providerId: string) {
+interface GetLanguageModelOptions {
+  quotaBucket?: ProAiQuotaBucket
+}
+
+async function getLanguageModelById(providerId: string, options?: GetLanguageModelOptions) {
   const config = await storage.getItem<Config>(`local:${CONFIG_STORAGE_KEY}`)
   if (!config) {
     throw new Error("Config not found")
@@ -79,7 +84,7 @@ async function getLanguageModelById(providerId: string) {
 
   // ── Pro virtual provider path ────────────────────────────────────
   if (providerConfig.provider === "getu-pro") {
-    const apiKey = await getProJwt()
+    const apiKey = await getProJwt({ quotaBucket: options?.quotaBucket })
     const baseURL = getProApiBaseUrl()
     const provider = createOpenAICompatible({
       name: "getu-pro",
@@ -122,6 +127,6 @@ async function getLanguageModelById(providerId: string) {
   return provider.languageModel(modelId)
 }
 
-export async function getModelById(providerId: string) {
-  return getLanguageModelById(providerId)
+export async function getModelById(providerId: string, options?: GetLanguageModelOptions) {
+  return getLanguageModelById(providerId, options)
 }

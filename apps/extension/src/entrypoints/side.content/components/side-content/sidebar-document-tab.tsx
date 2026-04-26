@@ -12,7 +12,7 @@ import { swallowExtensionLifecycleError } from "@/utils/extension-lifecycle"
 import { i18n } from "@/utils/i18n"
 import { sendMessage } from "@/utils/message"
 
-const FORMATS = ["PDF", "EPUB", "DOCX", "TXT", "HTML", "MD", "SRT", "ASS", "VTT", "LRC"] as const
+const FORMATS = ["PDF", "EPUB", "DOCX", "TXT", "HTML", "Markdown", "SRT", "ASS", "VTT", "LRC"] as const
 
 const FEATURES = [
   {

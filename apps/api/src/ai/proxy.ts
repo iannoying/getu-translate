@@ -5,12 +5,10 @@ import {
   type TranslateModelId,
 } from "@getu/definitions"
 import { assertCanConsumeQuotaBucket, consumeQuota } from "../billing/quota"
-import { verifyAiJwt } from "./jwt"
+import { isAiProxyQuotaBucket, verifyAiJwt, type AiProxyQuotaBucket } from "./jwt"
 import { checkRateLimit, RATE_LIMIT_PER_MINUTE } from "./rate-limit"
 import { extractUsageFromSSE } from "./usage-parser"
 import type { WorkerEnv } from "../env"
-
-type AiProxyQuotaBucket = "ai_translate_monthly" | "web_text_translate_token_monthly"
 
 const PRO_MODEL_TO_TRANSLATE_MODEL_ID = {
   "deepseek-v4-pro": "deepseek-v4-pro",
@@ -27,7 +25,7 @@ function resolveAiProxyQuotaBucket(req: Request): AiProxyQuotaBucket {
   if (raw === null || raw === "" || raw === "ai_translate_monthly") {
     return "ai_translate_monthly"
   }
-  if (raw === "web_text_translate_token_monthly") {
+  if (isAiProxyQuotaBucket(raw)) {
     return raw
   }
   return "ai_translate_monthly"
@@ -43,9 +41,11 @@ export async function handleChatCompletions(
   const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null
   if (!bearer) return json({ error: "missing bearer token" }, 401)
   let userId: string
+  let authorizedQuotaBucket: AiProxyQuotaBucket
   try {
     const v = await verifyAiJwt(bearer, env.AI_JWT_SECRET)
     userId = v.userId
+    authorizedQuotaBucket = v.quotaBucket
   } catch {
     return json({ error: "invalid or expired token" }, 401)
   }
@@ -67,6 +67,12 @@ export async function handleChatCompletions(
     return json({ error: `model '${body.model}' not in Pro whitelist` }, 400)
   const model: ProModel = body.model
   const quotaBucket = resolveAiProxyQuotaBucket(req)
+  if (quotaBucket !== authorizedQuotaBucket) {
+    return json({
+      error: `quota bucket '${quotaBucket}' is not authorized by this token`,
+      code: "FORBIDDEN",
+    }, 403)
+  }
 
   try {
     await assertCanConsumeQuotaBucket(db, userId, quotaBucket)
@@ -228,10 +234,10 @@ function getErrorMessage(err: unknown, fallback: string): string {
 
 function quotaErrorResponse(err: unknown): Response | null {
   if (hasErrorCode(err, "FORBIDDEN")) {
-    return json({ error: getErrorMessage(err, "quota bucket forbidden") }, 403)
+    return json({ error: getErrorMessage(err, "quota bucket forbidden"), code: "FORBIDDEN" }, 403)
   }
   if (hasErrorCode(err, "QUOTA_EXCEEDED")) {
-    return json({ error: getErrorMessage(err, "quota exceeded") }, 429)
+    return json({ error: getErrorMessage(err, "quota exceeded"), code: "QUOTA_EXCEEDED" }, 429)
   }
   return null
 }

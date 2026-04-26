@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { AiProxyQuotaBucket } from "../jwt"
 import { handleChatCompletions } from "../proxy"
 
 vi.mock("../jwt", () => ({
+  isAiProxyQuotaBucket: (value: unknown) =>
+    value === "ai_translate_monthly" || value === "web_text_translate_token_monthly",
   verifyAiJwt: vi.fn(),
 }))
 vi.mock("../rate-limit", () => ({
@@ -26,6 +29,10 @@ const env = {
   AI_JWT_SECRET: "x".repeat(48),
   DB: {} as any,
 } as any
+
+function verifiedJwt(quotaBucket: AiProxyQuotaBucket = "ai_translate_monthly") {
+  return { userId: "u1", exp: 9e9, quotaBucket }
+}
 
 function fakeCtx() {
   const pending: Promise<unknown>[] = []
@@ -66,7 +73,7 @@ describe("handleChatCompletions", () => {
 
   it("400 when model not in whitelist", async () => {
     const { verifyAiJwt } = await import("../jwt")
-    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce(verifiedJwt())
     const req = new Request("https://x/ai/v1/chat/completions", {
       method: "POST",
       headers: { authorization: "Bearer ok" },
@@ -80,7 +87,7 @@ describe("handleChatCompletions", () => {
 
   it("forwards to bianxie with injected key and streams response", async () => {
     const { verifyAiJwt } = await import("../jwt")
-    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce(verifiedJwt())
     const fetchSpy = vi.fn(
       async () =>
         new Response(`data: [DONE]\n\n`, {
@@ -115,7 +122,7 @@ describe("handleChatCompletions", () => {
 
   it("502 when upstream fails", async () => {
     const { verifyAiJwt } = await import("../jwt")
-    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce(verifiedJwt())
     vi.stubGlobal("fetch", vi.fn(async () => new Response("boom", { status: 503 })))
     const req = new Request("https://x/ai/v1/chat/completions", {
       method: "POST",
@@ -129,7 +136,7 @@ describe("handleChatCompletions", () => {
   it("calls consumeQuota after streaming with parsed usage", async () => {
     const { verifyAiJwt } = await import("../jwt")
     const { consumeQuota } = await import("../../billing/quota")
-    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce(verifiedJwt())
     const sse = [
       `data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n`,
       `data: {"choices":[{"finish_reason":"stop"}],"usage":{"prompt_tokens":100,"completion_tokens":200}}\n\n`,
@@ -177,7 +184,7 @@ describe("handleChatCompletions", () => {
   it("charges the web text token bucket with web /translate token coefficients", async () => {
     const { verifyAiJwt } = await import("../jwt")
     const { consumeQuota } = await import("../../billing/quota")
-    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce(verifiedJwt("web_text_translate_token_monthly"))
     const sse = [
       `data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n`,
       `data: {"choices":[{"finish_reason":"stop"}],"usage":{"prompt_tokens":100,"completion_tokens":200}}\n\n`,
@@ -226,10 +233,46 @@ describe("handleChatCompletions", () => {
     )
   })
 
+  it("403s before quota preflight when the requested bucket is not authorized by the JWT", async () => {
+    const { verifyAiJwt } = await import("../jwt")
+    const { assertCanConsumeQuotaBucket, consumeQuota } = await import("../../billing/quota")
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce(verifiedJwt("ai_translate_monthly"))
+    const fetchSpy = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ usage: { prompt_tokens: 100, completion_tokens: 200 } }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    )
+    vi.stubGlobal("fetch", fetchSpy)
+
+    const req = new Request("https://x/ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer ok",
+        "x-getu-quota-bucket": "web_text_translate_token_monthly",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    })
+
+    const r = await handleChatCompletions(req, env, fakeCtx() as any)
+    const body = (await r.json()) as { code?: string, error: string }
+
+    expect(r.status).toBe(403)
+    expect(body.code).toBe("FORBIDDEN")
+    expect(body.error).toMatch(/not authorized/i)
+    expect(assertCanConsumeQuotaBucket).not.toHaveBeenCalled()
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(consumeQuota).not.toHaveBeenCalled()
+  })
+
   it("403s before upstream fetch when quota bucket preflight is forbidden", async () => {
     const { verifyAiJwt } = await import("../jwt")
     const { assertCanConsumeQuotaBucket, consumeQuota } = await import("../../billing/quota")
-    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce(verifiedJwt("web_text_translate_token_monthly"))
     vi.mocked(assertCanConsumeQuotaBucket).mockRejectedValueOnce(
       Object.assign(new Error("Tier 'free' cannot access bucket 'web_text_translate_token_monthly'"), {
         code: "FORBIDDEN",
@@ -273,7 +316,7 @@ describe("handleChatCompletions", () => {
   it("429s before upstream fetch when quota bucket preflight is exhausted", async () => {
     const { verifyAiJwt } = await import("../jwt")
     const { assertCanConsumeQuotaBucket, consumeQuota } = await import("../../billing/quota")
-    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce(verifiedJwt("web_text_translate_token_monthly"))
     vi.mocked(assertCanConsumeQuotaBucket).mockRejectedValueOnce(
       Object.assign(new Error("Bucket web_text_translate_token_monthly exhausted"), {
         code: "QUOTA_EXCEEDED",
@@ -312,7 +355,7 @@ describe("handleChatCompletions", () => {
   it("falls back to the default quota bucket for unknown bucket headers", async () => {
     const { verifyAiJwt } = await import("../jwt")
     const { consumeQuota } = await import("../../billing/quota")
-    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce(verifiedJwt())
     const sse = [
       `data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n`,
       `data: {"choices":[{"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":1}}\n\n`,
@@ -364,7 +407,7 @@ describe("handleChatCompletions", () => {
   it("429 when rate limited", async () => {
     const { verifyAiJwt } = await import("../jwt")
     const { checkRateLimit } = await import("../rate-limit")
-    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce(verifiedJwt())
     vi.mocked(checkRateLimit).mockResolvedValueOnce(false)
 
     const req = new Request("https://x/ai/v1/chat/completions", {
@@ -381,7 +424,7 @@ describe("handleChatCompletions", () => {
   it("non-streaming branch: reads upstream as text and schedules charge", async () => {
     const { verifyAiJwt } = await import("../jwt")
     const { consumeQuota } = await import("../../billing/quota")
-    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce(verifiedJwt())
     const upstreamBody = JSON.stringify({
       choices: [{ message: { role: "assistant", content: "Hi" } }],
       usage: { prompt_tokens: 50, completion_tokens: 10 },
@@ -423,7 +466,7 @@ describe("handleChatCompletions", () => {
   it("returns quota error instead of upstream JSON when web text token charge exceeds remaining quota", async () => {
     const { verifyAiJwt } = await import("../jwt")
     const { consumeQuota } = await import("../../billing/quota")
-    vi.mocked(verifyAiJwt).mockResolvedValueOnce({ userId: "u1", exp: 9e9 })
+    vi.mocked(verifyAiJwt).mockResolvedValueOnce(verifiedJwt("web_text_translate_token_monthly"))
     vi.mocked(consumeQuota).mockRejectedValueOnce(
       Object.assign(new Error("Bucket web_text_translate_token_monthly exceeded"), {
         code: "QUOTA_EXCEEDED",

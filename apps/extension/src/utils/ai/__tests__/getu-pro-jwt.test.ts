@@ -27,6 +27,38 @@ describe("getProJwt", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
+  it("requests and caches separate JWTs per quota bucket", async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(init?.body as string) as { quota_bucket: string }
+      const token = body.quota_bucket === "web_text_translate_token_monthly" ? "jwt-web-text" : "jwt-ai"
+      return new Response(JSON.stringify({ token, expires_in: 900 }), { status: 200 })
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    const aiToken = await getProJwt()
+    const webTextToken = await getProJwt({ quotaBucket: "web_text_translate_token_monthly" })
+    const cachedWebTextToken = await getProJwt({ quotaBucket: "web_text_translate_token_monthly" })
+
+    expect(aiToken).toBe("jwt-ai")
+    expect(webTextToken).toBe("jwt-web-text")
+    expect(cachedWebTextToken).toBe("jwt-web-text")
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "https://api.getutranslate.com/ai/v1/token",
+      expect.objectContaining({
+        body: JSON.stringify({ quota_bucket: "ai_translate_monthly" }),
+      }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "https://api.getutranslate.com/ai/v1/token",
+      expect.objectContaining({
+        body: JSON.stringify({ quota_bucket: "web_text_translate_token_monthly" }),
+      }),
+    )
+  })
+
   it("refetches when force=true", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({ token: "jwt-1", expires_in: 900 }), { status: 200 }))

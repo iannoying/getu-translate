@@ -6,6 +6,15 @@ import { TranslationWorkbenchResultCard } from "../result-card"
 
 const toastSuccessMock = vi.hoisted(() => vi.fn())
 const toastErrorMock = vi.hoisted(() => vi.fn())
+const ttsConfigMock = vi.hoisted(() => ({
+  defaultVoice: "en-US-AvaNeural",
+  languageVoices: {},
+  rate: 0,
+  pitch: 0,
+  volume: 0,
+}))
+const ttsPlayMock = vi.hoisted(() => vi.fn(async () => undefined))
+const ttsStopMock = vi.hoisted(() => vi.fn())
 
 vi.mock("@/components/provider-icon", () => ({
   default: ({ name }: { name?: string }) => <span data-testid="provider-icon">{name}</span>,
@@ -28,6 +37,25 @@ vi.mock("@/utils/i18n", () => ({
   },
 }))
 
+vi.mock("@/utils/atoms/config", () => ({
+  configFieldsAtomMap: {
+    tts: "tts-atom",
+  },
+}))
+
+vi.mock("jotai", () => ({
+  useAtomValue: vi.fn(() => ttsConfigMock),
+}))
+
+vi.mock("@/hooks/use-text-to-speech", () => ({
+  useTextToSpeech: vi.fn(() => ({
+    play: ttsPlayMock,
+    stop: ttsStopMock,
+    isFetching: false,
+    isPlaying: false,
+  })),
+}))
+
 vi.mock("sonner", () => ({
   toast: {
     error: toastErrorMock,
@@ -46,6 +74,8 @@ describe("translation workbench result card", () => {
   beforeEach(() => {
     toastSuccessMock.mockReset()
     toastErrorMock.mockReset()
+    ttsPlayMock.mockClear()
+    ttsStopMock.mockClear()
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
       value: { writeText: vi.fn(async () => undefined) },
@@ -110,6 +140,24 @@ describe("translation workbench result card", () => {
 
     await waitFor(() => {
       expect(toastErrorMock).toHaveBeenCalledWith("translationWorkbench.copyFailed")
+    })
+  })
+
+  it("plays successful translation text through TTS", async () => {
+    render(
+      <TranslationWorkbenchResultCard
+        provider={provider}
+        result={{ providerId: provider.id, status: "success", text: "你好" }}
+        onRetry={vi.fn()}
+        onLogin={vi.fn()}
+        onUpgrade={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByLabelText("action.speak"))
+
+    await waitFor(() => {
+      expect(ttsPlayMock).toHaveBeenCalledWith("你好", ttsConfigMock)
     })
   })
 })

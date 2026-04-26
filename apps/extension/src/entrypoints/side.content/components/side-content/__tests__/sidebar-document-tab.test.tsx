@@ -30,7 +30,7 @@ describe("sidebarDocumentTab", () => {
     render(<SidebarDocumentTab />)
 
     expect(screen.getByRole("heading", { name: "translationWorkbench.documentTitle" })).toBeInTheDocument()
-    for (const label of ["PDF", "EPUB", "DOCX", "TXT", "HTML", "MD", "SRT", "ASS", "VTT", "LRC"]) {
+    for (const label of ["PDF", "EPUB", "DOCX", "TXT", "HTML", "Markdown", "SRT", "ASS", "VTT", "LRC"]) {
       expect(screen.getByText(label)).toBeInTheDocument()
     }
 

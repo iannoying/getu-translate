@@ -24,6 +24,20 @@ vi.mock("../sidebar-document-tab", () => ({
 }))
 
 describe("sideContent page reflow", () => {
+  it("does not mount sidebar tab contents while closed", () => {
+    const store = createStore()
+    store.set(isSideOpenAtom, false)
+
+    render(
+      <JotaiProvider store={store}>
+        <SideContent />
+      </JotaiProvider>,
+    )
+
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "translationWorkbench.textTitle" })).not.toBeInTheDocument()
+  })
+
   it("shrinks html width while open and renders the sidebar shell", () => {
     const store = createStore()
     store.set(isSideOpenAtom, true)

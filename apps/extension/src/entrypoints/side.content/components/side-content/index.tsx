@@ -103,7 +103,7 @@ export default function SideContent() {
         >
         </div>
 
-        <SidebarShell />
+        {isSideOpen && <SidebarShell />}
       </div>
 
       {/* Transparent overlay to prevent other events during resizing */}
