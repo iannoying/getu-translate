@@ -4,6 +4,9 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { TranslationWorkbenchResultCard } from "../result-card"
 
+const toastSuccessMock = vi.hoisted(() => vi.fn())
+const toastErrorMock = vi.hoisted(() => vi.fn())
+
 vi.mock("@/components/provider-icon", () => ({
   default: ({ name }: { name?: string }) => <span data-testid="provider-icon">{name}</span>,
 }))
@@ -27,7 +30,8 @@ vi.mock("@/utils/i18n", () => ({
 
 vi.mock("sonner", () => ({
   toast: {
-    success: vi.fn(),
+    error: toastErrorMock,
+    success: toastSuccessMock,
   },
 }))
 
@@ -40,6 +44,8 @@ const provider = {
 
 describe("translation workbench result card", () => {
   beforeEach(() => {
+    toastSuccessMock.mockReset()
+    toastErrorMock.mockReset()
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
       value: { writeText: vi.fn(async () => undefined) },
@@ -80,6 +86,30 @@ describe("translation workbench result card", () => {
 
     await waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith("你好")
+    })
+    expect(toastSuccessMock).toHaveBeenCalledWith("translationWorkbench.copied")
+  })
+
+  it("shows copy failure feedback when clipboard write rejects", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: vi.fn(async () => Promise.reject(new Error("denied"))) },
+    })
+
+    render(
+      <TranslationWorkbenchResultCard
+        provider={provider}
+        result={{ providerId: provider.id, status: "success", text: "你好" }}
+        onRetry={vi.fn()}
+        onLogin={vi.fn()}
+        onUpgrade={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByLabelText("translationWorkbench.copyResult"))
+
+    await waitFor(() => {
+      expect(toastErrorMock).toHaveBeenCalledWith("translationWorkbench.copyFailed")
     })
   })
 })

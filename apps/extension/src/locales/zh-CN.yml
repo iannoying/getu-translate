@@ -1054,6 +1054,27 @@ translationHub:
   translationFailed: 翻译失败
   translationFailedFallback: 翻译失败
   retryTranslation: 重试翻译
+translationWorkbench:
+  languages:
+    auto: 自动检测
+  swapLanguages: 交换语言
+  selectProviders: 选择翻译服务
+  freeProviders: 免费翻译
+  proProviders: GetU Pro
+  byokProviders: 自带密钥 / LLM
+  apiProviders: API 翻译
+  idle: 翻译结果将显示在这里。
+  loading: 正在翻译...
+  errorFallback: 翻译失败，请重试。
+  quotaExhausted: 翻译额度已用完。
+  loginRequired: 登录后即可使用此翻译服务。
+  upgradeRequired: 升级 Pro 后即可使用此翻译服务。
+  loginAction: 登录
+  upgradeAction: 升级
+  copyResult: 复制翻译
+  retry: 重试
+  copied: 已复制到剪贴板
+  copyFailed: 无法复制翻译
 wordbook:
   save: 加入生词本
   saved: 已加入

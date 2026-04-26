@@ -59,11 +59,21 @@ export function TranslationWorkbenchResultCard({
   const { theme = "light" } = useTheme()
 
   async function copyResult() {
-    if (!result.text || typeof navigator.clipboard?.writeText !== "function")
+    if (!result.text)
       return
 
-    await navigator.clipboard.writeText(result.text)
-    toast.success(i18n.t("translationWorkbench.copied"))
+    if (typeof navigator.clipboard?.writeText !== "function") {
+      toast.error(i18n.t("translationWorkbench.copyFailed"))
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(result.text)
+      toast.success(i18n.t("translationWorkbench.copied"))
+    }
+    catch {
+      toast.error(i18n.t("translationWorkbench.copyFailed"))
+    }
   }
 
   const canRetry = result.status === "error" || result.status === "quota-exhausted"

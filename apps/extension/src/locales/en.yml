@@ -1056,6 +1056,27 @@ translationHub:
   translationFailed: Translation Failed
   translationFailedFallback: Translation failed
   retryTranslation: Retry translation
+translationWorkbench:
+  languages:
+    auto: Auto detect
+  swapLanguages: Swap languages
+  selectProviders: Select providers
+  freeProviders: Free translators
+  proProviders: GetU Pro
+  byokProviders: BYOK / LLM
+  apiProviders: API translators
+  idle: Translation will appear here.
+  loading: Translating...
+  errorFallback: Translation failed. Please try again.
+  quotaExhausted: Translation quota exhausted.
+  loginRequired: Log in to use this translator.
+  upgradeRequired: Upgrade to Pro to use this translator.
+  loginAction: Log in
+  upgradeAction: Upgrade
+  copyResult: Copy translation
+  retry: Retry
+  copied: Copied to clipboard
+  copyFailed: Could not copy translation
 wordbook:
   save: Save word
   saved: Saved
