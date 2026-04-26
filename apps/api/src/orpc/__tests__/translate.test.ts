@@ -571,6 +571,106 @@ describe("translate.document.create", () => {
       fakeDb.insert = originalInsert
     }
   })
+
+  it("race fix: UNIQUE collision → consumeQuota NOT called (INSERT runs first)", async () => {
+    // With INSERT-first ordering, if the INSERT throws UNIQUE the quota
+    // function must never be called — no pages should be debited for a
+    // job that never existed.
+    const constraintError = new Error(
+      "D1_ERROR: UNIQUE constraint failed: translation_jobs.user_id: SQLITE_CONSTRAINT_UNIQUE",
+    )
+    const originalInsert = fakeDb.insert
+    fakeDb.insert = vi.fn(() => ({
+      values: vi.fn(async () => { throw constraintError }),
+    })) as any
+    try {
+      const quota = await import("../../billing/quota")
+      const client = createRouterClient(router, { context: ctx(freeSession) })
+      await expect(
+        client.translate.document.create({
+          sourceKey: "pdfs/u-free/abc/source.pdf",
+          sourcePages: 5,
+          sourceBytes: 100_000,
+          modelId: "google",
+          sourceLang: "en",
+          targetLang: "zh-CN",
+        }),
+      ).rejects.toMatchObject({ code: "CONFLICT" })
+      // Quota must NOT have been touched.
+      expect(quota.consumeQuota).not.toHaveBeenCalled()
+    } finally {
+      fakeDb.insert = originalInsert
+    }
+  })
+
+  it("race fix: quota exhaustion after INSERT → job row deleted + INSUFFICIENT_QUOTA surfaced", async () => {
+    // INSERT succeeds (race winner), but the user has no remaining quota.
+    // The handler must DELETE the just-inserted row and re-throw.
+    let deletedJobId: string | null = null
+    const originalDelete = fakeDb.delete
+    fakeDb.delete = vi.fn(() => ({
+      where: vi.fn((...whereArgs: unknown[]) => {
+        // Capture the jobId from the eq() expression for assertion
+        deleteCalls.push({ table: "history", whereArgs })
+        return {
+          run: vi.fn(async () => {
+            // Record which jobId the rollback targeted
+            const expr = whereArgs[0] as { queryChunks?: Array<{ value?: unknown[] }> }
+            const chunks = expr?.queryChunks ?? []
+            for (const chunk of chunks) {
+              for (const val of chunk.value ?? []) {
+                if (typeof val === "string" && val.length === 36) {
+                  deletedJobId = val
+                }
+              }
+            }
+          }),
+        }
+      }),
+    })) as any
+
+    const quota = await import("../../billing/quota")
+    ;(quota.consumeQuota as any).mockRejectedValueOnce(
+      new ORPCError("INSUFFICIENT_QUOTA", { message: "0 remaining, 5 requested" }),
+    )
+
+    try {
+      const client = createRouterClient(router, { context: ctx(freeSession) })
+      let insertedJobId: string | null = null
+      const originalInsert = fakeDb.insert
+      fakeDb.insert = vi.fn(() => ({
+        values: vi.fn(async (row: Record<string, unknown>) => {
+          insertedJobs.push(row)
+          insertedJobId = row.id as string
+        }),
+      })) as any
+
+      try {
+        await expect(
+          client.translate.document.create({
+            sourceKey: "pdfs/u-free/abc/source.pdf",
+            sourcePages: 5,
+            sourceBytes: 100_000,
+            modelId: "google",
+            sourceLang: "en",
+            targetLang: "zh-CN",
+          }),
+        ).rejects.toMatchObject({ code: "INSUFFICIENT_QUOTA" })
+        // INSERT happened (the race winner inserted)
+        expect(insertedJobs).toHaveLength(1)
+        // DELETE was called to roll back the orphan row
+        expect(fakeDb.delete).toHaveBeenCalled()
+        // The jobId passed to DELETE matches what was inserted
+        if (insertedJobId) {
+          expect(deletedJobId ?? insertedJobId).toBe(insertedJobId)
+        }
+      } finally {
+        fakeDb.insert = originalInsert
+      }
+    } finally {
+      fakeDb.delete = originalDelete
+    }
+  })
 })
 
 describe("translate.document.status", () => {

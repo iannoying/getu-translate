@@ -62,6 +62,9 @@ const fakeDb = {
       })),
     })),
   })),
+  delete: vi.fn(() => ({
+    where: vi.fn(() => ({ run: async () => undefined })),
+  })),
 }
 
 // ---------------------------------------------------------------------------
@@ -145,6 +148,9 @@ beforeEach(async () => {
         limit: vi.fn(() => ({ all: async () => pendingActiveJobs })),
       })),
     })),
+  })
+  fakeDb.delete.mockReturnValue({
+    where: vi.fn(() => ({ run: async () => undefined })),
   })
 })
 
@@ -242,6 +248,40 @@ describe("POST /from-url — happy path", () => {
 
     // Queue was notified
     expect(queue.send).toHaveBeenCalledWith({ jobId: json.jobId })
+  })
+})
+
+describe("POST /from-url — UNIQUE race → 409", () => {
+  it("returns 409 PDF_JOB_INFLIGHT when INSERT throws UNIQUE constraint (double-fire race)", async () => {
+    const { PDFDocument } = await import("pdf-lib")
+    const doc = await PDFDocument.create()
+    doc.addPage([100, 100])
+    const pdfBytes = await doc.save()
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(pdfBytes, {
+        status: 200,
+        headers: { "content-type": "application/pdf" },
+      }),
+    )
+
+    // Simulate the second concurrent request losing the INSERT race
+    fakeDb.insert.mockReturnValueOnce({
+      values: vi.fn(async () => {
+        throw new Error(
+          "D1_ERROR: UNIQUE constraint failed: translation_jobs.user_id: SQLITE_CONSTRAINT_UNIQUE",
+        )
+      }),
+    })
+
+    const app = makeApp()
+    const res = await post(app, "/from-url", VALID_FROM_URL_BODY)
+
+    fetchSpy.mockRestore()
+
+    expect(res.status).toBe(409)
+    const json = await res.json() as any
+    expect(json.error).toBe("PDF_JOB_INFLIGHT")
   })
 })
 

@@ -134,19 +134,14 @@ export const documentCreate = authed
       console.warn("[documentCreate] BUCKET_PDFS missing — trusting client sourcePages (dev)")
     }
 
-    // Atomic page-count decrement using the SERVER-side page value.
     const jobId = crypto.randomUUID()
-    await consumeTranslateQuota(
-      db,
-      userId,
-      "web_pdf_translate_monthly",
-      pages,
-      `web-pdf:${userId}:${jobId}`,
-    )
-
     const now = Date.now()
     const expiresAtMs = now + (plan === "free" ? FREE_PDF_RETENTION_MS : PRO_PDF_RETENTION_MS)
 
+    // INSERT first — the UNIQUE partial index on (user_id) for active jobs is
+    // the authoritative race winner. Both legs of a double-fire pass the
+    // SELECT check above, but only one INSERT wins; the loser sees a UNIQUE
+    // constraint error and gets a clean CONFLICT without consuming any quota.
     try {
       await db.insert(translationJobs).values({
         id: jobId,
@@ -170,6 +165,28 @@ export const documentCreate = authed
           message: "已有 PDF 翻译任务正在进行，请等其完成后再上传",
           data: { code: "PDF_JOB_INFLIGHT" },
         })
+      }
+      throw err
+    }
+
+    // Only the INSERT winner reaches here. Consume quota now.
+    // If quota is exhausted, roll back the INSERT so the user isn't stuck
+    // with a phantom in-flight row blocking their next attempt.
+    try {
+      await consumeTranslateQuota(
+        db,
+        userId,
+        "web_pdf_translate_monthly",
+        pages,
+        `web-pdf:${userId}:${jobId}`,
+      )
+    } catch (err) {
+      // Best-effort rollback: if DELETE fails, log and still re-throw the
+      // quota error. The retention worker will eventually clean the orphan.
+      try {
+        await db.delete(translationJobs).where(eq(translationJobs.id, jobId)).run()
+      } catch (delErr) {
+        console.warn("[documentCreate] failed to rollback job row after quota failure", delErr)
       }
       throw err
     }

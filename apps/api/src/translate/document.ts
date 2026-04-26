@@ -407,7 +407,40 @@ documentRoutes.post("/from-url", async (c) => {
     console.warn("[document/from-url] BUCKET_PDFS missing — skipping R2 upload (dev)")
   }
 
-  // Atomic page-count quota.
+  const now = Date.now()
+  const expiresAtMs = now + (plan === "free" ? FREE_PDF_RETENTION_MS : PRO_PDF_RETENTION_MS)
+  const filename = decodeURIComponent(fetched.finalUrl.pathname.split("/").pop() || "remote.pdf").slice(0, 512)
+
+  // INSERT first — UNIQUE partial index is the authoritative race winner.
+  // Both legs of a double-fire pass the SELECT check above, but only one
+  // INSERT wins; the loser gets a clean 409 without consuming any quota.
+  try {
+    await db.insert(translationJobs).values({
+      id: jobId,
+      userId,
+      sourceKey,
+      sourcePages: pages,
+      sourceFilename: filename,
+      sourceBytes: fetched.bytes.byteLength,
+      modelId,
+      sourceLang: body.sourceLang,
+      targetLang: body.targetLang,
+      status: "queued",
+      engine: "simple",
+      createdAt: new Date(now),
+      expiresAt: new Date(expiresAtMs),
+    })
+  } catch (err) {
+    const msg = (err as { message?: string }).message ?? ""
+    if (msg.includes("UNIQUE constraint failed: translation_jobs.user_id")) {
+      return c.json({ error: "PDF_JOB_INFLIGHT" }, 409)
+    }
+    throw err
+  }
+
+  // Only the INSERT winner reaches here. Consume quota now.
+  // On quota exhaustion, roll back the INSERT so the user isn't stuck with
+  // a phantom in-flight row blocking their next attempt.
   try {
     await consumeTranslateQuota(
       db,
@@ -417,32 +450,19 @@ documentRoutes.post("/from-url", async (c) => {
       `web-pdf:${userId}:${jobId}`,
     )
   } catch (err) {
+    // Best-effort rollback: if DELETE fails, log and still re-throw the
+    // quota error. The retention worker will eventually clean the orphan.
+    try {
+      await db.delete(translationJobs).where(eq(translationJobs.id, jobId)).run()
+    } catch (delErr) {
+      console.warn("[document/from-url] failed to rollback job row after quota failure", delErr)
+    }
     const data = (err as { data?: { code?: string } })?.data
     if (data?.code === "INSUFFICIENT_QUOTA") {
       return c.json({ error: "INSUFFICIENT_QUOTA", message: (err as Error).message }, 402)
     }
     throw err
   }
-
-  const now = Date.now()
-  const expiresAtMs = now + (plan === "free" ? FREE_PDF_RETENTION_MS : PRO_PDF_RETENTION_MS)
-  const filename = decodeURIComponent(fetched.finalUrl.pathname.split("/").pop() || "remote.pdf").slice(0, 512)
-
-  await db.insert(translationJobs).values({
-    id: jobId,
-    userId,
-    sourceKey,
-    sourcePages: pages,
-    sourceFilename: filename,
-    sourceBytes: fetched.bytes.byteLength,
-    modelId,
-    sourceLang: body.sourceLang,
-    targetLang: body.targetLang,
-    status: "queued",
-    engine: "simple",
-    createdAt: new Date(now),
-    expiresAt: new Date(expiresAtMs),
-  })
 
   // Best-effort enqueue: queue binding may be absent in dev.
   if (c.env.TRANSLATE_QUEUE) {
