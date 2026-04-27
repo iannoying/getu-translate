@@ -10,15 +10,83 @@
 
 ## Open decision points (cannot start without these)
 
-| # | Question | Default if user doesn't pick |
+| # | Question | User decision (confirmed 2026-04-27) |
 |---|---|---|
-| D1 | Analytics backend? PostHog Cloud? Plausible? Self-hosted? | **PostHog Cloud** (most flexible for funnel analysis) |
-| D2 | Sentry/observability tool for runtime errors? | **Skip Sentry** — use Workers' built-in `console.error` + Workers Analytics Engine (free, integrated). Adopt Sentry only if signal/noise becomes painful. |
-| D3 | Help docs in MDX or plain Next.js page? | **MDX** — easier to maintain prose + screenshots |
-| D4 | Should the help docs be /docs/ subpath or /guide/? | **/guide/** (issue body uses this) |
-| D5 | Truly public docs (no login) or behind login? | **Public** (SEO + onboarding value) |
+| D1 | Analytics backend? PostHog Cloud? Plausible? Self-hosted? | **PostHog Cloud** — `@sentry/cloudflare`-style SDK; free tier 1M events/month |
+| D2 | Sentry/observability tool for runtime errors? | **Sentry Cloud** — official `@sentry/cloudflare` SDK; new `SENTRY_DSN` secret; `withSentry()` wraps default export; sourcemap upload via wrangler deploy; free Developer plan 5K errors/month |
+| D3 | Help docs in MDX or plain Next.js page? | **MDX** — `@next/mdx` + remark-gfm |
+| D4 | Should the help docs be /docs/ subpath or /guide/? | **/guide/** (issue body convention) |
+| D5 | Truly public docs (no login) or behind login? | **Mixed (public-with-auth-gated-details)** — page shells + intro + screenshots are SEO-public; specific quota numbers + paid model details inside an `<AuthGate>` component visible only after login. Better SEO than full-private; better anti-scraping than fully-public. |
 
-**The executing agent must NOT proceed past Step 0 until the user has confirmed each of D1–D5.**
+All 5 decisions are locked. Implementation can proceed.
+
+---
+
+## Track B: Deployment Hardening (added 2026-04-27 after M6.12 deploy)
+
+While preparing the M6.12 deploy, discovered that **prod D1 was missing migrations 0004/0005/0006 and the R2 bucket + Queue had never been created** despite M6.6~M6.11 already being merged to main. M6.x prod was effectively broken-but-not-detected for ~48h. This sub-track addresses the underlying gaps.
+
+### B1 — CI deploy gate for D1 migrations
+
+**Goal:** Prevent any future deploy from going out without the matching migrations applied.
+
+**Files:**
+- `.github/workflows/deploy-api.yml` (or wherever the api deploy lives) — add `wrangler d1 migrations apply DB --remote` step BEFORE `wrangler deploy`
+- If no deploy workflow exists yet, create one with the gate already wired
+
+**Constraints:**
+- The migrate step must succeed before the deploy step runs
+- Must use the production env binding: pass `--env production` if the workflow targets that env
+- Wrangler API token used by CI needs `D1: Edit` permission
+
+### B2 — Deployment dependency checklist
+
+**Goal:** Every prod resource (bucket / queue / secret / KV / cron) is enumerated in one place so a new operator knows what must exist before deploy.
+
+**Files:**
+- Create: `apps/api/DEPLOY-CHECKLIST.md` — single source of truth; lists:
+  - D1 database id + binding name + how migrations are applied
+  - R2 bucket(s) name + purpose + how to recreate
+  - Queue(s) name + producer/consumer mapping
+  - Required secrets (names only, not values; with `wrangler secret put` commands)
+  - Cron triggers
+  - R2 lifecycle rules expected
+  - First-time-on-this-account bring-up procedure (the exact sequence we just ran today)
+
+### B3 — R2 token rotation procedure
+
+**Goal:** Document how to rotate the R2 API token without downtime.
+
+**Files:**
+- `docs/ops/runbook-r2-token-rotation.md` — covers:
+  - When to rotate (annual schedule, suspected leak, employee offboarding)
+  - The rotation procedure (create new token → `wrangler secret put` overwrite → verify old token still works → revoke old token after grace period)
+  - Validation steps (upload a test PDF, check logs)
+
+### B4 — Post-deploy smoke test
+
+**Goal:** Detect "schema not migrated" / "bucket missing" / "queue missing" failures within minutes, not days.
+
+**Files:**
+- `apps/api/scripts/smoke-prod.ts` — a `tsx` script that:
+  - Calls `documentList` (touches translation_jobs SELECT)
+  - Calls `documentDownloadUrl` with a known done-job (touches R2 GET signing)
+  - Posts a synthetic message to `getu-translate-jobs` queue (touches producer)
+  - Reports pass/fail per check
+- Optionally wire into CI deploy as a post-deploy gate (block release if any fails)
+
+### B5 — Lessons-learned doc (one-time)
+
+**Goal:** Record what happened so the same failure mode is recognized faster next time.
+
+**Files:**
+- `docs/ops/postmortem-2026-04-m6-prod-gap.md` — covers:
+  - Root cause: M6.2~M6.11 PRs merged without applying schema migrations to prod
+  - Detection: caught by chance during M6.12 deploy verification (D1 migrations list showed 0004+0005+0006 pending, then table list confirmed missing tables, then R2 bucket also confirmed missing)
+  - Impact: any prod request to `text_translations` or `translation_jobs` would 500; presigned PUT/GET would 500 (missing bucket); document queue would silently 500 (missing queue)
+  - Why undetected: presumably no real prod traffic hit those paths during the 48h window (pre-launch)
+  - Mitigation: B1 (CI gate) + B2 (checklist) + B4 (smoke test)
+  - Action items: B1–B4 above
 
 ---
 

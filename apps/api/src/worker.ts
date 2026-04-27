@@ -1,14 +1,35 @@
+import { withSentry } from "@sentry/cloudflare"
 import app from "./index"
 import { createDb } from "@getu/db"
 import { runRetention } from "./scheduled/retention"
+import { runTranslationCleanup } from "./scheduled/translation-cleanup"
+import { runTranslationRetry } from "./scheduled/translation-retry"
+import { runTranslationStuckSweep } from "./scheduled/translation-stuck-sweep"
 import { createQueueHandler } from "./queue/translate-document"
 import type { WorkerEnv } from "./env"
 
-export default {
+const handler = {
   fetch: app.fetch,
   async scheduled(_event: ScheduledController, env: WorkerEnv, ctx: ExecutionContext) {
     const db = createDb(env.DB)
-    ctx.waitUntil(runRetention(db, { now: Date.now(), retentionDays: 30 }))
+    const now = Date.now()
+
+    ctx.waitUntil(
+      Promise.allSettled([
+        runRetention(db, { now, retentionDays: 30 }).then(() => ({ task: "retention" as const, ok: true as const })),
+        runTranslationCleanup(db, env.BUCKET_PDFS, { now }).then((r) => ({ task: "translation-cleanup" as const, ok: true as const, ...r })),
+        runTranslationStuckSweep(db, { now }).then((r) => ({ task: "translation-stuck-sweep" as const, ok: true as const, ...r })),
+        runTranslationRetry(db, env.TRANSLATE_QUEUE, { now }).then((r) => ({ task: "translation-retry" as const, ok: true as const, ...r })),
+      ]).then((results) => {
+        for (const r of results) {
+          if (r.status === "fulfilled") {
+            console.info("[scheduled]", r.value)
+          } else {
+            console.error("[scheduled] task failed", r.reason)
+          }
+        }
+      }),
+    )
   },
   async queue(batch: MessageBatch<{ jobId: string }>, env: WorkerEnv, ctx: ExecutionContext) {
     const bucket = env.BUCKET_PDFS
@@ -23,3 +44,12 @@ export default {
     return handler.queue(batch, env, ctx)
   },
 } satisfies ExportedHandler<WorkerEnv, { jobId: string }>
+
+export default withSentry<WorkerEnv, { jobId: string }>(
+  (env: WorkerEnv) => ({
+    dsn: env.SENTRY_DSN ?? "",
+    tracesSampleRate: 0,
+    enabled: !!env.SENTRY_DSN,
+  }),
+  handler,
+)

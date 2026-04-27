@@ -16,6 +16,16 @@ const FAILURE_MSG_OUTPUT = "结果保存失败，请重试或联系客服"
 const FAILURE_MSG_LLM_5XX = "翻译模型暂时不可用，请稍后重试"
 const FAILURE_MSG_LLM_429 = "当前翻译压力较大，请稍后重试"
 
+export const ERROR_CODES = {
+  SCANNED_PDF: "scanned_pdf",
+  TRANSIENT_LLM: "transient_llm",
+  R2_TIMEOUT: "r2_timeout",
+  OUTPUT_WRITE: "output_write",
+  GENERIC: "generic",
+} as const
+
+export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES]
+
 export const buildPdfQuotaRequestId = (userId: string, jobId: string) =>
   `web-pdf:${userId}:${jobId}`
 
@@ -107,7 +117,7 @@ async function processOne(
         jobId,
         key: job.sourceKey,
       })
-      await fail(db, job, FAILURE_MSG_GENERIC)
+      await fail(db, job, FAILURE_MSG_GENERIC, ERROR_CODES.R2_TIMEOUT)
       await refundQuota(db, job)
       return
     }
@@ -118,7 +128,7 @@ async function processOne(
 
     // 6. Scanned PDF guard
     if (extracted.scanned) {
-      await fail(db, job, FAILURE_MSG_SCANNED)
+      await fail(db, job, FAILURE_MSG_SCANNED, ERROR_CODES.SCANNED_PDF)
       await refundQuota(db, job)
       return
     }
@@ -159,7 +169,7 @@ async function processOne(
     // 10. Write segments.json to R2
     if (!job.sourceKey.endsWith("/source.pdf")) {
       console.error("[queue.translate-document] unexpected sourceKey shape", { jobId, sourceKey: job.sourceKey })
-      await fail(db, job, FAILURE_MSG_GENERIC)
+      await fail(db, job, FAILURE_MSG_GENERIC, ERROR_CODES.GENERIC)
       await refundQuota(db, job)
       return
     }
@@ -170,7 +180,7 @@ async function processOne(
       })
     } catch (err) {
       console.error("[queue.translate-document] R2 put failed", { jobId, err })
-      await fail(db, job, FAILURE_MSG_OUTPUT)
+      await fail(db, job, FAILURE_MSG_OUTPUT, ERROR_CODES.OUTPUT_WRITE)
       await refundQuota(db, job)
       return
     }
@@ -199,14 +209,15 @@ async function processOne(
       console.info("[queue.translate-document] job done", { jobId })
     } catch (err) {
       console.error("[queue.translate-document] render/output failed", { jobId, err })
-      await fail(db, job, FAILURE_MSG_OUTPUT)
+      await fail(db, job, FAILURE_MSG_OUTPUT, ERROR_CODES.OUTPUT_WRITE)
       await refundQuota(db, job)
       return
     }
   } catch (err) {
     // Translation pipeline failure (exhausted retries or unexpected error)
     const errMsg = pickErrorMessage(err)
-    await fail(db, job, errMsg)
+    const errCode = pickErrorCode(err)
+    await fail(db, job, errMsg, errCode)
     await refundQuota(db, job)
   }
 }
@@ -215,6 +226,8 @@ async function fail(
   db: Db,
   job: typeof schema.translationJobs.$inferSelect,
   errorMessage: string,
+  errorCode: ErrorCode = ERROR_CODES.GENERIC,
+  now: Date = new Date(),
 ): Promise<void> {
   await db
     .update(schema.translationJobs)
@@ -222,6 +235,8 @@ async function fail(
       status: "failed",
       progress: null,
       errorMessage,
+      errorCode,
+      failedAt: now,
     })
     .where(eq(schema.translationJobs.id, job.id))
 }
@@ -307,4 +322,11 @@ function pickErrorMessage(err: unknown): string {
   if (/\b429\b|rate.?limit/i.test(msg)) return FAILURE_MSG_LLM_429
   if (/\b5\d{2}\b|server.?error/i.test(msg)) return FAILURE_MSG_LLM_5XX
   return FAILURE_MSG_GENERIC
+}
+
+function pickErrorCode(err: unknown): ErrorCode {
+  const msg = err instanceof Error ? err.message : String(err)
+  if (/\b429\b|rate.?limit/i.test(msg)) return ERROR_CODES.TRANSIENT_LLM
+  if (/\b5\d{2}\b|server.?error/i.test(msg)) return ERROR_CODES.TRANSIENT_LLM
+  return ERROR_CODES.GENERIC
 }

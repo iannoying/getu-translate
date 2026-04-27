@@ -1,0 +1,88 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'packages/db/**'
+      - 'packages/contract/**'
+      - 'packages/definitions/**'
+      - '.github/workflows/deploy-api.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      # Order matters: setup-node MUST come before pnpm/action-setup so pnpm
+      # uses the correct Node ABI for native binding (better-sqlite3) prebuilds.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v5
+        with:
+          run_install: false
+      # Pre-install node-gyp so the rebuild step's `npx node-gyp` doesn't have
+      # to fetch it interactively (which fails in non-tty CI shells).
+      - name: Install node-gyp globally
+        run: npm install -g node-gyp@12
+      - name: Get pnpm store dir
+        id: pnpm-cache
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+      - run: pnpm install --frozen-lockfile
+
+      # Force compile better-sqlite3 from source against the active Node ABI.
+      # `pnpm rebuild` doesn't reliably pass --build-from-source to the install
+      # script, so we use npm rebuild from the api package directory which
+      # honors the flag. The "|| true" guards against the no-op case where
+      # the binary is already the right ABI.
+      - name: Rebuild better-sqlite3 from source
+        working-directory: apps/api
+        run: |
+          set -e
+          # Resolve the actual better-sqlite3 dir in pnpm's flat store
+          BS3_DIR=$(node -e "console.log(require.resolve('better-sqlite3/package.json'))" | xargs dirname)
+          echo "Rebuilding $BS3_DIR"
+          cd "$BS3_DIR"
+          # Remove cached prebuild + build artifacts
+          rm -rf build prebuilds
+          # Compile fresh against the current Node ABI (uses globally
+          # installed node-gyp from the previous step).
+          node-gyp rebuild --release
+          ls -la build/Release/
+
+      - name: Test
+        run: pnpm --filter @getu/api test --run
+
+      - name: Type-check
+        run: pnpm --filter @getu/api type-check
+
+      - name: Apply D1 migrations to production
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler d1 migrations apply DB --remote --env production
+
+      - name: Deploy worker
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler deploy --env production
+
+      - name: Run smoke test
+        working-directory: apps/api
+        env:
+          API_BASE_URL: https://api.getutranslate.com
+        run: pnpm smoke:prod

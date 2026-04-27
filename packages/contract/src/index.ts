@@ -151,10 +151,20 @@ export type {
   TranslationJobStatus,
 } from "./translate.js"
 
+export { analyticsContract } from "./analytics.js"
+export {
+  analyticsTrackInputSchema,
+  analyticsTrackOutputSchema,
+} from "./analytics.js"
+export type { AnalyticsTrackInput, AnalyticsTrackOutput } from "./analytics.js"
+
+import { analyticsContract } from "./analytics.js"
+
 export const mergedContract = {
   ...baseContract,
   billing: billingContract,
   translate: translateContract,
+  analytics: analyticsContract,
 } as const
 
 export type ORPCRouterClient = ContractRouterClient<typeof mergedContract>

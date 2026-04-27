@@ -164,6 +164,12 @@
      universal "stop" cue and isn't represented in --ink/--accent/--gold. */
   border-color: #c0392b;
   color: #c0392b;
+  animation: quota-badge-pulse 1.5s ease-in-out 3;
+}
+
+@keyframes quota-badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
 .quota-badge-label {

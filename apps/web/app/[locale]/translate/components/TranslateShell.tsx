@@ -15,7 +15,7 @@ export function TranslateShell({
   children,
 }: {
   locale: Locale
-  labels: { text: string; document: string; upgradePro: string }
+  labels: { text: string; document: string; upgradePro: string; help: string }
   children: React.ReactNode
 }) {
   const pathname = usePathname() ?? ""
@@ -23,6 +23,9 @@ export function TranslateShell({
     { href: localeHref(locale, "/translate"), label: labels.text, icon: "T" },
     { href: localeHref(locale, "/document"), label: labels.document, icon: "📄" },
   ]
+  const helpHref = pathname.includes("/document")
+    ? localeHref(locale, "/guide/document")
+    : localeHref(locale, "/guide/translate")
 
   return (
     <div className="translate-shell">
@@ -43,6 +46,9 @@ export function TranslateShell({
           })}
         </nav>
         <div className="translate-sidenav-foot">
+          <Link href={helpHref} className="translate-sidenav-help-link">
+            ? {labels.help}
+          </Link>
           <Link href={localeHref(locale, "/upgrade")} className="button primary small">
             {labels.upgradePro}
           </Link>

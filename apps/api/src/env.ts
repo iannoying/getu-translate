@@ -51,6 +51,11 @@ export interface WorkerEnv {
   EMAIL_FROM?: string
   WEBAUTHN_RP_ID?: string
   WEBAUTHN_ORIGINS?: string
+  // M6.13 — analytics & error capture
+  POSTHOG_PROJECT_KEY?: string
+  /** PostHog ingest host. Defaults to https://us.i.posthog.com. Set to https://eu.i.posthog.com for EU residency. */
+  POSTHOG_HOST?: string
+  SENTRY_DSN?: string
 }
 
 export const SecretsSchema = z.object({

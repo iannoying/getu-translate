@@ -177,6 +177,8 @@ describe("queue translate-document handler", () => {
       .get()
     expect(job?.status).toBe("failed")
     expect(job?.errorMessage).toMatch(/扫描件/)
+    expect(job?.errorCode).toBe("scanned_pdf")
+    expect(job?.failedAt).not.toBeNull()
 
     // Refund row has negative amount
     const refunds = await db
@@ -213,6 +215,8 @@ describe("queue translate-document handler", () => {
       .get()
     expect(job?.status).toBe("failed")
     expect(job?.errorMessage).toBe("翻译失败，请重试")
+    expect(job?.errorCode).toBe("r2_timeout")
+    expect(job?.failedAt).not.toBeNull()
   })
 
   it("translateChunk throws 503 after retries: status=failed + canonical LLM 5xx message + refunded", async () => {
@@ -247,6 +251,8 @@ describe("queue translate-document handler", () => {
       .get()
     expect(job?.status).toBe("failed")
     expect(job?.errorMessage).toBe("翻译模型暂时不可用，请稍后重试")
+    expect(job?.errorCode).toBe("transient_llm")
+    expect(job?.failedAt).not.toBeNull()
 
     // Refund row exists
     const refunds = await db
@@ -287,6 +293,8 @@ describe("queue translate-document handler", () => {
 
     const [job] = await db.select().from(schema.translationJobs).where(eq(schema.translationJobs.id, "j-bad"))
     expect(job.status).toBe("failed")
+    expect(job.errorCode).toBe("generic")
+    expect(job.failedAt).not.toBeNull()
   })
 
   it("renderer/R2 output write failure -> failed + refund", async () => {
@@ -318,6 +326,8 @@ describe("queue translate-document handler", () => {
     const [job] = await db.select().from(schema.translationJobs).where(eq(schema.translationJobs.id, "j-out"))
     expect(job.status).toBe("failed")
     expect(job.errorMessage).toMatch(/结果保存失败/)
+    expect(job.errorCode).toBe("output_write")
+    expect(job.failedAt).not.toBeNull()
 
     // Verify put ordering: segments.json succeeded (call #1), output.html threw (call #2), md never reached
     const outPutKeys = r2Put.mock.calls.map((c) => (c as unknown[])[0] as string)
