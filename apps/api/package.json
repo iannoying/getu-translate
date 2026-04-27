@@ -10,7 +10,8 @@
     "test": "vitest run",
     "lint": "echo 'lint-todo'",
     "type-check": "tsc --noEmit",
-    "grant-pro": "tsx scripts/grant-pro.ts"
+    "grant-pro": "tsx scripts/grant-pro.ts",
+    "smoke:prod": "tsx scripts/smoke-prod.ts"
   },
   "dependencies": {
     "@better-auth/passkey": "1.6.3",
