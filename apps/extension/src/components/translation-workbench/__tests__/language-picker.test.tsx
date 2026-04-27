@@ -9,25 +9,47 @@ vi.mock("@/utils/i18n", () => ({
   },
 }))
 
-describe("workbench language picker", () => {
-  it("disables swap while source is auto", () => {
+describe("workbenchLanguagePicker", () => {
+  it("selects source and target languages from portaled content", () => {
+    const onSourceChange = vi.fn()
+    const onTargetChange = vi.fn()
+
     render(
       <WorkbenchLanguagePicker
         source="auto"
         target="cmn"
-        onSourceChange={vi.fn()}
-        onTargetChange={vi.fn()}
+        onSourceChange={onSourceChange}
+        onTargetChange={onTargetChange}
         onSwap={vi.fn()}
         portalContainer={document.body}
       />,
     )
 
-    expect(screen.getByLabelText("translationWorkbench.swapLanguages")).toBeDisabled()
+    fireEvent.click(screen.getByRole("combobox", { name: /translationWorkbench\.languages\.auto/ }))
+    fireEvent.click(screen.getByRole("option", { name: "languages.eng" }))
+    expect(onSourceChange).toHaveBeenCalledWith("eng")
+
+    fireEvent.click(screen.getByRole("combobox", { name: /languages\.cmn/ }))
+    fireEvent.click(screen.getByRole("option", { name: "languages.jpn" }))
+    expect(onTargetChange).toHaveBeenCalledWith("jpn")
   })
 
-  it("enables swap and calls onSwap when source is concrete", () => {
+  it("disables swap only while source is auto", () => {
     const onSwap = vi.fn()
-    render(
+    const { rerender } = render(
+      <WorkbenchLanguagePicker
+        source="auto"
+        target="cmn"
+        onSourceChange={vi.fn()}
+        onTargetChange={vi.fn()}
+        onSwap={onSwap}
+        portalContainer={document.body}
+      />,
+    )
+
+    expect(screen.getByRole("button", { name: "translationWorkbench.swapLanguages" })).toBeDisabled()
+
+    rerender(
       <WorkbenchLanguagePicker
         source="eng"
         target="cmn"
@@ -38,10 +60,7 @@ describe("workbench language picker", () => {
       />,
     )
 
-    const swap = screen.getByLabelText("translationWorkbench.swapLanguages")
-    expect(swap).not.toBeDisabled()
-
-    fireEvent.click(swap)
+    fireEvent.click(screen.getByRole("button", { name: "translationWorkbench.swapLanguages" }))
 
     expect(onSwap).toHaveBeenCalledTimes(1)
   })
