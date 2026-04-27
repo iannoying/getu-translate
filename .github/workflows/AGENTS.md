@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-27 -->
 
 # workflows
 
@@ -19,6 +19,8 @@ GitHub Actions workflows that automate testing, PR hygiene, contributor-trust ga
 | `changeset-major-warning.yml` | Warns reviewers when a PR includes a major-version changeset.                        |
 | `refresh-agents-md.yml`       | Scheduled workflow that refreshes the AGENTS.md tree via Claude `/deepinit` when the codebase drifts. |
 | `claude.yml`                  | Claude / Anthropic-driven helper workflow (e.g. PR review automation).               |
+| `deploy-api.yml`              | Deploys the `@getu/api` Cloudflare Worker to production via `wrangler deploy`.        |
+| `deploy-web.yml`              | Deploys the `apps/web` Next.js site to Cloudflare Pages via Wrangler.                |
 | `stale-issue-pr.yml`          | Auto-closes stale issues / PRs after a quiet period.                                 |
 
 ## Subdirectories

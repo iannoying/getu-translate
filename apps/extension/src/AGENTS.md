@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-19 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-04-27 -->
 
 # src
 
@@ -16,7 +16,7 @@ This directory has **no top-level files** — only subdirectories. All code live
 | Directory      | Purpose                                                                                                                                                                                                                                                            |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `entrypoints/` | All WXT entrypoints: background service worker, popup, options page, content scripts (selection, host, side, subtitles, guide, interceptor), offscreen document, translation hub. The shape of these directories is dictated by WXT (see `entrypoints/AGENTS.md`). |
-| `components/`  | Reusable React components shared across multiple entrypoints, including the shadcn/ui primitives (see `components/AGENTS.md`).                                                                                                                                     |
+| `components/`  | Reusable React components shared across multiple entrypoints, including the shadcn/ui primitives and the `translation-workbench/` multi-provider translation UI (see `components/AGENTS.md`).                                                                      |
 | `utils/`       | All non-component logic: config schema/migrations, AI provider adapters, translation engines, subtitle pipeline, DB layer, messaging, oRPC client, atoms, etc. (see `utils/AGENTS.md`).                                                                            |
 | `hooks/`       | Cross-cutting React hooks (see `hooks/AGENTS.md`).                                                                                                                                                                                                                 |
 | `types/`       | Zod schemas + TypeScript types that are imported across entrypoints (see `types/AGENTS.md`).                                                                                                                                                                       |

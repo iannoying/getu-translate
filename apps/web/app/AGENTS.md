@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-24 | Updated: 2026-04-24 -->
+<!-- Generated: 2026-04-24 | Updated: 2026-04-27 -->
 
 # app
 
@@ -22,7 +22,7 @@ Next.js 15 App Router root. Top-level `layout.tsx` + `page.tsx` handle the site 
 | -------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `[locale]/`          | Localized routes (`en`, `zh-CN`, `zh-TW`). See `[locale]/AGENTS.md`.                                         |
 | `log-in/`            | Top-level `/log-in` redirector — forwards to `/{locale}/log-in` while preserving `?redirect=`.               |
-| `guide/step-1/`      | Top-level `/guide/step-1` redirector for older extension links.                                              |
+| `guide/`             | Top-level `/guide` back-compat stub. `guide/step-1/` is a redirector for older extension links without locale prefix. |
 
 ## For AI Agents
 
