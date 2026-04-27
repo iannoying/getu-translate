@@ -1,17 +1,14 @@
 import type { TranslateProviderConfig } from "@/types/config/provider"
+import { IconCheck, IconChevronDown } from "@tabler/icons-react"
 import { useTheme } from "@/components/providers/theme-provider"
+import { Button } from "@/components/ui/base-ui/button"
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/base-ui/select"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/base-ui/popover"
 import { isLLMProviderConfig, isPureAPIProviderConfig } from "@/types/config/provider"
 import { i18n } from "@/utils/i18n"
-import { cn } from "@/utils/styles/utils"
 import { isGetuProProvider } from "./provider-gating"
 import { ProviderIconStack } from "./provider-icon-stack"
 import { WorkbenchProviderLogo } from "./provider-logo"
@@ -82,49 +79,87 @@ export function ProviderMultiSelect({
     .filter((provider): provider is TranslateProviderConfig => provider !== undefined)
   const providerGroups = getProviderGroups(providers)
 
+  function toggleProvider(providerId: string) {
+    if (selectedIds.includes(providerId)) {
+      if (selectedIds.length <= 1)
+        return
+      onSelectedIdsChange(selectedIds.filter(id => id !== providerId))
+      return
+    }
+
+    onSelectedIdsChange([...selectedIds, providerId])
+  }
+
   return (
-    <Select
-      multiple
-      value={selectedIds}
-      onValueChange={onSelectedIdsChange}
-    >
-      <SelectTrigger className="h-10 min-w-36 rounded-full border-0 bg-muted px-3 shadow-none">
-        <SelectValue placeholder={i18n.t("translationWorkbench.selectProviders")}>
-          {selectedProviders.length > 0
-            ? (
-                <span className="flex min-w-0 items-center gap-2">
-                  <ProviderIconStack providers={selectedProviders} />
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {selectedProviders.length}
-                  </span>
-                </span>
-              )
-            : (
-                <span className="truncate text-muted-foreground">
-                  {i18n.t("translationWorkbench.selectProviders")}
-                </span>
-              )}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent container={portalContainer} className="w-72">
-        {providerGroups.map(group => (
-          <SelectGroup key={group.id}>
-            <SelectLabel>{i18n.t(group.labelKey)}</SelectLabel>
-            {group.providers.map(provider => (
-              <SelectItem key={provider.id} value={provider.id}>
-                <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                  <WorkbenchProviderLogo provider={provider} theme={theme} size="sm" />
-                  {isGetuProProvider(provider) && (
-                    <span className={cn("rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary")}>
-                      Pro
+    <Popover>
+      <PopoverTrigger
+        render={(
+          <Button
+            type="button"
+            variant="ghost"
+            aria-label={i18n.t("translationWorkbench.selectProviders")}
+            className="h-10 min-w-36 rounded-full border-0 bg-muted px-3 shadow-none hover:bg-muted/80"
+          >
+            {selectedProviders.length > 0
+              ? (
+                  <span className="flex min-w-0 items-center gap-2">
+                    <ProviderIconStack providers={selectedProviders} />
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {selectedProviders.length}
                     </span>
-                  )}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        ))}
-      </SelectContent>
-    </Select>
+                  </span>
+                )
+              : (
+                  <span className="truncate text-muted-foreground">
+                    {i18n.t("translationWorkbench.selectProviders")}
+                  </span>
+                )}
+            <IconChevronDown className="size-4 text-muted-foreground" />
+          </Button>
+        )}
+      />
+      <PopoverContent
+        container={portalContainer}
+        align="end"
+        sideOffset={8}
+        positionerClassName="z-[2147483647]"
+        className="z-[2147483647] max-h-[min(28rem,var(--available-height))] w-80 overflow-y-auto p-2"
+      >
+        <div role="menu" aria-label={i18n.t("translationWorkbench.selectProviders")} className="space-y-2">
+          {providerGroups.map(group => (
+            <section key={group.id} className="space-y-1">
+              <h3 className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                {i18n.t(group.labelKey)}
+              </h3>
+              {group.providers.map((provider) => {
+                const checked = selectedIds.includes(provider.id)
+                return (
+                  <button
+                    key={provider.id}
+                    type="button"
+                    role="menuitemcheckbox"
+                    aria-checked={checked}
+                    className="flex w-full min-w-0 items-center justify-between gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+                    onClick={() => toggleProvider(provider.id)}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="grid size-4 place-items-center rounded border border-border">
+                        {checked && <IconCheck className="size-3" />}
+                      </span>
+                      <WorkbenchProviderLogo provider={provider} theme={theme} size="sm" />
+                    </span>
+                    {isGetuProProvider(provider) && (
+                      <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                        Pro
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </section>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }

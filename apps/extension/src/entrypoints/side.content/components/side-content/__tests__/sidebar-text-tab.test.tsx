@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import type { Entitlements } from "@/types/entitlements"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { atom } from "jotai"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { atom, createStore, Provider as JotaiProvider } from "jotai"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { SidebarTextTab } from "../sidebar-text-tab"
 
@@ -11,9 +11,15 @@ const sessionRefetchMock = vi.hoisted(() => vi.fn(async () => undefined))
 const useSessionMock = vi.hoisted(() => vi.fn())
 const useEntitlementsMock = vi.hoisted(() => vi.fn())
 const runTranslationWorkbenchRequestMock = vi.hoisted(() => vi.fn())
+const providersConfigMock = vi.hoisted(() => vi.fn())
 
 vi.mock("#imports", () => ({
-  browser: { tabs: { create: vi.fn() } },
+  browser: {
+    runtime: {
+      getURL: (path = "") => `chrome-extension://test${path}`,
+    },
+    tabs: { create: vi.fn() },
+  },
 }))
 
 vi.mock("@/utils/message", () => ({
@@ -28,19 +34,22 @@ vi.mock("@/utils/i18n", () => ({
   i18n: { t: (key: string) => key },
 }))
 
+vi.mock("@/components/providers/theme-provider", () => ({
+  useTheme: () => ({ theme: "light" }),
+}))
+
+vi.mock("@/utils/constants/providers", () => ({
+  PROVIDER_ITEMS: {
+    "getu-pro": { logo: () => "/getu-pro.svg", name: "GetU Pro", website: "" },
+    "deepseek": { logo: () => "/deepseek.svg", name: "DeepSeek", website: "" },
+    "alibaba": { logo: () => "/alibaba.svg", name: "Alibaba", website: "" },
+  },
+}))
+
 vi.mock("@/utils/atoms/config", () => ({
   configFieldsAtomMap: {
     language: atom({ sourceCode: "auto", targetCode: "cmn", level: "intermediate" }),
-    providersConfig: atom([
-      {
-        id: "getu-pro",
-        name: "GetU Pro",
-        provider: "getu-pro",
-        enabled: true,
-        apiKey: "test",
-        model: { model: "deepseek-v4-pro", isCustomModel: false, customModel: null },
-      },
-    ]),
+    providersConfig: atom(() => providersConfigMock()),
   },
 }))
 
@@ -62,19 +71,18 @@ vi.mock("@/components/translation-workbench/language-picker", () => ({
   WorkbenchLanguagePicker: () => <div data-testid="language-picker" />,
 }))
 
-vi.mock("@/components/translation-workbench/provider-multi-select", () => ({
-  ProviderMultiSelect: () => <div data-testid="provider-picker" />,
-}))
-
 vi.mock("@/components/translation-workbench/result-card", () => ({
   TranslationWorkbenchResultCard: ({
+    provider,
     onLogin,
     onUpgrade,
   }: {
+    provider: { name: string }
     onLogin: () => void
     onUpgrade: () => void
   }) => (
-    <div>
+    <div data-testid="translation-result-card">
+      <span>{provider.name}</span>
       <button type="button" onClick={onLogin}>login</button>
       <button type="button" onClick={onUpgrade}>upgrade</button>
     </div>
@@ -110,12 +118,15 @@ function renderSidebarTextTab() {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue()
+  const store = createStore()
 
   return {
     ...render(
-      <QueryClientProvider client={queryClient}>
-        <SidebarTextTab />
-      </QueryClientProvider>,
+      <JotaiProvider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <SidebarTextTab />
+        </QueryClientProvider>
+      </JotaiProvider>,
     ),
     invalidateSpy,
   }
@@ -129,6 +140,17 @@ describe("sidebarTextTab", () => {
     useSessionMock.mockReturnValue({ data: null, isPending: false, refetch: sessionRefetchMock })
     useEntitlementsMock.mockReset()
     useEntitlementsMock.mockReturnValue({ data: FREE_ENTITLEMENTS, isLoading: false, isFromCache: false })
+    providersConfigMock.mockReset()
+    providersConfigMock.mockReturnValue([
+      {
+        id: "getu-pro",
+        name: "GetU Pro",
+        provider: "getu-pro",
+        enabled: true,
+        apiKey: "test",
+        model: { model: "deepseek-v4-pro", isCustomModel: false, customModel: null },
+      },
+    ])
     runTranslationWorkbenchRequestMock.mockReset()
     runTranslationWorkbenchRequestMock.mockResolvedValue([
       { providerId: "getu-pro", status: "success", text: "translated" },
@@ -187,12 +209,14 @@ describe("sidebarTextTab", () => {
       isFromCache: false,
     }
     rerender(
-      <QueryClientProvider client={new QueryClient({
-        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-      })}
-      >
-        <SidebarTextTab />
-      </QueryClientProvider>,
+      <JotaiProvider store={createStore()}>
+        <QueryClientProvider client={new QueryClient({
+          defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+        })}
+        >
+          <SidebarTextTab />
+        </QueryClientProvider>
+      </JotaiProvider>,
     )
 
     await waitFor(() => {
@@ -205,5 +229,36 @@ describe("sidebarTextTab", () => {
         request: expect.objectContaining({ text: "你好呀" }),
       }),
     )
+  })
+
+  it("renders result cards for providers selected through the real picker", () => {
+    providersConfigMock.mockReturnValue([
+      {
+        id: "deepseek",
+        name: "DeepSeek-V4-Pro",
+        provider: "deepseek",
+        enabled: true,
+        apiKey: "test",
+        model: { model: "deepseek-chat", isCustomModel: false, customModel: null },
+      },
+      {
+        id: "qwen",
+        name: "Qwen3.5-plus",
+        provider: "alibaba",
+        enabled: true,
+        apiKey: "test",
+        model: { model: "qwen-plus", isCustomModel: false, customModel: null },
+      },
+    ])
+
+    renderSidebarTextTab()
+
+    fireEvent.click(screen.getByRole("button", { name: "translationWorkbench.selectProviders" }))
+    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: /Qwen3.5-plus/ }))
+    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: /Qwen3.5-plus/ }))
+
+    const resultCards = screen.getAllByTestId("translation-result-card")
+    expect(within(resultCards[0]).getByText("DeepSeek-V4-Pro")).toBeInTheDocument()
+    expect(within(resultCards[1]).getByText("Qwen3.5-plus")).toBeInTheDocument()
   })
 })
