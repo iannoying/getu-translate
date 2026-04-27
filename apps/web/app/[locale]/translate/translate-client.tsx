@@ -6,6 +6,7 @@ import { authClient } from "@/lib/auth-client"
 import { localeHref } from "@/lib/i18n/routing"
 import type { Locale } from "@/lib/i18n/locales"
 import { orpcClient } from "@/lib/orpc-client"
+import { track } from "@/lib/analytics"
 import {
   TRANSLATE_MODELS,
   isFreeTranslateModel,
@@ -53,14 +54,8 @@ function planFromEntitlements(e: Entitlements | null): Plan {
   return e.tier
 }
 
-/**
- * Fires the pro_upgrade_triggered analytics event.
- * TODO: wire to real analytics (apps/api/src/analytics or a client-side sink)
- * once the analytics pipeline is implemented in M6.x.
- */
 function trackUpgradeTriggered(source: UpgradeModalSource): void {
-  // eslint-disable-next-line no-console -- TODO: replace with real analytics once M6.x analytics pipeline is wired
-  console.info("pro_upgrade_triggered", { source })
+  track("pro_upgrade_triggered", { source })
 }
 
 function buildInitialResults(plan: Plan): Partial<Record<TranslateModelId, ModelCardState>> {
@@ -230,6 +225,7 @@ export function TranslateClient({
     }
     const trimmed = text.trim()
     if (trimmed.length === 0 || overLimit || isTranslating) return
+    const startedAt = Date.now()
 
     const modelsToFire = visibleModelsForPlan(plan)
     if (modelsToFire.length === 0) return
@@ -309,6 +305,18 @@ export function TranslateClient({
     const anySucceeded = columnResults.some(r => "text" in r)
     if (anySucceeded) {
       void refreshEntitlements()
+      // Fire one event per successful column. Using separate events (not a
+      // comma-joined batch) preserves per-model attribution in analytics.
+      const durationMs = Date.now() - startedAt
+      for (const result of columnResults) {
+        if ("text" in result) {
+          track("text_translate_completed", {
+            modelId: result.modelId,
+            charCount: trimmed.length,
+            durationMs,
+          })
+        }
+      }
     }
 
     // Persist to history. We always save (even if every column failed) so
