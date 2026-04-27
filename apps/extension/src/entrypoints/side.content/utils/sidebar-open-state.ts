@@ -38,6 +38,14 @@ baseSideOpenAtom.onMount = (setAtom) => {
   const initialReadVersion = localWriteVersion
   let didReceiveStorageUpdate = false
 
+  function loadPersistedOpenState(reason: string) {
+    void storage.getItem<boolean>(SIDEBAR_OPEN_STORAGE_KEY)
+      .then((value) => {
+        setAtom(value === true)
+      })
+      .catch(swallowInvalidatedStorageRead(reason))
+  }
+
   void storage.getItem<boolean>(SIDEBAR_OPEN_STORAGE_KEY)
     .then((value) => {
       if (!didReceiveStorageUpdate && localWriteVersion === initialReadVersion)
@@ -45,8 +53,19 @@ baseSideOpenAtom.onMount = (setAtom) => {
     })
     .catch(swallowInvalidatedStorageRead("sidebar open state initial"))
 
-  return storage.watch<boolean>(SIDEBAR_OPEN_STORAGE_KEY, (value) => {
+  const unwatch = storage.watch<boolean>(SIDEBAR_OPEN_STORAGE_KEY, (value) => {
     didReceiveStorageUpdate = true
     setAtom(value === true)
   })
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "visible")
+      loadPersistedOpenState("sidebar open state visibilitychange")
+  }
+  document.addEventListener("visibilitychange", handleVisibilityChange)
+
+  return () => {
+    unwatch()
+    document.removeEventListener("visibilitychange", handleVisibilityChange)
+  }
 }

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { createStore } from "jotai"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -54,6 +55,10 @@ describe("sidebar persisted open state", () => {
       return () => {
         storageState.watchers = storageState.watchers.filter(watcher => watcher !== cb)
       }
+    })
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
     })
   })
 
@@ -155,6 +160,28 @@ describe("sidebar persisted open state", () => {
 
     storageState.watchers.forEach(watcher => watcher(false))
     expect(store.get(isSideOpenAtom)).toBe(false)
+
+    unsubscribe()
+  })
+
+  it("reloads open state when an inactive tab becomes visible", async () => {
+    storageState.getItem.mockResolvedValueOnce(false)
+    const { isSideOpenAtom, SIDEBAR_OPEN_STORAGE_KEY } = await import("../sidebar-open-state")
+    const store = createStore()
+    const unsubscribe = store.sub(isSideOpenAtom, () => {})
+
+    await vi.waitFor(() => {
+      expect(storageState.getItem).toHaveBeenCalledWith(SIDEBAR_OPEN_STORAGE_KEY)
+    })
+    expect(store.get(isSideOpenAtom)).toBe(false)
+
+    storageState.getItem.mockResolvedValueOnce(true)
+    document.dispatchEvent(new Event("visibilitychange"))
+
+    await vi.waitFor(() => {
+      expect(store.get(isSideOpenAtom)).toBe(true)
+    })
+    expect(storageState.getItem).toHaveBeenCalledTimes(2)
 
     unsubscribe()
   })
