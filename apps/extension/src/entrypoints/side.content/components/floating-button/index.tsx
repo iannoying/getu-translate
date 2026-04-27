@@ -83,6 +83,20 @@ export default function FloatingButton() {
     }
   }, [isDraggingButton, dragPosition, setFloatingButton])
 
+  async function openSidebarSurface() {
+    try {
+      const result = await sendMessage("openNativeSidePanel", undefined)
+      if (result.opened) {
+        return
+      }
+    }
+    catch (error) {
+      swallowExtensionLifecycleError("floating-button open native side panel")(error)
+    }
+
+    void setIsSideOpen(true)
+  }
+
   const handleButtonDragStart = (e: React.MouseEvent) => {
     // 记录初始位置，用于后续判断是点击还是拖动
     initialClientYRef.current = e.clientY
@@ -117,7 +131,12 @@ export default function FloatingButton() {
           }).catch(swallowExtensionLifecycleError("floating-button translate click"))
         }
         else {
-          void setIsSideOpen(o => !o)
+          if (isSideOpen) {
+            void setIsSideOpen(false)
+          }
+          else {
+            void openSidebarSurface()
+          }
         }
       }
     }
@@ -129,7 +148,7 @@ export default function FloatingButton() {
   const handleOpenPanelClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
     e.stopPropagation()
-    void setIsSideOpen(true)
+    void openSidebarSurface()
   }
 
   const attachSideClassName = isDraggingButton || isSideOpen || isDropdownOpen ? "translate-x-0" : ""
