@@ -16,10 +16,10 @@ vi.mock("@/components/providers/theme-provider", () => ({
 }))
 
 vi.mock("@/components/provider-icon", () => ({
-  default: ({ logo, name }: { logo: string, name?: string }) => (
+  default: ({ logo, name, textClassName }: { logo: string, name?: string, textClassName?: string }) => (
     <span>
       <img alt={name} src={new URL(logo, "chrome-extension://test/").href} />
-      {name && <span>{name}</span>}
+      {name && <span className={textClassName}>{name}</span>}
     </span>
   ),
 }))
@@ -54,7 +54,20 @@ describe("workbenchProviderLogo", () => {
   it("renders the provider catalog logo when available", async () => {
     const { WorkbenchProviderLogo } = await import("../provider-logo")
 
-    render(<WorkbenchProviderLogo provider={deepseekProvider} />)
+    const { container } = render(<WorkbenchProviderLogo provider={deepseekProvider} />)
+
+    expect(container.querySelector("img")).toHaveAttribute(
+      "src",
+      "chrome-extension://test/assets/providers/deepseek-light.svg",
+    )
+    expect(screen.getByText("DeepSeek-V4-Pro")).toBeInTheDocument()
+    expect(screen.queryByRole("img", { name: "DeepSeek-V4-Pro" })).not.toBeInTheDocument()
+  })
+
+  it("keeps icon-only catalog logo accessible by provider name", async () => {
+    const { WorkbenchProviderLogo } = await import("../provider-logo")
+
+    render(<WorkbenchProviderLogo provider={deepseekProvider} iconOnly />)
 
     expect(screen.getByRole("img", { name: "DeepSeek-V4-Pro" })).toHaveAttribute(
       "src",

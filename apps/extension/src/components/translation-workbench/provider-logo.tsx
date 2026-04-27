@@ -12,6 +12,12 @@ interface WorkbenchProviderLogoProps {
   iconOnly?: boolean
 }
 
+const textSizeClassName = {
+  sm: "text-sm",
+  base: "text-base",
+  md: "text-md",
+} satisfies Record<NonNullable<WorkbenchProviderLogoProps["size"]>, string>
+
 export function resolveWorkbenchProviderLogo(
   provider: TranslateProviderConfig,
   theme: string,
@@ -43,6 +49,21 @@ export function WorkbenchProviderLogo({
   const logo = resolveWorkbenchProviderLogo(provider, theme)
 
   if (logo) {
+    if (!iconOnly) {
+      return (
+        <span className={cn("flex min-w-0 items-center gap-1.5", className)}>
+          <ProviderIcon
+            logo={logo}
+            name=""
+            size={size}
+          />
+          <span className={cn("truncate", textSizeClassName[size], textClassName)}>
+            {provider.name}
+          </span>
+        </span>
+      )
+    }
+
     return (
       <ProviderIcon
         logo={logo}
