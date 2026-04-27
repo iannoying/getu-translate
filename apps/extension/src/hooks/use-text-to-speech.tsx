@@ -1,3 +1,4 @@
+import type { LangCodeISO6393 } from "@getu/definitions"
 import type { AnalyticsSurface, FeatureUsageContext } from "@/types/analytics"
 import type { TTSConfig } from "@/types/config/tts"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
@@ -19,6 +20,7 @@ interface PlayAudioParams {
   ttsConfig: TTSConfig
   analyticsContext: FeatureUsageContext
   forcedVoice?: string
+  language?: LangCodeISO6393
 }
 
 interface SynthesizedAudioChunk {
@@ -53,6 +55,7 @@ async function resolveVoiceForText(
   ttsConfig: TTSConfig,
   enableLLM: boolean,
   forcedVoice?: string,
+  language?: LangCodeISO6393,
 ): Promise<string> {
   if (forcedVoice) {
     logger.info("[TextToSpeech] Using forced voice for text", {
@@ -60,6 +63,14 @@ async function resolveVoiceForText(
       forcedVoice,
     })
     return forcedVoice
+  }
+
+  if (language) {
+    logger.info("[TextToSpeech] Using explicit language for text", {
+      text,
+      language,
+    })
+    return selectTTSVoice(ttsConfig, language)
   }
 
   const detectedLanguage = await detectLanguage(text, {
@@ -145,7 +156,7 @@ export function useTextToSpeech(surface: AnalyticsSurface = ANALYTICS_SURFACE.SE
     meta: {
       suppressToast: true,
     },
-    mutationFn: async ({ text, ttsConfig, analyticsContext, forcedVoice }) => {
+    mutationFn: async ({ text, ttsConfig, analyticsContext, forcedVoice, language }) => {
       stop()
       shouldStopRef.current = false
 
@@ -153,7 +164,7 @@ export function useTextToSpeech(surface: AnalyticsSurface = ANALYTICS_SURFACE.SE
       activeRequestIdRef.current = requestId
       let didStartPlayback = false
 
-      const selectedVoice = await resolveVoiceForText(text, ttsConfig, languageDetection.mode === "llm", forcedVoice)
+      const selectedVoice = await resolveVoiceForText(text, ttsConfig, languageDetection.mode === "llm", forcedVoice, language)
       if (shouldStopRef.current || activeRequestIdRef.current !== requestId) {
         return
       }
@@ -245,11 +256,12 @@ export function useTextToSpeech(surface: AnalyticsSurface = ANALYTICS_SURFACE.SE
     },
   })
 
-  const play = (text: string, ttsConfig: TTSConfig, options?: { forcedVoice?: string }) => {
+  const play = (text: string, ttsConfig: TTSConfig, options?: { forcedVoice?: string, language?: LangCodeISO6393 }) => {
     return playMutation.mutateAsync({
       text,
       ttsConfig,
       forcedVoice: options?.forcedVoice,
+      language: options?.language,
       analyticsContext: createFeatureUsageContext(
         ANALYTICS_FEATURE.TEXT_TO_SPEECH,
         surface,
