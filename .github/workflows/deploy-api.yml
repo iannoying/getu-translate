@@ -19,12 +19,31 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
+      # Order matters: setup-node MUST come before pnpm/action-setup so pnpm
+      # uses the correct Node ABI for native binding (better-sqlite3) prebuilds.
       - uses: actions/setup-node@v6
         with:
-          node-version: '24'
-          cache: 'pnpm'
+          node-version: '20'
+      - uses: pnpm/action-setup@v5
+        with:
+          run_install: false
+      - name: Get pnpm store dir
+        id: pnpm-cache
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
       - run: pnpm install --frozen-lockfile
+
+      # Force compile better-sqlite3 from source against the active Node so
+      # ABI version matches at vitest runtime (prebuild-install can pick the
+      # wrong binary if pnpm's bundled Node differs from setup-node's).
+      - name: Rebuild better-sqlite3 from source
+        env:
+          npm_config_build_from_source: 'true'
+        run: pnpm --filter @getu/api rebuild better-sqlite3
 
       - name: Test
         run: pnpm --filter @getu/api test --run
