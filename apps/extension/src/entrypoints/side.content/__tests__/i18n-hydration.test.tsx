@@ -13,7 +13,13 @@ import { isSideOpenAtom } from "../atoms"
 
 const extensionApi = vi.hoisted(() => {
   const browser = {
-    runtime: { getURL: (path = "") => `chrome-extension://test${path}` },
+    runtime: {
+      getURL: (path = "") => `chrome-extension://test${path}`,
+      onMessage: {
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+      },
+    },
     i18n: { getUILanguage: () => "zh-CN" },
   }
 
