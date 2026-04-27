@@ -7,8 +7,7 @@ import { normalizeHeaders } from "../http"
 import { sendMessage } from "../message"
 
 const link = new RPCLink({
-  // TODO: add and use ORPC_PREFIX from @getu/definitions
-  url: `${API_URL}/api/rpc`,
+  url: `${API_URL}/orpc`,
   headers: {
     "x-orpc-source": "extension",
   },
