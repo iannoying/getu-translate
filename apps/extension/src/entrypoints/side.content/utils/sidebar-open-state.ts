@@ -35,15 +35,17 @@ export const isSideOpenAtom = atom(
 
 baseSideOpenAtom.onMount = (setAtom) => {
   const initialReadVersion = localWriteVersion
+  let didReceiveStorageUpdate = false
 
   void storage.getItem<boolean>(SIDEBAR_OPEN_STORAGE_KEY)
     .then((value) => {
-      if (localWriteVersion === initialReadVersion)
+      if (!didReceiveStorageUpdate && localWriteVersion === initialReadVersion)
         setAtom(value === true)
     })
     .catch(swallowInvalidatedStorageRead("sidebar open state initial"))
 
   return storage.watch<boolean>(SIDEBAR_OPEN_STORAGE_KEY, (value) => {
+    didReceiveStorageUpdate = true
     setAtom(value === true)
   })
 }

@@ -16,6 +16,14 @@ const storageState = vi.hoisted(() => ({
   }),
 }))
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((res) => {
+    resolve = res
+  })
+  return { promise, resolve }
+}
+
 vi.mock("#imports", () => ({
   storage: {
     getItem: storageState.getItem,
@@ -54,10 +62,10 @@ describe("sidebar persisted open state", () => {
     const store = createStore()
     const unsubscribe = store.sub(isSideOpenAtom, () => {})
 
-    await Promise.resolve()
-    await Promise.resolve()
+    await vi.waitFor(() => {
+      expect(storageState.getItem).toHaveBeenCalledWith(SIDEBAR_OPEN_STORAGE_KEY)
+    })
 
-    expect(storageState.getItem).toHaveBeenCalledWith(SIDEBAR_OPEN_STORAGE_KEY)
     expect(store.get(isSideOpenAtom)).toBe(false)
 
     unsubscribe()
@@ -69,8 +77,32 @@ describe("sidebar persisted open state", () => {
     const store = createStore()
     const unsubscribe = store.sub(isSideOpenAtom, () => {})
 
-    await Promise.resolve()
-    await Promise.resolve()
+    await vi.waitFor(() => {
+      expect(store.get(isSideOpenAtom)).toBe(true)
+    })
+
+    unsubscribe()
+  })
+
+  it("does not let stale initial hydration overwrite a storage watch update", async () => {
+    const deferredStorageRead = createDeferred<boolean | null>()
+    storageState.getItem.mockReturnValueOnce(deferredStorageRead.promise)
+    const { isSideOpenAtom } = await import("../sidebar-open-state")
+    const store = createStore()
+    const unsubscribe = store.sub(isSideOpenAtom, () => {})
+
+    await vi.waitFor(() => {
+      expect(storageState.watchers).toHaveLength(1)
+    })
+
+    storageState.watchers.forEach(watcher => watcher(true))
+    expect(store.get(isSideOpenAtom)).toBe(true)
+
+    deferredStorageRead.resolve(false)
+
+    await vi.waitFor(() => {
+      expect(storageState.getItem).toHaveResolved()
+    })
 
     expect(store.get(isSideOpenAtom)).toBe(true)
 
