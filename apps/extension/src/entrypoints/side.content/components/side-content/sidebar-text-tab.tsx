@@ -132,11 +132,14 @@ export function SidebarTextTab() {
     return authGateLoading && providersToRun.some(isGetuProProvider)
   }
 
-  function setLoadingResults(providersToRun: TranslateProviderConfig[]) {
+  function setLoadingResults(
+    providersToRun: TranslateProviderConfig[],
+    speechLanguage: TranslationRequestSnapshot["targetLanguage"],
+  ) {
     setResults((current) => {
       const next = { ...current }
       for (const provider of providersToRun) {
-        next[provider.id] = { providerId: provider.id, status: "loading" }
+        next[provider.id] = { providerId: provider.id, status: "loading", speechLanguage }
       }
       return next
     })
@@ -171,14 +174,14 @@ export function SidebarTextTab() {
     const languageLevel = pending?.languageLevel ?? language.level
 
     if (shouldWaitForProviderGate(providersToRun)) {
-      setLoadingResults(providersToRun)
+      setLoadingResults(providersToRun, request.targetLanguage)
       setPendingTranslation({ providerIds, request, languageLevel })
       return
     }
 
     setPendingTranslation(null)
     setIsTranslating(true)
-    setLoadingResults(providersToRun)
+    setLoadingResults(providersToRun, request.targetLanguage)
 
     try {
       const nextResults = await runTranslationWorkbenchRequest({
@@ -192,7 +195,10 @@ export function SidebarTextTab() {
       setResults((current) => {
         const next = { ...current }
         for (const result of nextResults) {
-          next[result.providerId] = result
+          next[result.providerId] = {
+            ...result,
+            speechLanguage: request.targetLanguage,
+          }
         }
         return next
       })
@@ -207,6 +213,7 @@ export function SidebarTextTab() {
             providerId: provider.id,
             status: "error",
             errorMessage: message,
+            speechLanguage: request.targetLanguage,
           }
         }
         return next
@@ -318,16 +325,21 @@ export function SidebarTextTab() {
 
       {selectedProviders.length > 0 && (
         <div className="space-y-3">
-          {selectedProviders.map(provider => (
-            <TranslationWorkbenchResultCard
-              key={provider.id}
-              provider={provider}
-              result={results[provider.id] ?? { providerId: provider.id, status: "idle" }}
-              onRetry={providerId => void translate([providerId])}
-              onLogin={login}
-              onUpgrade={upgrade}
-            />
-          ))}
+          {selectedProviders.map((provider) => {
+            const result = results[provider.id] ?? { providerId: provider.id, status: "idle" }
+
+            return (
+              <TranslationWorkbenchResultCard
+                key={provider.id}
+                provider={provider}
+                result={result}
+                speechLanguage={result.speechLanguage ?? language.targetCode}
+                onRetry={providerId => void translate([providerId])}
+                onLogin={login}
+                onUpgrade={upgrade}
+              />
+            )
+          })}
         </div>
       )}
     </div>

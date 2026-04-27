@@ -19,6 +19,7 @@ export interface TranslationResultState {
   status: TranslationResultStatus
   text?: string
   errorMessage?: string
+  speechLanguage?: LangCodeISO6393
 }
 
 export interface TranslationRequestSnapshot {

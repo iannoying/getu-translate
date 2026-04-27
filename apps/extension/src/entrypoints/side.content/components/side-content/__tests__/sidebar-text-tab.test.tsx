@@ -73,21 +73,38 @@ vi.mock("../../../index", () => ({
 }))
 
 vi.mock("@/components/translation-workbench/language-picker", () => ({
-  WorkbenchLanguagePicker: () => <div data-testid="language-picker" />,
+  WorkbenchLanguagePicker: ({
+    onTargetChange,
+  }: {
+    onTargetChange: (targetCode: "jpn") => void
+  }) => (
+    <div data-testid="language-picker">
+      <button type="button" onClick={() => onTargetChange("jpn")}>set target jpn</button>
+    </div>
+  ),
 }))
 
 vi.mock("@/components/translation-workbench/result-card", () => ({
   TranslationWorkbenchResultCard: ({
     provider,
+    result,
+    speechLanguage,
     onLogin,
     onUpgrade,
   }: {
     provider: { name: string }
+    result: { status: string, text?: string }
+    speechLanguage?: string
     onLogin: () => void
     onUpgrade: () => void
   }) => (
-    <div data-testid="translation-result-card">
+    <div
+      data-testid="translation-result-card"
+      data-status={result.status}
+      data-speech-language={speechLanguage}
+    >
       <span>{provider.name}</span>
+      {result.text && <span>{result.text}</span>}
       <button type="button" onClick={onLogin}>login</button>
       <button type="button" onClick={onUpgrade}>upgrade</button>
     </div>
@@ -271,6 +288,34 @@ describe("sidebarTextTab", () => {
     const resultCards = screen.getAllByTestId("translation-result-card")
     expect(resultCards).toHaveLength(1)
     expect(within(resultCards[0]).getByText("Gemini-3-flash")).toBeInTheDocument()
+  })
+
+  it("passes the configured target language to translation result speech controls", () => {
+    renderSidebarTextTab()
+
+    const resultCards = screen.getAllByTestId("translation-result-card")
+    expect(resultCards).toHaveLength(1)
+    expect(resultCards[0]).toHaveAttribute("data-speech-language", "cmn")
+  })
+
+  it("keeps completed result speech language after the target picker changes", async () => {
+    renderSidebarTextTab()
+
+    fireEvent.change(screen.getByPlaceholderText("translationWorkbench.inputPlaceholder"), {
+      target: { value: "你好呀" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: /translationWorkbench\.translate/ }))
+
+    await waitFor(() => {
+      expect(screen.getByText("translated")).toBeInTheDocument()
+    })
+
+    const [resultCard] = screen.getAllByTestId("translation-result-card")
+    expect(resultCard).toHaveAttribute("data-speech-language", "cmn")
+
+    fireEvent.click(screen.getByRole("button", { name: "set target jpn" }))
+
+    expect(screen.getAllByTestId("translation-result-card")[0]).toHaveAttribute("data-speech-language", "cmn")
   })
 
   it("keeps selected free providers before paid providers and persists the choice", async () => {

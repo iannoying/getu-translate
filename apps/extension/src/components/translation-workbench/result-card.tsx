@@ -1,3 +1,4 @@
+import type { LangCodeISO6393 } from "@getu/definitions"
 import type { TranslationResultState } from "./types"
 import type { TranslateProviderConfig } from "@/types/config/provider"
 import { IconAlertTriangle, IconCopy, IconLoader2, IconPlayerStopFilled, IconRefresh, IconVolume } from "@tabler/icons-react"
@@ -17,6 +18,7 @@ interface TranslationWorkbenchResultCardProps {
   onRetry: (providerId: string) => void
   onLogin: () => void
   onUpgrade: () => void
+  speechLanguage?: LangCodeISO6393
 }
 
 export function TranslationWorkbenchResultCard({
@@ -25,6 +27,7 @@ export function TranslationWorkbenchResultCard({
   onRetry,
   onLogin,
   onUpgrade,
+  speechLanguage,
 }: TranslationWorkbenchResultCardProps) {
   const { theme = "light" } = useTheme()
   const ttsConfig = useAtomValue(configFieldsAtomMap.tts)
@@ -56,6 +59,10 @@ export function TranslationWorkbenchResultCard({
     }
     if (!result.text)
       return
+    if (speechLanguage) {
+      void play(result.text, ttsConfig, { language: speechLanguage })
+      return
+    }
     void play(result.text, ttsConfig)
   }
 
