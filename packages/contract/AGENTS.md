@@ -1,11 +1,11 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-21 | Updated: 2026-04-21 -->
+<!-- Generated: 2026-04-21 | Updated: 2026-04-27 -->
 
 # contract (@getu/contract)
 
 ## Purpose
 
-The `@getu/contract` package defines the oRPC API contract shared between the GetU Translate browser extension and the backend server. It declares typed route definitions (procedures) and their Zod input/output schemas for custom tables, columns, rows, and notebase beta status. The contract is consumed by the extension's oRPC client (`apps/extension/src/utils/orpc/`) and implemented by the backend server.
+The `@getu/contract` package defines the oRPC API contract shared between the GetU Translate browser extension and the backend server. It declares typed route definitions (procedures) and their Zod input/output schemas for billing, translation, and analytics. The contract is consumed by the extension's oRPC client (`apps/extension/src/utils/orpc/`) and implemented by the backend server.
 
 **No build step** — `package.json` points `main`/`types`/`exports` directly at raw TypeScript (`./src/index.ts`). Resolution relies on the consuming bundler (WXT/Vite + tsconfig paths).
 
@@ -15,9 +15,13 @@ The `@getu/contract` package defines the oRPC API contract shared between the Ge
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `package.json`    | Package manifest. Name: `@getu/contract`. Depends on `@getu/definitions` and `@orpc/contract`.                               |
 | `tsconfig.json`   | TypeScript config targeting ES2022, `moduleResolution: bundler`, `noEmit: true`.                                              |
-| `src/index.ts`    | Barrel export re-exporting everything from `src/base.js`.                                                                     |
-| `src/base.d.ts`   | Generated type declarations for the full contract (schemas + oRPC procedure builders + `ORPCRouterClient` type).              |
-| `src/base.js`     | Compiled JS bundle (pre-built from the upstream fork; do not edit manually).                                                  |
+| `src/index.ts`      | Barrel export re-exporting everything from `src/base.js` plus hand-authored additions (`analytics.ts`, `ai-models.ts`, etc.). |
+| `src/analytics.ts` | `analyticsTrackInputSchema` / `analyticsTrackOutputSchema` — Zod schemas for the `analytics.track` oRPC procedure. `EventName` enum must stay in sync with `apps/api/src/analytics/events.ts`. |
+| `src/ai-models.ts` | AI model definitions shared between extension and API.                                                                        |
+| `src/translate.ts` | Translation-related schemas (text history, bilingual output).                                                                 |
+| `src/billing.ts`   | Billing/entitlement schemas.                                                                                                  |
+| `src/base.d.ts`    | Generated type declarations for the full contract (schemas + oRPC procedure builders + `ORPCRouterClient` type).              |
+| `src/base.js`      | Compiled JS bundle (pre-built from the upstream fork; do not edit manually).                                                  |
 
 ## Subdirectories
 

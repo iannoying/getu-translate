@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-24 | Updated: 2026-04-26 (CHECK constraint deferral note) -->
+<!-- Generated: 2026-04-24 | Updated: 2026-04-27 -->
 
 # db
 
@@ -30,7 +30,7 @@ Exports:
 | -------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `src/schema/`        | Table definitions (`auth.ts`, `billing.ts`, `translate.ts`) and `index.ts` barrel.                              |
 | `src/schema/__tests__/` | Schema shape / invariants tests.                                                                              |
-| `drizzle/`           | Generated SQL migrations (`0000_init.sql`, `0001_billing.sql`, `0002_paddle_provider.sql`, `0003_passkey.sql`, `0004_translate.sql`). |
+| `drizzle/`           | Generated SQL migrations (`0000_init.sql` … `0004_translate.sql`, `0005_translate_jobs.sql`, `0006_modern_lenny_balinger.sql`). Migration 0006 adds `error_code`, `failed_at`, and `retried_count` to `translation_jobs` to support the scheduled retry/stuck-sweep jobs. |
 | `drizzle/meta/`      | Drizzle-Kit metadata — DO NOT hand-edit. **Note: `0002_snapshot.json` and `0003_snapshot.json` were never committed when those migrations were authored, so the snapshot chain has a gap (0001 → 0004 directly). See "Snapshot chain gap" below.** |
 | `package.json`'s `check:meta` | Runs `drizzle-kit generate` and fails if it would produce any new output — guards against schema/snapshot drift on every PR via `pnpm --filter @getu/db check:meta`. |
 
