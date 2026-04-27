@@ -168,7 +168,7 @@ describe("floatingButton open panel tab", () => {
     expect(openPanelTab).not.toHaveClass("group-hover:block")
   })
 
-  it("uses the shared sidebar open atom when opening from the tab", async () => {
+  it("updates the sidebar open atom when opening from the tab", async () => {
     const { store } = renderWithStore(
       <>
         <FloatingButton />
