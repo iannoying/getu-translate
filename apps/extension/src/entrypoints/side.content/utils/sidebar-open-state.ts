@@ -1,9 +1,10 @@
 import { storage } from "#imports"
 import { atom } from "jotai"
+import { SIDEBAR_OPEN_STORAGE_KEY } from "@/utils/constants/storage-keys"
 import { swallowInvalidatedStorageRead } from "@/utils/extension-lifecycle"
 import { logger } from "@/utils/logger"
 
-export const SIDEBAR_OPEN_STORAGE_KEY = "local:getu:side-content:open" as const
+export { SIDEBAR_OPEN_STORAGE_KEY }
 
 type SidebarOpenUpdate = boolean | ((current: boolean) => boolean)
 

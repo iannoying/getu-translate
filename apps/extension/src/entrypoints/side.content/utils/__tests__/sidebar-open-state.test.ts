@@ -57,6 +57,14 @@ describe("sidebar persisted open state", () => {
     })
   })
 
+  it("exports the shared sidebar open storage key", async () => {
+    const sideContentState = await import("../sidebar-open-state")
+    const storageKeys = await import("@/utils/constants/storage-keys")
+
+    expect(sideContentState.SIDEBAR_OPEN_STORAGE_KEY).toBe(storageKeys.SIDEBAR_OPEN_STORAGE_KEY)
+    expect(sideContentState.SIDEBAR_OPEN_STORAGE_KEY).toBe("local:getu:side-content:open")
+  })
+
   it("hydrates false when storage is empty", async () => {
     const { isSideOpenAtom, SIDEBAR_OPEN_STORAGE_KEY } = await import("../sidebar-open-state")
     const store = createStore()
