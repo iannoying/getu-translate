@@ -8,7 +8,7 @@ import FloatingButton from ".."
 import { isSideOpenAtom } from "../../../atoms"
 
 const { sendMessageMock } = vi.hoisted(() => ({
-  sendMessageMock: vi.fn(() => Promise.resolve()),
+  sendMessageMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(() => Promise.resolve()),
 }))
 
 vi.mock("#imports", () => ({
