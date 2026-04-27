@@ -211,6 +211,7 @@ export function DocumentClient({
           return
         }
         setPhase({ kind: "done", jobId: body.jobId })
+        router.push(localeHref(locale, `/document/preview?jobId=${body.jobId}`))
       } catch (err) {
         setPhase({
           kind: "error",
@@ -289,6 +290,7 @@ export function DocumentClient({
         targetLang: target,
       })
       setPhase({ kind: "done", jobId: out.jobId })
+      router.push(localeHref(locale, `/document/preview?jobId=${out.jobId}`))
     } catch (err) {
       const data = (err as { data?: { code?: string }; code?: string })?.data
       const code = data?.code ?? (err as { code?: string })?.code ?? "unknown"

@@ -163,6 +163,37 @@ export type Messages = {
       fromUrlFailed: string
       scannedPdfError: string
     }
+    preview: {
+      metaTitle: string
+      loading: string
+      pollingStatus: {
+        queued: string
+        processing: string
+      }
+      doneMessage: string
+      downloadHtml: string
+      downloadMd: string
+      retryButton: string
+      refreshButton: string
+      timeoutMessage: string
+      iframeTitle: string
+      errors: {
+        heading: string
+      }
+      historyDrawer: {
+        toggleOpen: string
+        toggleClose: string
+        emptyState: string
+        loading: string
+        loadMore: string
+        loadingMore: string
+        retentionNotice: string
+        statusDone: string
+        statusFailed: string
+        statusProcessing: string
+        statusQueued: string
+      }
+    }
   }
 }
 
@@ -619,6 +650,37 @@ export const messages: Record<Locale, Messages> = {
         fromUrlFailed: "Could not fetch the PDF from that URL.",
         scannedPdfError: "Could not read the PDF — it may be a scanned image or encrypted file.",
       },
+      preview: {
+        metaTitle: "Document preview · GetU Translate",
+        loading: "Loading translation status…",
+        pollingStatus: {
+          queued: "Your document is queued for translation.",
+          processing: "Translating your document…",
+        },
+        doneMessage: "Translation complete. Download your translated document below.",
+        downloadHtml: "Download HTML",
+        downloadMd: "Download Markdown",
+        retryButton: "Retry",
+        refreshButton: "Refresh",
+        timeoutMessage: "Translation is taking longer than expected. Please refresh to check again.",
+        iframeTitle: "Translated document preview",
+        errors: {
+          heading: "Something went wrong",
+        },
+        historyDrawer: {
+          toggleOpen: "PDF history",
+          toggleClose: "Hide history",
+          emptyState: "You haven't translated any PDFs yet.",
+          loading: "Loading history…",
+          loadMore: "Load more",
+          loadingMore: "Loading…",
+          retentionNotice: "Jobs are kept for 30 days (Free) or 90 days (Pro).",
+          statusDone: "Done",
+          statusFailed: "Failed",
+          statusProcessing: "Processing",
+          statusQueued: "Queued",
+        },
+      },
     },
   },
   "zh-CN": {
@@ -1071,6 +1133,37 @@ export const messages: Record<Locale, Messages> = {
         fromUrlFailed: "无法从该 URL 抓取 PDF。",
         scannedPdfError: "无法读取 PDF — 可能是扫描件或加密文件。",
       },
+      preview: {
+        metaTitle: "文档预览 · GetU Translate",
+        loading: "正在加载翻译状态…",
+        pollingStatus: {
+          queued: "文档已排队等待翻译。",
+          processing: "正在翻译你的文档…",
+        },
+        doneMessage: "翻译完成。请在下方下载翻译结果。",
+        downloadHtml: "下载 HTML",
+        downloadMd: "下载 Markdown",
+        retryButton: "重试",
+        refreshButton: "刷新",
+        timeoutMessage: "翻译时间超过预期，请刷新页面重新查看。",
+        iframeTitle: "文档翻译预览",
+        errors: {
+          heading: "出错了",
+        },
+        historyDrawer: {
+          toggleOpen: "PDF 历史",
+          toggleClose: "隐藏历史",
+          emptyState: "您还没有翻译过 PDF。",
+          loading: "正在加载历史…",
+          loadMore: "加载更多",
+          loadingMore: "加载中…",
+          retentionNotice: "任务保留 30 天（免费）或 90 天（Pro）。",
+          statusDone: "完成",
+          statusFailed: "失败",
+          statusProcessing: "翻译中",
+          statusQueued: "排队中",
+        },
+      },
     },
   },
   "zh-TW": {
@@ -1522,6 +1615,37 @@ export const messages: Record<Locale, Messages> = {
         uploadFailed: "上傳失敗。",
         fromUrlFailed: "無法從該 URL 抓取 PDF。",
         scannedPdfError: "無法讀取 PDF — 可能是掃描件或加密檔案。",
+      },
+      preview: {
+        metaTitle: "文件預覽 · GetU Translate",
+        loading: "正在載入翻譯狀態…",
+        pollingStatus: {
+          queued: "文件已排入翻譯佇列。",
+          processing: "正在翻譯你的文件…",
+        },
+        doneMessage: "翻譯完成。請在下方下載翻譯結果。",
+        downloadHtml: "下載 HTML",
+        downloadMd: "下載 Markdown",
+        retryButton: "重試",
+        refreshButton: "重新整理",
+        timeoutMessage: "翻譯時間超過預期，請重新整理頁面再確認。",
+        iframeTitle: "文件翻譯預覽",
+        errors: {
+          heading: "發生錯誤",
+        },
+        historyDrawer: {
+          toggleOpen: "PDF 歷史",
+          toggleClose: "隱藏歷史",
+          emptyState: "你尚未翻譯過任何 PDF。",
+          loading: "正在載入歷史…",
+          loadMore: "載入更多",
+          loadingMore: "載入中…",
+          retentionNotice: "任務保留 30 天（免費）或 90 天（Pro）。",
+          statusDone: "完成",
+          statusFailed: "失敗",
+          statusProcessing: "翻譯中",
+          statusQueued: "佇列中",
+        },
       },
     },
   },

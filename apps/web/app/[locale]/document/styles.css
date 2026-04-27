@@ -122,3 +122,165 @@
   display: block;
   margin-bottom: 4px;
 }
+
+/* ---- Preview page ---- */
+
+.document-preview-layout {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+}
+
+.document-preview-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  padding: 16px 0;
+  gap: 20px;
+}
+
+.document-preview-status {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.document-preview-loading {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.document-preview-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.document-preview-progress-bar-wrap {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.document-preview-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 300ms ease;
+}
+
+.document-preview-progress-stage {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.document-preview-done {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.document-preview-done-msg {
+  margin: 0;
+}
+
+.document-preview-download-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.document-preview-failed,
+.document-preview-timeout {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.document-preview-iframe {
+  width: 100%;
+  min-height: 600px;
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+/* ---- PDF History Drawer ---- */
+
+.pdf-history-drawer {
+  /* Re-uses .history-drawer base styles from translate/styles.css */
+}
+
+.pdf-history-retention-notice {
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin: 0 0 8px;
+  padding: 0 4px;
+}
+
+.pdf-history-list {
+  /* inherits .history-drawer-list */
+}
+
+.pdf-history-item {
+  /* inherits .history-drawer-item */
+}
+
+.pdf-history-item.active {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.pdf-history-item-btn {
+  /* inherits .history-drawer-item-restore */
+  width: 100%;
+}
+
+.pdf-history-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pdf-history-badge-done {
+  background: color-mix(in srgb, #2d9c4e 12%, var(--surface));
+  color: #2d9c4e;
+}
+
+.pdf-history-badge-failed {
+  background: color-mix(in srgb, #c33 12%, var(--surface));
+  color: #c33;
+}
+
+.pdf-history-badge-processing {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent);
+}
+
+.pdf-history-badge-queued {
+  background: color-mix(in srgb, var(--ink-soft) 12%, var(--surface));
+  color: var(--ink-soft);
+}
+
+.pdf-history-load-more {
+  padding: 8px 4px;
+  display: flex;
+  justify-content: center;
+}
