@@ -275,7 +275,7 @@ describe("sidebarTextTab", () => {
     expect(resultCards.some(card => within(card).queryByText("Qwen3.5-plus"))).toBe(false)
 
     fireEvent.click(screen.getByRole("button", { name: "translationWorkbench.selectProviders" }))
-    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: /Qwen3.5-plus/ }))
+    fireEvent.click(screen.getByRole("checkbox", { name: /Qwen3.5-plus/ }))
 
     resultCards = screen.getAllByTestId("translation-result-card")
     expect(resultCards).toHaveLength(4)

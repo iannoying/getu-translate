@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import type { TranslateProviderConfig } from "@/types/config/provider"
 import { fireEvent, render, screen } from "@testing-library/react"
+import { useState } from "react"
 import { describe, expect, it, vi } from "vitest"
 import { ProviderMultiSelect } from "../provider-multi-select"
 
@@ -53,28 +54,37 @@ const providers: TranslateProviderConfig[] = [
   },
 ] as TranslateProviderConfig[]
 
+function ControlledProviderMultiSelect() {
+  const [selectedIds, setSelectedIds] = useState(["deepseek"])
+
+  return (
+    <ProviderMultiSelect
+      providers={providers}
+      selectedIds={selectedIds}
+      onSelectedIdsChange={setSelectedIds}
+      portalContainer={document.body}
+    />
+  )
+}
+
 describe("providerMultiSelect", () => {
   it("opens a multi-provider checklist and toggles providers without closing", () => {
-    const onSelectedIdsChange = vi.fn()
+    render(<ControlledProviderMultiSelect />)
 
-    render(
-      <ProviderMultiSelect
-        providers={providers}
-        selectedIds={["deepseek"]}
-        onSelectedIdsChange={onSelectedIdsChange}
-        portalContainer={document.body}
-      />,
-    )
+    const trigger = screen.getByRole("button", { name: "translationWorkbench.selectProviders" })
+    expect(trigger).toHaveTextContent("1")
 
-    fireEvent.click(screen.getByRole("button", { name: "translationWorkbench.selectProviders" }))
+    fireEvent.click(trigger)
 
-    expect(screen.getByRole("menu", { name: "translationWorkbench.selectProviders" })).toBeInTheDocument()
-    expect(screen.getByRole("menuitemcheckbox", { name: /DeepSeek-V4-Pro/ })).toHaveAttribute("aria-checked", "true")
+    expect(screen.getByRole("group", { name: "translationWorkbench.selectProviders" })).toBeInTheDocument()
+    expect(screen.getByRole("checkbox", { name: /DeepSeek-V4-Pro/ })).toBeChecked()
+    expect(screen.getByRole("checkbox", { name: /Qwen3.5-plus/ })).not.toBeChecked()
 
-    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: /Qwen3.5-plus/ }))
+    fireEvent.click(screen.getByRole("checkbox", { name: /Qwen3.5-plus/ }))
 
-    expect(onSelectedIdsChange).toHaveBeenCalledWith(["deepseek", "qwen"])
-    expect(screen.getByRole("menu", { name: "translationWorkbench.selectProviders" })).toBeInTheDocument()
+    expect(screen.getByRole("checkbox", { name: /Qwen3.5-plus/ })).toBeChecked()
+    expect(screen.getByRole("group", { name: "translationWorkbench.selectProviders" })).toBeInTheDocument()
+    expect(trigger).toHaveTextContent("2")
   })
 
   it("does not allow deselecting the last provider", () => {
@@ -90,8 +100,9 @@ describe("providerMultiSelect", () => {
     )
 
     fireEvent.click(screen.getByRole("button", { name: "translationWorkbench.selectProviders" }))
-    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: /DeepSeek-V4-Pro/ }))
+    fireEvent.click(screen.getByRole("checkbox", { name: /DeepSeek-V4-Pro/ }))
 
     expect(onSelectedIdsChange).not.toHaveBeenCalled()
+    expect(screen.getByRole("checkbox", { name: /DeepSeek-V4-Pro/ })).toBeChecked()
   })
 })

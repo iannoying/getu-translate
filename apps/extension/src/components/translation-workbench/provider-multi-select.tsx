@@ -125,7 +125,7 @@ export function ProviderMultiSelect({
         positionerClassName="z-[2147483647]"
         className="z-[2147483647] max-h-[min(28rem,var(--available-height))] w-80 overflow-y-auto p-2"
       >
-        <div role="menu" aria-label={i18n.t("translationWorkbench.selectProviders")} className="space-y-2">
+        <div role="group" aria-label={i18n.t("translationWorkbench.selectProviders")} className="space-y-2">
           {providerGroups.map(group => (
             <section key={group.id} className="space-y-1">
               <h3 className="px-2 py-1 text-xs font-medium text-muted-foreground">
@@ -134,17 +134,19 @@ export function ProviderMultiSelect({
               {group.providers.map((provider) => {
                 const checked = selectedIds.includes(provider.id)
                 return (
-                  <button
+                  <label
                     key={provider.id}
-                    type="button"
-                    role="menuitemcheckbox"
-                    aria-checked={checked}
-                    className="flex w-full min-w-0 items-center justify-between gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
-                    onClick={() => toggleProvider(provider.id)}
+                    className="flex w-full min-w-0 cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-muted focus-within:bg-muted"
                   >
                     <span className="flex min-w-0 items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        className="peer sr-only"
+                        onChange={() => toggleProvider(provider.id)}
+                      />
                       <span className="grid size-4 place-items-center rounded border border-border">
-                        {checked && <IconCheck className="size-3" />}
+                        {checked && <IconCheck className="size-3" aria-hidden="true" />}
                       </span>
                       <WorkbenchProviderLogo provider={provider} theme={theme} size="sm" />
                     </span>
@@ -153,7 +155,7 @@ export function ProviderMultiSelect({
                         Pro
                       </span>
                     )}
-                  </button>
+                  </label>
                 )
               })}
             </section>
