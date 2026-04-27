@@ -158,6 +158,25 @@ interface TranslationQueueSetupConfig<TContext = unknown> {
   promptResolver: PromptResolver<TContext>
 }
 
+async function createWebPageTranslationQueues() {
+  const config = await ensureInitializedConfig()
+
+  const { translate: { requestQueueConfig, batchQueueConfig } } = config ?? DEFAULT_CONFIG
+
+  return createTranslationQueues<WebPagePromptContext>({
+    requestQueueConfig,
+    batchQueueConfig,
+    promptResolver: getTranslatePrompt,
+  })
+}
+
+let webPageTranslationQueuesPromise: ReturnType<typeof createWebPageTranslationQueues> | null = null
+
+function getWebPageTranslationQueues() {
+  webPageTranslationQueuesPromise ??= createWebPageTranslationQueues()
+  return webPageTranslationQueuesPromise
+}
+
 async function createTranslationQueues<TContext>(config: TranslationQueueSetupConfig<TContext>) {
   const { rate, capacity } = config.requestQueueConfig
   const { maxCharactersPerBatch, maxItemsPerBatch } = config.batchQueueConfig
@@ -213,19 +232,10 @@ async function createTranslationQueues<TContext>(config: TranslationQueueSetupCo
   return { requestQueue, batchQueue }
 }
 
-export async function setUpWebPageTranslationQueue() {
-  const config = await ensureInitializedConfig()
-
-  const { translate: { requestQueueConfig, batchQueueConfig } } = config ?? DEFAULT_CONFIG
-
-  const { requestQueue, batchQueue } = await createTranslationQueues({
-    requestQueueConfig,
-    batchQueueConfig,
-    promptResolver: getTranslatePrompt,
-  })
-
+export function setUpWebPageTranslationQueue() {
   onMessage("enqueueTranslateRequest", async (message) => {
     const { data: { text, langConfig, providerConfig, scheduleAt, hash, webTitle, webContent, webSummary } } = message
+    const { requestQueue, batchQueue } = await getWebPageTranslationQueues()
 
     // Check cache first
     if (hash) {
@@ -264,8 +274,31 @@ export async function setUpWebPageTranslationQueue() {
     return result
   })
 
+  onMessage("executeTranslationWorkbenchRequest", async (message) => {
+    const { text, langConfig, providerConfig, headers } = message.data
+    const { requestQueue } = await getWebPageTranslationQueues()
+    const hash = Sha256Hex(
+      "translation-workbench",
+      text,
+      JSON.stringify(langConfig),
+      JSON.stringify(providerConfig),
+      JSON.stringify(headers ?? {}),
+    )
+    const thunk = () =>
+      executeTranslate(
+        text,
+        langConfig,
+        providerConfig,
+        getTranslatePrompt,
+        headers ? { headers } : undefined,
+      )
+
+    return await requestQueue.enqueue(thunk, Date.now(), hash)
+  })
+
   onMessage("getOrGenerateWebPageSummary", async (message) => {
     const { webTitle, webContent, providerConfig } = message.data
+    const { requestQueue } = await getWebPageTranslationQueues()
 
     if (!isLLMProviderConfig(providerConfig) || !webTitle || !webContent) {
       return null
@@ -274,13 +307,15 @@ export async function setUpWebPageTranslationQueue() {
     return await getOrGenerateWebPageSummary(webTitle, webContent, providerConfig, requestQueue)
   })
 
-  onMessage("setTranslateRequestQueueConfig", (message) => {
+  onMessage("setTranslateRequestQueueConfig", async (message) => {
     const { data } = message
+    const { requestQueue } = await getWebPageTranslationQueues()
     requestQueue.setQueueOptions(data)
   })
 
-  onMessage("setTranslateBatchQueueConfig", (message) => {
+  onMessage("setTranslateBatchQueueConfig", async (message) => {
     const { data } = message
+    const { batchQueue } = await getWebPageTranslationQueues()
     batchQueue.setBatchConfig(data)
   })
 }

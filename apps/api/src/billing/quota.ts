@@ -47,6 +47,74 @@ function resolveTier(
   return (ent.tier as "free" | "pro" | "enterprise") ?? "free"
 }
 
+async function resolveQuotaAccess(
+  db: Db,
+  userId: string,
+  bucket: QuotaBucket,
+  now: Date,
+): Promise<{ tier: "free" | "pro" | "enterprise"; limit: number | null }> {
+  const ent = await db
+    .select()
+    .from(userEntitlements)
+    .where(eq(userEntitlements.userId, userId))
+    .get()
+  const tier = resolveTier(ent, now)
+  return { tier, limit: QUOTA_LIMITS[tier][bucket] }
+}
+
+function assertBucketAllowed(
+  tier: "free" | "pro" | "enterprise",
+  bucket: QuotaBucket,
+  limit: number | null,
+): void {
+  // Any bucket with limit=0 for this tier is forbidden, not just "over quota".
+  // This future-proofs against new zero-limit buckets (e.g. future Pro-only features).
+  if (limit === 0) {
+    throw new ORPCError("FORBIDDEN", {
+      message: `Tier '${tier}' cannot access bucket '${bucket}'`,
+    })
+  }
+}
+
+async function getQuotaPeriodUsed(
+  db: Db,
+  userId: string,
+  bucket: QuotaBucket,
+  now: Date,
+): Promise<number> {
+  const pk = periodKey(bucket, now)
+  const period = await db
+    .select()
+    .from(quotaPeriod)
+    .where(
+      and(
+        eq(quotaPeriod.userId, userId),
+        eq(quotaPeriod.bucket, bucket),
+        eq(quotaPeriod.periodKey, pk),
+      ),
+    )
+    .get()
+  return period?.used ?? 0
+}
+
+export async function assertCanConsumeQuotaBucket(
+  db: Db,
+  userId: string,
+  bucket: QuotaBucket,
+  now: Date = new Date(),
+): Promise<void> {
+  const { tier, limit } = await resolveQuotaAccess(db, userId, bucket, now)
+  assertBucketAllowed(tier, bucket, limit)
+  if (limit == null) return
+
+  const used = await getQuotaPeriodUsed(db, userId, bucket, now)
+  if (used >= limit) {
+    throw new ORPCError("QUOTA_EXCEEDED", {
+      message: `Bucket ${bucket} exhausted: used=${used}, limit=${limit}`,
+    })
+  }
+}
+
 export async function consumeQuota(
   db: Db,
   userId: string,
@@ -94,23 +162,10 @@ export async function consumeQuota(
   }
 
   // 2. Resolve tier
-  const ent = await db
-    .select()
-    .from(userEntitlements)
-    .where(eq(userEntitlements.userId, userId))
-    .get()
-  const tier = resolveTier(ent, now)
-  const lim = QUOTA_LIMITS[tier][bucket]
+  const { tier, limit: lim } = await resolveQuotaAccess(db, userId, bucket, now)
+  assertBucketAllowed(tier, bucket, lim)
 
-  // 3. Any bucket with limit=0 for this tier is forbidden, not just "over quota".
-  // This future-proofs against new zero-limit buckets (e.g. future Pro-only features).
-  if (lim === 0) {
-    throw new ORPCError("FORBIDDEN", {
-      message: `Tier '${tier}' cannot access bucket '${bucket}'`,
-    })
-  }
-
-  // 4. Capacity check
+  // 3. Capacity check
   // NOTE: optimistic capacity check — not atomic with the write. Two concurrent
   // consumeQuota calls with different request_ids may both observe used=0,
   // both pass this guard, and both commit, overshooting `lim` by up to
@@ -123,25 +178,14 @@ export async function consumeQuota(
   //   - Zero-overshoot enforcement would require D1 Durable Objects or KV CAS,
   //     which are Phase 4+ scope per the plan's Risk Register.
   const pk = periodKey(bucket, now)
-  const period = await db
-    .select()
-    .from(quotaPeriod)
-    .where(
-      and(
-        eq(quotaPeriod.userId, userId),
-        eq(quotaPeriod.bucket, bucket),
-        eq(quotaPeriod.periodKey, pk),
-      ),
-    )
-    .get()
-  const used = period?.used ?? 0
+  const used = await getQuotaPeriodUsed(db, userId, bucket, now)
   if (lim != null && used + amount > lim) {
     throw new ORPCError("QUOTA_EXCEEDED", {
       message: `Bucket ${bucket} exceeded: used=${used}, amount=${amount}, limit=${lim}`,
     })
   }
 
-  // 5. Atomic write: insert usage_log + upsert quota_period.
+  // 4. Atomic write: insert usage_log + upsert quota_period.
   // D1 db.batch runs all statements in a single transaction — either all
   // commit or all roll back. If the usageLog insert throws a UNIQUE violation
   // (concurrent replay with the same request_id), the quotaPeriod upsert is

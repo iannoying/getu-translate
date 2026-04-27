@@ -1054,6 +1054,49 @@ translationHub:
   translationFailed: 翻译失败
   translationFailedFallback: 翻译失败
   retryTranslation: 重试翻译
+translationWorkbench:
+  sidebarTitle: GetU Translate
+  textTab: 文本
+  documentTab: 文档
+  closeSidebar: 关闭侧边栏
+  openPanel: 打开面板
+  textTitle: 文本翻译
+  documentTitle: 文档翻译
+  documentDescription: 在 GetU Translate 网页端上传文档，可翻译 PDF、电子书、Office 文件、网页文档、纯文本、Markdown 和字幕。
+  documentFormats: 支持格式
+  documentFeatures: 文档能力
+  uploadDocument: 上传文档
+  learnMore: 了解更多
+  pdfProTitle: PDF Pro
+  pdfProBody: 在网页端翻译长 PDF，支持版面感知处理和导出。
+  babelDocTitle: BabelDOC 版式
+  babelDocBody: 保留文档结构，生成适合阅读的双语结果。
+  subtitleFilesTitle: 字幕文件
+  subtitleFilesBody: 翻译常见字幕格式，适合视频学习工作流。
+  inputPlaceholder: 输入要翻译的文本...
+  translate: 翻译
+  charLimitExceeded: 文本已超过 $1 字符限制。
+  noProviders: 请先在设置中启用至少一个翻译服务。
+  languages:
+    auto: 自动检测
+  swapLanguages: 交换语言
+  selectProviders: 选择翻译服务
+  freeProviders: 免费翻译
+  proProviders: GetU Pro
+  byokProviders: 自带密钥 / LLM
+  apiProviders: API 翻译
+  idle: 翻译结果将显示在这里。
+  loading: 正在翻译...
+  errorFallback: 翻译失败，请重试。
+  quotaExhausted: 翻译额度已用完。
+  loginRequired: 登录后即可使用此翻译服务。
+  upgradeRequired: 升级 Pro 后即可使用此翻译服务。
+  loginAction: 登录
+  upgradeAction: 升级
+  copyResult: 复制翻译
+  retry: 重试
+  copied: 已复制到剪贴板
+  copyFailed: 无法复制翻译
 wordbook:
   save: 加入生词本
   saved: 已加入

@@ -938,6 +938,49 @@ translationHub:
   translationFailed: 번역 실패
   translationFailedFallback: 번역 실패
   retryTranslation: 번역 재시도
+translationWorkbench:
+  sidebarTitle: GetU Translate
+  textTab: 텍스트
+  documentTab: 문서
+  closeSidebar: 사이드바 닫기
+  openPanel: 패널 열기
+  textTitle: 텍스트 번역
+  documentTitle: 문서 번역
+  documentDescription: GetU Translate 웹에 문서를 업로드하여 PDF, 전자책, Office 파일, 웹 문서, 일반 텍스트, Markdown, 자막을 번역할 수 있습니다.
+  documentFormats: 지원 형식
+  documentFeatures: 문서 도구
+  uploadDocument: 문서 업로드
+  learnMore: 자세히 보기
+  pdfProTitle: PDF Pro
+  pdfProBody: 웹 앱에서 긴 PDF를 레이아웃 인식 처리로 번역하고 내보낼 수 있습니다.
+  babelDocTitle: BabelDOC 레이아웃
+  babelDocBody: 문서 구조를 유지하면서 읽기 좋은 이중 언어 결과를 생성합니다.
+  subtitleFilesTitle: 자막 파일
+  subtitleFilesBody: 동영상 학습 흐름에 맞게 일반적인 자막 형식을 번역합니다.
+  inputPlaceholder: 번역할 텍스트를 입력하세요...
+  translate: 번역
+  charLimitExceeded: 텍스트가 $1자 제한을 초과했습니다.
+  noProviders: 설정에서 하나 이상의 번역 서비스를 활성화하세요.
+  languages:
+    auto: 자동 감지
+  swapLanguages: 언어 교환
+  selectProviders: 번역 서비스 선택
+  freeProviders: 무료 번역
+  proProviders: GetU Pro
+  byokProviders: BYOK / LLM
+  apiProviders: API 번역
+  idle: 번역 결과가 여기에 표시됩니다.
+  loading: 번역 중...
+  errorFallback: 번역에 실패했습니다. 다시 시도하세요.
+  quotaExhausted: 번역 할당량을 모두 사용했습니다.
+  loginRequired: 이 번역 서비스를 사용하려면 로그인하세요.
+  upgradeRequired: 이 번역 서비스를 사용하려면 Pro로 업그레이드하세요.
+  loginAction: 로그인
+  upgradeAction: 업그레이드
+  copyResult: 번역 복사
+  retry: 다시 시도
+  copied: 클립보드에 복사됨
+  copyFailed: 번역을 복사할 수 없습니다
 wordbook:
   save: 단어장에 추가
   saved: 추가됨

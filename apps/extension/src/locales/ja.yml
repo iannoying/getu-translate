@@ -938,6 +938,49 @@ translationHub:
   translationFailed: 翻訳に失敗しました
   translationFailedFallback: 翻訳に失敗しました
   retryTranslation: 翻訳を再試行
+translationWorkbench:
+  sidebarTitle: GetU Translate
+  textTab: テキスト
+  documentTab: ドキュメント
+  closeSidebar: サイドバーを閉じる
+  openPanel: パネルを開く
+  textTitle: テキスト翻訳
+  documentTitle: ドキュメント翻訳
+  documentDescription: GetU Translate Web にドキュメントをアップロードして、PDF、電子書籍、Office ファイル、Web ドキュメント、プレーンテキスト、Markdown、字幕を翻訳できます。
+  documentFormats: 対応形式
+  documentFeatures: ドキュメント機能
+  uploadDocument: ドキュメントをアップロード
+  learnMore: 詳細を見る
+  pdfProTitle: PDF Pro
+  pdfProBody: Web アプリで長い PDF をレイアウトに配慮して翻訳し、エクスポートできます。
+  babelDocTitle: BabelDOC レイアウト
+  babelDocBody: ドキュメント構造を保ちながら、読みやすいバイリンガル結果を生成します。
+  subtitleFilesTitle: 字幕ファイル
+  subtitleFilesBody: 動画学習ワークフロー向けに一般的な字幕形式を翻訳します。
+  inputPlaceholder: 翻訳するテキストを入力...
+  translate: 翻訳
+  charLimitExceeded: テキストが $1 文字の上限を超えています。
+  noProviders: 設定で少なくとも 1 つの翻訳プロバイダーを有効にしてください。
+  languages:
+    auto: 自動検出
+  swapLanguages: 言語を入れ替える
+  selectProviders: 翻訳サービスを選択
+  freeProviders: 無料翻訳
+  proProviders: GetU Pro
+  byokProviders: BYOK / LLM
+  apiProviders: API 翻訳
+  idle: 翻訳結果はここに表示されます。
+  loading: 翻訳中...
+  errorFallback: 翻訳に失敗しました。もう一度お試しください。
+  quotaExhausted: 翻訳クォータを使い切りました。
+  loginRequired: この翻訳サービスを使うにはログインしてください。
+  upgradeRequired: この翻訳サービスを使うには Pro にアップグレードしてください。
+  loginAction: ログイン
+  upgradeAction: アップグレード
+  copyResult: 翻訳をコピー
+  retry: 再試行
+  copied: クリップボードにコピーしました
+  copyFailed: 翻訳をコピーできませんでした
 wordbook:
   save: 単語帳に追加
   saved: 追加済み

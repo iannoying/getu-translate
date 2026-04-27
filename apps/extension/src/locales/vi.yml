@@ -938,6 +938,49 @@ translationHub:
   translationFailed: Dịch Thất Bại
   translationFailedFallback: Dịch thất bại
   retryTranslation: Thử lại dịch
+translationWorkbench:
+  sidebarTitle: GetU Translate
+  textTab: Văn bản
+  documentTab: Tài liệu
+  closeSidebar: Đóng thanh bên
+  openPanel: Mở bảng điều khiển
+  textTitle: Dịch văn bản
+  documentTitle: Dịch tài liệu
+  documentDescription: Tải tài liệu lên GetU Translate Web để dịch PDF, ebook, tệp Office, tài liệu web, văn bản thuần, Markdown và phụ đề.
+  documentFormats: Định dạng hỗ trợ
+  documentFeatures: Công cụ tài liệu
+  uploadDocument: Tải tài liệu lên
+  learnMore: Tìm hiểu thêm
+  pdfProTitle: PDF Pro
+  pdfProBody: Dịch PDF dài trên ứng dụng web với xử lý nhận biết bố cục và tùy chọn xuất.
+  babelDocTitle: Bố cục BabelDOC
+  babelDocBody: Giữ cấu trúc tài liệu trong khi tạo kết quả song ngữ dễ đọc.
+  subtitleFilesTitle: Tệp phụ đề
+  subtitleFilesBody: Dịch các định dạng phụ đề phổ biến cho quy trình học qua video.
+  inputPlaceholder: Nhập văn bản cần dịch...
+  translate: Dịch
+  charLimitExceeded: Văn bản vượt quá giới hạn $1 ký tự.
+  noProviders: Bật ít nhất một dịch vụ dịch trong phần cài đặt.
+  languages:
+    auto: Tự động phát hiện
+  swapLanguages: Đổi ngôn ngữ
+  selectProviders: Chọn dịch vụ dịch
+  freeProviders: Trình dịch miễn phí
+  proProviders: GetU Pro
+  byokProviders: BYOK / LLM
+  apiProviders: Trình dịch API
+  idle: Bản dịch sẽ xuất hiện tại đây.
+  loading: Đang dịch...
+  errorFallback: Dịch thất bại. Vui lòng thử lại.
+  quotaExhausted: Đã dùng hết hạn mức dịch.
+  loginRequired: Đăng nhập để sử dụng trình dịch này.
+  upgradeRequired: Nâng cấp lên Pro để sử dụng trình dịch này.
+  loginAction: Đăng nhập
+  upgradeAction: Nâng cấp
+  copyResult: Sao chép bản dịch
+  retry: Thử lại
+  copied: Đã sao chép vào bộ nhớ tạm
+  copyFailed: Không thể sao chép bản dịch
 wordbook:
   save: Thêm vào từ điển
   saved: Đã thêm

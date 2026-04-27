@@ -5,7 +5,7 @@ import { createAuth } from "./auth"
 import type { WorkerEnv } from "./env"
 import { router } from "./orpc"
 import { handleChatCompletions } from "./ai/proxy"
-import { signAiJwt, AI_JWT_TTL_SECONDS } from "./ai/jwt"
+import { signAiJwt, AI_JWT_TTL_SECONDS, isAiProxyQuotaBucket } from "./ai/jwt"
 import { handlePaddleWebhook } from "./billing/webhook-handler"
 import { handleStripeWebhook } from "./billing/stripe-webhook-handler"
 import { documentRoutes } from "./translate/document"
@@ -25,7 +25,7 @@ function makeCorsMw(env: WorkerEnv) {
       return null
     },
     credentials: true,
-    allowHeaders: ["Content-Type", "Cookie"],
+    allowHeaders: ["Content-Type", "Cookie", "Authorization", "X-Request-Id", "X-Getu-Quota-Bucket"],
     allowMethods: ["GET", "POST", "OPTIONS"],
   })
 }
@@ -73,7 +73,15 @@ app.post("/ai/v1/token", async (c) => {
   const auth = createAuth(c.env)
   const session = await auth.api.getSession({ headers: c.req.raw.headers }).catch(() => null)
   if (!session?.user) return c.json({ error: "unauthorized" }, 401)
-  const token = await signAiJwt({ userId: session.user.id }, c.env.AI_JWT_SECRET)
+  const body = await c.req.json().catch(() => null) as { quota_bucket?: unknown } | null
+  const requestedQuotaBucket = body?.quota_bucket
+  if (requestedQuotaBucket !== undefined && !isAiProxyQuotaBucket(requestedQuotaBucket)) {
+    return c.json({ error: "invalid quota bucket" }, 400)
+  }
+  const token = await signAiJwt({
+    userId: session.user.id,
+    quotaBucket: requestedQuotaBucket,
+  }, c.env.AI_JWT_SECRET)
   return c.json({ token, expires_in: AI_JWT_TTL_SECONDS })
 })
 

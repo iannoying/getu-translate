@@ -6,6 +6,7 @@ import { APP_NAME } from "@/utils/constants/app"
 import { MIN_SIDE_CONTENT_WIDTH } from "@/utils/constants/side"
 import { cn } from "@/utils/styles/utils"
 import { isSideOpenAtom } from "../../atoms"
+import { SidebarShell } from "./sidebar-shell"
 
 export default function SideContent() {
   const isSideOpen = useAtomValue(isSideOpenAtom)
@@ -102,9 +103,7 @@ export default function SideContent() {
         >
         </div>
 
-        <div className="flex h-full flex-col gap-y-2 py-3 items-center justify-center">
-          The function is being upgraded
-        </div>
+        {isSideOpen && <SidebarShell />}
       </div>
 
       {/* Transparent overlay to prevent other events during resizing */}

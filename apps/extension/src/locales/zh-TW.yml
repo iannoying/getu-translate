@@ -938,6 +938,49 @@ translationHub:
   translationFailed: 翻譯失敗
   translationFailedFallback: 翻譯失敗
   retryTranslation: 重試翻譯
+translationWorkbench:
+  sidebarTitle: GetU Translate
+  textTab: 文字
+  documentTab: 文件
+  closeSidebar: 關閉側邊欄
+  openPanel: 開啟面板
+  textTitle: 文字翻譯
+  documentTitle: 文件翻譯
+  documentDescription: 在 GetU Translate 網頁版上傳文件，可翻譯 PDF、電子書、Office 文件、網頁文件、純文字、Markdown 和字幕。
+  documentFormats: 支援格式
+  documentFeatures: 文件功能
+  uploadDocument: 上傳文件
+  learnMore: 了解更多
+  pdfProTitle: PDF Pro
+  pdfProBody: 在網頁版翻譯長篇 PDF，支援版面感知處理與匯出選項。
+  babelDocTitle: BabelDOC 版面
+  babelDocBody: 保留文件結構，產生適合閱讀的雙語結果。
+  subtitleFilesTitle: 字幕檔案
+  subtitleFilesBody: 翻譯常見字幕格式，適合影片學習流程。
+  inputPlaceholder: 輸入要翻譯的文字...
+  translate: 翻譯
+  charLimitExceeded: 文字已超過 $1 字元限制。
+  noProviders: 請先在設定中啟用至少一個翻譯服務。
+  languages:
+    auto: 自動偵測
+  swapLanguages: 交換語言
+  selectProviders: 選擇翻譯服務
+  freeProviders: 免費翻譯
+  proProviders: GetU Pro
+  byokProviders: 自帶金鑰 / LLM
+  apiProviders: API 翻譯
+  idle: 翻譯結果會顯示在這裡。
+  loading: 正在翻譯...
+  errorFallback: 翻譯失敗，請重試。
+  quotaExhausted: 翻譯額度已用完。
+  loginRequired: 登入後即可使用此翻譯服務。
+  upgradeRequired: 升級 Pro 後即可使用此翻譯服務。
+  loginAction: 登入
+  upgradeAction: 升級
+  copyResult: 複製翻譯
+  retry: 重試
+  copied: 已複製到剪貼簿
+  copyFailed: 無法複製翻譯
 wordbook:
   save: 加入生字本
   saved: 已加入

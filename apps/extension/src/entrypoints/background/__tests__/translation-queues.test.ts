@@ -193,6 +193,44 @@ describe("translation queue helpers", () => {
     )
   })
 
+  it("registers a translation workbench handler that forwards token headers to executeTranslate", async () => {
+    const { getTranslatePrompt } = await import("@/utils/prompts/translate")
+    const { setUpWebPageTranslationQueue } = await import("../translation-queues")
+    await setUpWebPageTranslationQueue()
+
+    const headers = {
+      "x-request-id": "sidebar-web-text-token:click-1:getu-pro-default",
+      "x-getu-quota-bucket": "web_text_translate_token_monthly",
+    }
+
+    const handler = getRegisteredMessageHandler("executeTranslationWorkbenchRequest")
+    const result = await handler({
+      data: {
+        text: "hello",
+        langConfig: DEFAULT_CONFIG.language,
+        providerConfig: llmProvider,
+        headers,
+      },
+    })
+
+    expect(result).toBe("translated subtitle")
+    expect(executeTranslateMock).toHaveBeenCalledWith(
+      "hello",
+      DEFAULT_CONFIG.language,
+      llmProvider,
+      getTranslatePrompt,
+      { headers },
+    )
+  })
+
+  it("registers the translation workbench handler before async queue setup resolves", async () => {
+    const { setUpWebPageTranslationQueue } = await import("../translation-queues")
+    const setup = setUpWebPageTranslationQueue()
+
+    expect(onMessageMock.mock.calls.some(call => call[0] === "executeTranslationWorkbenchRequest")).toBe(true)
+    await setup
+  })
+
   it("exposes webpage summary generation as a separate background handler", async () => {
     const { setUpWebPageTranslationQueue } = await import("../translation-queues")
     await setUpWebPageTranslationQueue()
