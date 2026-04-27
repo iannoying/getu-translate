@@ -47,6 +47,9 @@ importers:
       '@orpc/server':
         specifier: ^1.13.14
         version: 1.13.14(@opentelemetry/api@1.9.1)
+      '@sentry/cloudflare':
+        specifier: ^10.50.0
+        version: 10.50.0(@cloudflare/workers-types@4.20260421.1)
       aws4fetch:
         specifier: ^1.0.20
         version: 1.0.20
@@ -3578,6 +3581,19 @@ packages:
 
   '@sec-ant/readable-stream@0.4.1':
     resolution: {integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==}
+
+  '@sentry/cloudflare@10.50.0':
+    resolution: {integrity: sha512-fgPp2aVdCcHKzgoWwZDFbP/DwjsPwXMQFHCKeeE4jp6r4i0HoRGbaP7z1KlIGGrw12KM2i9rvQfKsaZlhHc0gQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@cloudflare/workers-types': ^4.x
+    peerDependenciesMeta:
+      '@cloudflare/workers-types':
+        optional: true
+
+  '@sentry/core@10.50.0':
+    resolution: {integrity: sha512-J4A+vzUO3adl0TkFCjaN1+4miamrjHiEIYuLHiuu1lmAjq5WIVw32ObvAh4yMwNtxyaEMosTrrh5M6f12XSJFg==}
+    engines: {node: '>=18'}
 
   '@simple-libs/child-process-utils@1.0.2':
     resolution: {integrity: sha512-/4R8QKnd/8agJynkNdJmNw2MBxuFTRcNFnE5Sg/G+jkSsV8/UBgULMzhizWWW42p8L5H7flImV2ATi79Ove2Tw==}
@@ -11676,6 +11692,15 @@ snapshots:
     optional: true
 
   '@sec-ant/readable-stream@0.4.1': {}
+
+  '@sentry/cloudflare@10.50.0(@cloudflare/workers-types@4.20260421.1)':
+    dependencies:
+      '@opentelemetry/api': 1.9.1
+      '@sentry/core': 10.50.0
+    optionalDependencies:
+      '@cloudflare/workers-types': 4.20260421.1
+
+  '@sentry/core@10.50.0': {}
 
   '@simple-libs/child-process-utils@1.0.2':
     dependencies:
