@@ -55,4 +55,21 @@ describe("sidebarShell", () => {
       expect(store.get(isSideOpenAtom)).toBe(false)
     })
   })
+
+  it("uses the provided close handler when rendered outside the content overlay", () => {
+    const store = createStore()
+    const onClose = vi.fn()
+    void store.set(isSideOpenAtom, true)
+
+    render(
+      <JotaiProvider store={store}>
+        <SidebarShell onClose={onClose} portalContainer={document.body} />
+      </JotaiProvider>,
+    )
+
+    fireEvent.click(screen.getByLabelText("translationWorkbench.closeSidebar"))
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(store.get(isSideOpenAtom)).toBe(true)
+  })
 })

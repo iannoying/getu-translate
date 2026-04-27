@@ -23,7 +23,6 @@ import { WEBSITE_URL } from "@/utils/constants/url"
 import { swallowExtensionLifecycleError, swallowInvalidatedStorageRead } from "@/utils/extension-lifecycle"
 import { i18n } from "@/utils/i18n"
 import { sendMessage } from "@/utils/message"
-import { shadowWrapper } from "../../index"
 
 const DEFAULT_SIDEBAR_PROVIDER_ID = "getu-pro-gemini-3-flash-preview"
 
@@ -46,8 +45,12 @@ function createClickId(): string {
   return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10).join("")}`
 }
 
-function resolvePortalContainer(): HTMLElement {
-  return shadowWrapper ?? document.body
+interface SidebarTextTabProps {
+  portalContainer?: HTMLElement | null
+}
+
+function resolvePortalContainer(portalContainer?: HTMLElement | null): HTMLElement {
+  return portalContainer ?? document.body
 }
 
 function defaultSelectedProviderIds(providers: TranslateProviderConfig[]): string[] {
@@ -76,7 +79,7 @@ interface PendingSidebarTranslation {
   languageLevel: Config["language"]["level"]
 }
 
-export function SidebarTextTab() {
+export function SidebarTextTab({ portalContainer: providedPortalContainer }: SidebarTextTabProps) {
   const [language, setLanguage] = useAtom(configFieldsAtomMap.language)
   const providersConfig = useAtomValue(configFieldsAtomMap.providersConfig)
   const session = authClient.useSession()
@@ -99,7 +102,7 @@ export function SidebarTextTab() {
   const [isTranslating, setIsTranslating] = useState(false)
   const [pendingTranslation, setPendingTranslation] = useState<PendingSidebarTranslation | null>(null)
   const selectedIdsWriteVersionRef = useRef(0)
-  const portalContainer = resolvePortalContainer()
+  const portalContainer = resolvePortalContainer(providedPortalContainer)
   const selectedProviderIds = useMemo(() => {
     const normalizedIds = normalizeSelectedProviderIds(selectedIds ?? defaultSelectedProviderIds(providers), providers)
     return normalizedIds.length > 0 ? normalizedIds : defaultSelectedProviderIds(providers)

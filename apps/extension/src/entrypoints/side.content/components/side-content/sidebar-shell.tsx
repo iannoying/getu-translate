@@ -10,9 +10,23 @@ import { SidebarTextTab } from "./sidebar-text-tab"
 
 type SidebarTab = "text" | "document"
 
-export function SidebarShell() {
+interface SidebarShellProps {
+  portalContainer?: HTMLElement | null
+  onClose?: () => void
+}
+
+export function SidebarShell({ portalContainer, onClose }: SidebarShellProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>("text")
   const setIsSideOpen = useSetAtom(isSideOpenAtom)
+
+  function handleClose() {
+    if (onClose) {
+      onClose()
+      return
+    }
+
+    void setIsSideOpen(false)
+  }
 
   return (
     <div className="flex h-full min-h-0 overflow-hidden bg-background text-foreground">
@@ -26,13 +40,13 @@ export function SidebarShell() {
             variant="ghost"
             size="icon"
             aria-label={i18n.t("translationWorkbench.closeSidebar")}
-            onClick={() => setIsSideOpen(false)}
+            onClick={handleClose}
           >
             <IconX className="size-4" />
           </Button>
         </header>
 
-        {activeTab === "text" ? <SidebarTextTab /> : <SidebarDocumentTab />}
+        {activeTab === "text" ? <SidebarTextTab portalContainer={portalContainer} /> : <SidebarDocumentTab />}
       </main>
 
       <aside

@@ -6,6 +6,7 @@ import { APP_NAME } from "@/utils/constants/app"
 import { MIN_SIDE_CONTENT_WIDTH } from "@/utils/constants/side"
 import { cn } from "@/utils/styles/utils"
 import { isSideOpenAtom } from "../../atoms"
+import { shadowWrapper } from "../../index"
 import { SidebarShell } from "./sidebar-shell"
 
 export default function SideContent() {
@@ -103,7 +104,7 @@ export default function SideContent() {
         >
         </div>
 
-        {isSideOpen && <SidebarShell />}
+        {isSideOpen && <SidebarShell portalContainer={shadowWrapper} />}
       </div>
 
       {/* Transparent overlay to prevent other events during resizing */}

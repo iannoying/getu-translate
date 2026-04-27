@@ -68,17 +68,15 @@ vi.mock("@/hooks/use-entitlements", () => ({
   useEntitlements: (userId: string | null) => useEntitlementsMock(userId),
 }))
 
-vi.mock("../../../index", () => ({
-  shadowWrapper: document.body,
-}))
-
 vi.mock("@/components/translation-workbench/language-picker", () => ({
   WorkbenchLanguagePicker: ({
     onTargetChange,
+    portalContainer,
   }: {
     onTargetChange: (targetCode: "jpn") => void
+    portalContainer: HTMLElement
   }) => (
-    <div data-testid="language-picker">
+    <div data-testid="language-picker" data-portal-container={portalContainer.id || "body"}>
       <button type="button" onClick={() => onTargetChange("jpn")}>set target jpn</button>
     </div>
   ),
@@ -135,7 +133,7 @@ const PRO_ENTITLEMENTS: Entitlements = {
   billingProvider: "paddle",
 }
 
-function renderSidebarTextTab() {
+function renderSidebarTextTab(portalContainer?: HTMLElement | null) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
@@ -146,7 +144,7 @@ function renderSidebarTextTab() {
     ...render(
       <JotaiProvider store={store}>
         <QueryClientProvider client={queryClient}>
-          <SidebarTextTab />
+          <SidebarTextTab portalContainer={portalContainer} />
         </QueryClientProvider>
       </JotaiProvider>,
     ),
@@ -296,6 +294,16 @@ describe("sidebarTextTab", () => {
     const resultCards = screen.getAllByTestId("translation-result-card")
     expect(resultCards).toHaveLength(1)
     expect(resultCards[0]).toHaveAttribute("data-speech-language", "cmn")
+  })
+
+  it("passes a provided portal container to child controls", () => {
+    const portalContainer = document.createElement("div")
+    portalContainer.id = "sidebar-portal"
+    document.body.appendChild(portalContainer)
+
+    renderSidebarTextTab(portalContainer)
+
+    expect(screen.getByTestId("language-picker")).toHaveAttribute("data-portal-container", "sidebar-portal")
   })
 
   it("keeps completed result speech language after the target picker changes", async () => {
