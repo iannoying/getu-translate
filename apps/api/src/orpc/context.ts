@@ -6,6 +6,8 @@ export interface Ctx {
   env: WorkerEnv
   auth: ReturnType<typeof createAuth>
   session: Awaited<ReturnType<ReturnType<typeof createAuth>["api"]["getSession"]>> | null
+  /** Cloudflare ExecutionContext — optional so tests don't have to provide it. */
+  executionCtx?: ExecutionContext
 }
 
 export const authed = os.$context<Ctx>().use(async ({ context, next }) => {

@@ -6,6 +6,7 @@ import { authClient } from "@/lib/auth-client"
 import { localeHref } from "@/lib/i18n/routing"
 import type { Locale } from "@/lib/i18n/locales"
 import { orpcClient } from "@/lib/orpc-client"
+import { track } from "@/lib/analytics"
 import {
   TRANSLATE_MODELS,
   isFreeTranslateModel,
@@ -210,6 +211,10 @@ export function DocumentClient({
           setPhase({ kind: "error", code: "no_job_id", message: messages.errors.fromUrlFailed })
           return
         }
+        track("pdf_uploaded", {
+          sizeMb: 0,  // from-url path: file size unknown client-side
+          modelId,
+        })
         setPhase({ kind: "done", jobId: body.jobId })
         router.push(localeHref(locale, `/document/preview?jobId=${body.jobId}`))
       } catch (err) {
@@ -288,6 +293,10 @@ export function DocumentClient({
         modelId,
         sourceLang: source,
         targetLang: target,
+      })
+      track("pdf_uploaded", {
+        sizeMb: Math.round((file.size / 1024 / 1024) * 10) / 10,
+        modelId,
       })
       setPhase({ kind: "done", jobId: out.jobId })
       router.push(localeHref(locale, `/document/preview?jobId=${out.jobId}`))

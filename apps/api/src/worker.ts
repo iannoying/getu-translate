@@ -1,3 +1,4 @@
+import { withSentry } from "@sentry/cloudflare"
 import app from "./index"
 import { createDb } from "@getu/db"
 import { runRetention } from "./scheduled/retention"
@@ -7,7 +8,7 @@ import { runTranslationStuckSweep } from "./scheduled/translation-stuck-sweep"
 import { createQueueHandler } from "./queue/translate-document"
 import type { WorkerEnv } from "./env"
 
-export default {
+const handler = {
   fetch: app.fetch,
   async scheduled(_event: ScheduledController, env: WorkerEnv, ctx: ExecutionContext) {
     const db = createDb(env.DB)
@@ -43,3 +44,12 @@ export default {
     return handler.queue(batch, env, ctx)
   },
 } satisfies ExportedHandler<WorkerEnv, { jobId: string }>
+
+export default withSentry<WorkerEnv, { jobId: string }>(
+  (env: WorkerEnv) => ({
+    dsn: env.SENTRY_DSN ?? "",
+    tracesSampleRate: 0,
+    enabled: !!env.SENTRY_DSN,
+  }),
+  handler,
+)

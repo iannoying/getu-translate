@@ -15,6 +15,9 @@ const KNOWN_PAGE_PATHS = new Set([
   // the page across locales.
   "translate",
   "document",
+  // M6.13 — help/guide pages
+  "guide/translate",
+  "guide/document",
 ])
 
 function trimSlashes(path: string): string {

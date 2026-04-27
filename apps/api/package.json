@@ -10,7 +10,8 @@
     "test": "vitest run",
     "lint": "echo 'lint-todo'",
     "type-check": "tsc --noEmit",
-    "grant-pro": "tsx scripts/grant-pro.ts"
+    "grant-pro": "tsx scripts/grant-pro.ts",
+    "smoke:prod": "tsx scripts/smoke-prod.ts"
   },
   "dependencies": {
     "@better-auth/passkey": "1.6.3",
@@ -18,6 +19,7 @@
     "@getu/db": "workspace:*",
     "@getu/definitions": "workspace:*",
     "@orpc/server": "^1.13.14",
+    "@sentry/cloudflare": "^10.50.0",
     "aws4fetch": "^1.0.20",
     "better-auth": "^1.6.3",
     "drizzle-orm": "^0.45.2",

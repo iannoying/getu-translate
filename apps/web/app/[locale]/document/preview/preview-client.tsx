@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { orpcClient } from "@/lib/orpc-client"
+import { track } from "@/lib/analytics"
 import { localeHref } from "@/lib/i18n/routing"
 import type { Locale } from "@/lib/i18n/locales"
 import type { Messages } from "@/lib/i18n/messages"
@@ -35,6 +36,8 @@ export function PreviewClient({
   const [state, setState] = useState<PreviewState>({ kind: "loading" })
   const [retrying, setRetrying] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
+  // Guard: fire pdf_completed exactly once per mount, even in React StrictMode.
+  const completedFiredRef = useRef(false)
 
   useEffect(() => {
     if (!jobId) return
@@ -50,7 +53,15 @@ export function PreviewClient({
           if (ac.signal.aborted) return
           setState(prev => {
             if (isTerminal(prev)) return prev
-            return applyStatusPayload(prev, payload)
+            const next = applyStatusPayload(prev, payload)
+            if (next.kind === "done" && !completedFiredRef.current) {
+              completedFiredRef.current = true
+              track("pdf_completed", {
+                jobId,
+                durationMs: Date.now() - startedAt,
+              })
+            }
+            return next
           })
           // Check terminal after applying.
           const fresh = applyStatusPayload({ kind: "loading" }, payload)

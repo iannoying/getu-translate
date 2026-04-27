@@ -2,6 +2,7 @@ import { ORPCError } from "@orpc/server"
 import { and, desc, eq, lt } from "drizzle-orm"
 import { createDb } from "@getu/db"
 import { schema } from "@getu/db"
+import { logger } from "../../analytics/logger"
 import {
   clearHistoryInputSchema,
   clearHistoryOutputSchema,
@@ -90,11 +91,11 @@ export const translateText = authed
       }
     } catch (err) {
       if (err instanceof TranslateProviderError) {
-        console.error("[translate.providerFailed]", {
-          provider: err.providerId,
-          statusCode: err.statusCode,
-          message: err.message,
-        })
+        logger.error(
+          "translate.providerFailed",
+          { provider: err.providerId, statusCode: err.statusCode, message: err.message },
+          { env: context.env, executionCtx: context.executionCtx },
+        )
         throw new ORPCError("INTERNAL_SERVER_ERROR", {
           message: err.message,
           data: {
