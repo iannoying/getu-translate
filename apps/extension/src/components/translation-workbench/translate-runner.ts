@@ -87,9 +87,11 @@ export async function runTranslationWorkbenchRequest({
     return { provider, result: null }
   })
 
-  const hasRunnableProvider = classifications.some(({ result }) => result === null)
+  const billableClassifications = classifications.filter(({ provider, result }) =>
+    result === null && isGetuProProvider(provider),
+  )
 
-  if (userId !== null && hasRunnableProvider) {
+  if (userId !== null && billableClassifications.length > 0) {
     try {
       await orpcClient.billing.consumeQuota({
         bucket: "web_text_translate_monthly",
@@ -98,7 +100,9 @@ export async function runTranslationWorkbenchRequest({
       })
     }
     catch (error) {
-      return classifications.map(({ provider, result }) => result ?? failureResult(provider.id, error))
+      for (const classification of billableClassifications) {
+        classification.result = failureResult(classification.provider.id, error)
+      }
     }
   }
 
