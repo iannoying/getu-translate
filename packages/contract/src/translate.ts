@@ -230,6 +230,22 @@ export const documentListOutputSchema = z
   })
   .strict()
 
+export const documentDownloadUrlInputSchema = z
+  .object({ jobId: z.string().min(1), format: z.enum(["html", "md"]) })
+  .strict()
+export type DocumentDownloadUrlInput = z.infer<typeof documentDownloadUrlInputSchema>
+
+export const documentDownloadUrlOutputSchema = z
+  .object({ url: z.string().url(), expiresAt: z.string().datetime() })
+  .strict()
+export type DocumentDownloadUrlOutput = z.infer<typeof documentDownloadUrlOutputSchema>
+
+export const documentRetryInputSchema = z.object({ jobId: z.string().min(1) }).strict()
+export type DocumentRetryInput = z.infer<typeof documentRetryInputSchema>
+
+export const documentRetryOutputSchema = z.object({ jobId: z.string().min(1) }).strict()
+export type DocumentRetryOutput = z.infer<typeof documentRetryOutputSchema>
+
 // ---- oRPC contract ----
 
 /**
@@ -247,5 +263,7 @@ export const translateContract = oc.router({
     create: oc.input(documentCreateInputSchema).output(documentCreateOutputSchema),
     status: oc.input(documentStatusInputSchema).output(documentStatusOutputSchema),
     list: oc.input(documentListInputSchema).output(documentListOutputSchema),
+    downloadUrl: oc.input(documentDownloadUrlInputSchema).output(documentDownloadUrlOutputSchema),
+    retry: oc.input(documentRetryInputSchema).output(documentRetryOutputSchema),
   }),
 })
