@@ -25,12 +25,12 @@ vi.mock("@/components/provider-icon", () => ({
 }))
 
 vi.mock("@/utils/constants/providers", () => ({
-  PROVIDER_ITEMS: {
-    deepseek: {
-      logo: () => "/assets/providers/deepseek-light.svg",
-      name: "DeepSeek",
-      website: "https://deepseek.com",
-    },
+  getProviderLogo: (provider: TranslateProviderConfig) => {
+    if (provider.provider === "deepseek")
+      return "/assets/providers/deepseek-light.svg"
+    if (provider.provider === "getu-pro" && provider.model.model === "qwen3.5-plus")
+      return "/assets/providers/qwen-light.svg"
+    throw new Error("missing provider logo")
   },
 }))
 
@@ -48,6 +48,14 @@ const unknownProvider = {
   id: "unknown-provider",
   name: "Mystery Model",
   provider: "missing-provider",
+} as unknown as TranslateProviderConfig
+
+const qwenProvider = {
+  ...deepseekProvider,
+  id: "qwen-pro",
+  name: "Qwen3.5-plus",
+  provider: "getu-pro",
+  model: { model: "qwen3.5-plus", isCustomModel: false, customModel: null },
 } as unknown as TranslateProviderConfig
 
 describe("workbenchProviderLogo", () => {
@@ -73,6 +81,19 @@ describe("workbenchProviderLogo", () => {
       "src",
       "chrome-extension://test/assets/providers/deepseek-light.svg",
     )
+  })
+
+  it("uses model-specific logos for GetU Pro model rows", async () => {
+    const { WorkbenchProviderLogo } = await import("../provider-logo")
+
+    const { container } = render(<WorkbenchProviderLogo provider={qwenProvider} />)
+
+    expect(container.querySelector("img")).toHaveAttribute(
+      "src",
+      "chrome-extension://test/assets/providers/qwen-light.svg",
+    )
+    expect(screen.getByText("Qwen3.5-plus")).toBeInTheDocument()
+    expect(screen.queryByRole("img", { name: "Qwen3.5-plus" })).not.toBeInTheDocument()
   })
 
   it("falls back to provider initials when no catalog logo exists", async () => {

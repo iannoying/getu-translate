@@ -1,6 +1,6 @@
-import type { AllProviderTypes, TranslateProviderConfig } from "@/types/config/provider"
+import type { TranslateProviderConfig } from "@/types/config/provider"
 import ProviderIcon from "@/components/provider-icon"
-import { PROVIDER_ITEMS } from "@/utils/constants/providers"
+import { getProviderLogo } from "@/utils/constants/providers"
 import { cn } from "@/utils/styles/utils"
 
 interface WorkbenchProviderLogoProps {
@@ -22,12 +22,8 @@ export function resolveWorkbenchProviderLogo(
   provider: TranslateProviderConfig,
   theme: string,
 ): string | undefined {
-  const item = PROVIDER_ITEMS[provider.provider as AllProviderTypes]
-  if (!item)
-    return undefined
-
   try {
-    return item.logo(theme as never)
+    return getProviderLogo(provider, theme as never)
   }
   catch {
     return undefined
