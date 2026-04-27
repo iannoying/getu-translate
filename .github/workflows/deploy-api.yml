@@ -23,10 +23,14 @@ jobs:
       # uses the correct Node ABI for native binding (better-sqlite3) prebuilds.
       - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
       - uses: pnpm/action-setup@v5
         with:
           run_install: false
+      # Pre-install node-gyp so the rebuild step's `npx node-gyp` doesn't have
+      # to fetch it interactively (which fails in non-tty CI shells).
+      - name: Install node-gyp globally
+        run: npm install -g node-gyp@12
       - name: Get pnpm store dir
         id: pnpm-cache
         run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
@@ -52,8 +56,9 @@ jobs:
           cd "$BS3_DIR"
           # Remove cached prebuild + build artifacts
           rm -rf build prebuilds
-          # Compile fresh against the current Node ABI
-          npx --no-install node-gyp rebuild --release
+          # Compile fresh against the current Node ABI (uses globally
+          # installed node-gyp from the previous step).
+          node-gyp rebuild --release
           ls -la build/Release/
 
       - name: Test
