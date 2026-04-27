@@ -1,12 +1,17 @@
 import { ORPCError } from "@orpc/server"
 import { and, desc, eq, inArray, lt } from "drizzle-orm"
+import { AwsClient } from "aws4fetch"
 import { createDb } from "@getu/db"
 import { schema } from "@getu/db"
 import {
   documentCreateInputSchema,
   documentCreateOutputSchema,
+  documentDownloadUrlInputSchema,
+  documentDownloadUrlOutputSchema,
   documentListInputSchema,
   documentListOutputSchema,
+  documentRetryInputSchema,
+  documentRetryOutputSchema,
   documentStatusInputSchema,
   documentStatusOutputSchema,
   TRANSLATE_DOCUMENT_MAX_BYTES,
@@ -16,6 +21,7 @@ import { loadEntitlements } from "../../billing/entitlements"
 import { readPdfPageCount } from "../../translate/document"
 import { authed } from "../context"
 import { requireModelAccess, type Plan } from "./models"
+import type { TranslateModelId } from "@getu/definitions"
 import { consumeTranslateQuota } from "./quota"
 
 const { translationJobs } = schema
@@ -292,8 +298,144 @@ export const documentList = authed
     return { items, nextCursor }
   })
 
+export const documentDownloadUrl = authed
+  .input(documentDownloadUrlInputSchema)
+  .output(documentDownloadUrlOutputSchema)
+  .handler(async ({ context, input }) => {
+    const db = createDb(context.env.DB)
+    const userId = context.session.user.id
+    const job = await db
+      .select()
+      .from(translationJobs)
+      .where(and(eq(translationJobs.id, input.jobId), eq(translationJobs.userId, userId)))
+      .get()
+    if (!job) throw new ORPCError("NOT_FOUND", { message: "Job not found" })
+    if (job.status !== "done") throw new ORPCError("BAD_REQUEST", { message: "Job not yet complete" })
+    const key = input.format === "html" ? job.outputHtmlKey : job.outputMdKey
+    if (!key) throw new ORPCError("NOT_FOUND", { message: "Output not available" })
+
+    const env = context.env
+    if (!env.R2_ACCOUNT_ID || !env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY || !env.R2_BUCKET_PDFS_NAME) {
+      throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "R2 credentials not configured" })
+    }
+
+    const expiresInSec = 3600
+    const aws = new AwsClient({
+      accessKeyId: env.R2_ACCESS_KEY_ID,
+      secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+      service: "s3",
+      region: "auto",
+    })
+    const objectUrl = `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${env.R2_BUCKET_PDFS_NAME}/${key}`
+    const signed = await aws.sign(
+      new Request(`${objectUrl}?X-Amz-Expires=${expiresInSec}`, { method: "GET" }),
+      { aws: { signQuery: true } },
+    )
+
+    return {
+      url: signed.url,
+      expiresAt: new Date(Date.now() + expiresInSec * 1000).toISOString(),
+    }
+  })
+
+export const documentRetry = authed
+  .input(documentRetryInputSchema)
+  .output(documentRetryOutputSchema)
+  .handler(async ({ context, input }) => {
+    const db = createDb(context.env.DB)
+    const userId = context.session.user.id
+    const origJob = await db
+      .select()
+      .from(translationJobs)
+      .where(and(eq(translationJobs.id, input.jobId), eq(translationJobs.userId, userId)))
+      .get()
+    if (!origJob) throw new ORPCError("NOT_FOUND", { message: "Job not found" })
+    if (origJob.status !== "failed") {
+      throw new ORPCError("BAD_REQUEST", { message: "Only failed jobs can be retried" })
+    }
+
+    const ent = await loadEntitlements(db, userId, context.env.BILLING_ENABLED === "true")
+    const plan = resolvePlan(ent.tier)
+    requireModelAccess(plan, origJob.modelId as TranslateModelId)
+
+    const activeRows = await db
+      .select({ id: translationJobs.id })
+      .from(translationJobs)
+      .where(
+        and(
+          eq(translationJobs.userId, userId),
+          inArray(translationJobs.status, ["queued", "processing"]),
+        ),
+      )
+      .limit(1)
+      .all()
+    if (activeRows.length > 0) {
+      throw new ORPCError("CONFLICT", { message: "Another translation is already in progress" })
+    }
+
+    // Validate source still exists in R2 (could have been deleted by retention)
+    const bucket = context.env.BUCKET_PDFS
+    if (bucket) {
+      const sourceObj = await bucket.head(origJob.sourceKey)
+      if (!sourceObj) {
+        throw new ORPCError("NOT_FOUND", {
+          message: "源文件已过期，请重新上传 PDF",
+        })
+      }
+    }
+
+    const newJobId = crypto.randomUUID()
+    const expiresAt = new Date(
+      Date.now() + (plan === "free" ? FREE_PDF_RETENTION_MS : PRO_PDF_RETENTION_MS),
+    )
+
+    try {
+      await db.insert(translationJobs).values({
+        id: newJobId,
+        userId,
+        sourceKey: origJob.sourceKey,
+        sourcePages: origJob.sourcePages,
+        sourceFilename: origJob.sourceFilename,
+        sourceBytes: origJob.sourceBytes,
+        modelId: origJob.modelId,
+        sourceLang: origJob.sourceLang,
+        targetLang: origJob.targetLang,
+        engine: "simple",
+        status: "queued",
+        expiresAt,
+        createdAt: new Date(),
+      })
+    } catch (err) {
+      if (err instanceof Error && /UNIQUE/i.test(err.message)) {
+        throw new ORPCError("CONFLICT", { message: "Another translation is already in progress" })
+      }
+      throw err
+    }
+
+    try {
+      await consumeTranslateQuota(
+        db,
+        userId,
+        "web_pdf_translate_monthly",
+        origJob.sourcePages,
+        `web-pdf:${userId}:${newJobId}`,
+      )
+    } catch (err) {
+      await db.delete(translationJobs).where(eq(translationJobs.id, newJobId)).run()
+      throw err
+    }
+
+    if (context.env.TRANSLATE_QUEUE) {
+      await context.env.TRANSLATE_QUEUE.send({ jobId: newJobId })
+    }
+
+    return { jobId: newJobId }
+  })
+
 export const documentRouter = {
   create: documentCreate,
   status: documentStatus,
   list: documentList,
+  downloadUrl: documentDownloadUrl,
+  retry: documentRetry,
 }
