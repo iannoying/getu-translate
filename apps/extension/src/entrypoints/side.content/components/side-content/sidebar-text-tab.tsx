@@ -1,12 +1,13 @@
 import type { TranslationRequestSnapshot, TranslationResultState } from "@/components/translation-workbench/types"
 import type { Config } from "@/types/config/config"
 import type { TranslateProviderConfig } from "@/types/config/provider"
+import { storage } from "#imports"
 import { IconCornerDownLeft } from "@tabler/icons-react"
 import { useAtom, useAtomValue } from "jotai"
-import { useEffect, useEffectEvent, useMemo, useState } from "react"
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { WorkbenchLanguagePicker } from "@/components/translation-workbench/language-picker"
-import { getTextTranslateCharLimit, isGetuProProvider, planFromEntitlements } from "@/components/translation-workbench/provider-gating"
+import { getTextTranslateCharLimit, isFreeTranslateProvider, isGetuProProvider, planFromEntitlements } from "@/components/translation-workbench/provider-gating"
 import { ProviderMultiSelect } from "@/components/translation-workbench/provider-multi-select"
 import { TranslationWorkbenchResultCard } from "@/components/translation-workbench/result-card"
 import { runTranslationWorkbenchRequest } from "@/components/translation-workbench/translate-runner"
@@ -17,11 +18,14 @@ import { useEntitlements } from "@/hooks/use-entitlements"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { authClient } from "@/utils/auth/auth-client"
 import { filterEnabledProvidersConfig, getTranslateProvidersConfig } from "@/utils/config/helpers"
+import { SIDEBAR_SELECTED_PROVIDERS_STORAGE_KEY } from "@/utils/constants/storage-keys"
 import { WEBSITE_URL } from "@/utils/constants/url"
-import { swallowExtensionLifecycleError } from "@/utils/extension-lifecycle"
+import { swallowExtensionLifecycleError, swallowInvalidatedStorageRead } from "@/utils/extension-lifecycle"
 import { i18n } from "@/utils/i18n"
 import { sendMessage } from "@/utils/message"
 import { shadowWrapper } from "../../index"
+
+const DEFAULT_SIDEBAR_PROVIDER_ID = "getu-pro-gemini-3-flash-preview"
 
 function createClickId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
@@ -44,6 +48,26 @@ function createClickId(): string {
 
 function resolvePortalContainer(): HTMLElement {
   return shadowWrapper ?? document.body
+}
+
+function defaultSelectedProviderIds(providers: TranslateProviderConfig[]): string[] {
+  const defaultProvider = providers.find(provider => provider.id === DEFAULT_SIDEBAR_PROVIDER_ID)
+  return defaultProvider ? [defaultProvider.id] : providers.slice(0, 1).map(provider => provider.id)
+}
+
+function normalizeSelectedProviderIds(ids: string[], providers: TranslateProviderConfig[]): string[] {
+  const providerById = new Map(providers.map(provider => [provider.id, provider]))
+  const dedupedIds = Array.from(new Set(ids)).filter(id => providerById.has(id))
+
+  return dedupedIds.sort((leftId, rightId) => {
+    const left = providerById.get(leftId)
+    const right = providerById.get(rightId)
+    const leftIsFree = left ? isFreeTranslateProvider(left) : false
+    const rightIsFree = right ? isFreeTranslateProvider(right) : false
+    if (leftIsFree === rightIsFree)
+      return 0
+    return leftIsFree ? -1 : 1
+  })
 }
 
 interface PendingSidebarTranslation {
@@ -74,13 +98,13 @@ export function SidebarTextTab() {
   const [results, setResults] = useState<Record<string, TranslationResultState>>({})
   const [isTranslating, setIsTranslating] = useState(false)
   const [pendingTranslation, setPendingTranslation] = useState<PendingSidebarTranslation | null>(null)
+  const selectedIdsWriteVersionRef = useRef(0)
   const portalContainer = resolvePortalContainer()
   const selectedProviderIds = useMemo(() => {
-    const providerIds = new Set(providers.map(provider => provider.id))
-    const baseIds = selectedIds ?? providers.slice(0, 3).map(provider => provider.id)
-
-    return baseIds.filter(id => providerIds.has(id))
+    const normalizedIds = normalizeSelectedProviderIds(selectedIds ?? defaultSelectedProviderIds(providers), providers)
+    return normalizedIds.length > 0 ? normalizedIds : defaultSelectedProviderIds(providers)
   }, [providers, selectedIds])
+
   const selectedProviders = selectedProviderIds
     .map(id => providers.find(provider => provider.id === id))
     .filter((provider): provider is TranslateProviderConfig => provider !== undefined)
@@ -116,6 +140,14 @@ export function SidebarTextTab() {
       }
       return next
     })
+  }
+
+  function persistSelectedProviderIds(ids: string[]) {
+    const normalizedIds = normalizeSelectedProviderIds(ids, providers)
+    selectedIdsWriteVersionRef.current += 1
+    setSelectedIds(normalizedIds)
+    void storage.setItem(SIDEBAR_SELECTED_PROVIDERS_STORAGE_KEY, normalizedIds)
+      .catch(swallowExtensionLifecycleError("sidebar selected providers persist"))
   }
 
   async function translate(providerIds = selectedProviderIds, pending?: PendingSidebarTranslation) {
@@ -196,6 +228,16 @@ export function SidebarTextTab() {
     continuePendingTranslation(pendingTranslation)
   }, [pendingTranslation, authGateLoading])
 
+  useEffect(() => {
+    const initialWriteVersion = selectedIdsWriteVersionRef.current
+    void storage.getItem<string[]>(SIDEBAR_SELECTED_PROVIDERS_STORAGE_KEY)
+      .then((storedIds) => {
+        if (Array.isArray(storedIds) && selectedIdsWriteVersionRef.current === initialWriteVersion)
+          setSelectedIds(storedIds)
+      })
+      .catch(swallowInvalidatedStorageRead("sidebar selected providers initial"))
+  }, [])
+
   function login() {
     void sendMessage("openPage", { url: `${WEBSITE_URL}/log-in?redirect=/` })
       .catch(swallowExtensionLifecycleError("sidebar text login"))
@@ -219,7 +261,7 @@ export function SidebarTextTab() {
           <ProviderMultiSelect
             providers={providers}
             selectedIds={selectedProviderIds}
-            onSelectedIdsChange={setSelectedIds}
+            onSelectedIdsChange={persistSelectedProviderIds}
             portalContainer={portalContainer}
           />
         </div>

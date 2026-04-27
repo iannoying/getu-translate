@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/base-ui/popover"
 import { isLLMProviderConfig, isPureAPIProviderConfig } from "@/types/config/provider"
 import { i18n } from "@/utils/i18n"
-import { isGetuProProvider } from "./provider-gating"
+import { isFreeTranslateProvider, isGetuProProvider } from "./provider-gating"
 import { ProviderIconStack } from "./provider-icon-stack"
 import { WorkbenchProviderLogo } from "./provider-logo"
 
@@ -26,13 +26,6 @@ interface ProviderGroup {
   providers: TranslateProviderConfig[]
 }
 
-const FREE_REST_PROVIDER_TYPES = new Set([
-  "google-translate",
-  "microsoft-translate",
-  "bing-translate",
-  "yandex-translate",
-])
-
 function getProviderGroups(providers: TranslateProviderConfig[]): ProviderGroup[] {
   const free: TranslateProviderConfig[] = []
   const pro: TranslateProviderConfig[] = []
@@ -40,7 +33,7 @@ function getProviderGroups(providers: TranslateProviderConfig[]): ProviderGroup[
   const api: TranslateProviderConfig[] = []
 
   for (const provider of providers) {
-    if (FREE_REST_PROVIDER_TYPES.has(provider.provider)) {
+    if (isFreeTranslateProvider(provider)) {
       free.push(provider)
     }
     else if (isGetuProProvider(provider)) {

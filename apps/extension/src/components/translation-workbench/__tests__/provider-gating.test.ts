@@ -6,6 +6,7 @@ import {
   buildSidebarTokenRequestId,
   getProviderGate,
   getTextTranslateCharLimit,
+  isFreeTranslateProvider,
   isGetuProProvider,
   planFromEntitlements,
 } from "../provider-gating"
@@ -42,6 +43,11 @@ describe("provider-gating", () => {
   it("identifies GetU Pro providers", () => {
     expect(isGetuProProvider(getuProProvider)).toBe(true)
     expect(isGetuProProvider(googleProvider)).toBe(false)
+  })
+
+  it("identifies free built-in translate providers", () => {
+    expect(isFreeTranslateProvider(googleProvider)).toBe(true)
+    expect(isFreeTranslateProvider(getuProProvider)).toBe(false)
   })
 
   it("requires login before anonymous users can invoke any provider", () => {

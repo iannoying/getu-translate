@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { atom, createStore, Provider as JotaiProvider } from "jotai"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { fakeBrowser } from "wxt/testing"
 import { SidebarTextTab } from "../sidebar-text-tab"
 
 const sendMessageMock = vi.hoisted(() => vi.fn(() => Promise.resolve()))
@@ -12,6 +13,8 @@ const useSessionMock = vi.hoisted(() => vi.fn())
 const useEntitlementsMock = vi.hoisted(() => vi.fn())
 const runTranslationWorkbenchRequestMock = vi.hoisted(() => vi.fn())
 const providersConfigMock = vi.hoisted(() => vi.fn())
+
+const SIDEBAR_SELECTED_PROVIDERS_DRIVER_KEY = "getu:side-content:selected-providers"
 
 vi.mock("#imports", () => ({
   browser: {
@@ -136,6 +139,7 @@ function renderSidebarTextTab() {
 
 describe("sidebarTextTab", () => {
   beforeEach(() => {
+    fakeBrowser.reset()
     sendMessageMock.mockClear()
     sessionRefetchMock.mockClear()
     useSessionMock.mockReset()
@@ -236,15 +240,48 @@ describe("sidebarTextTab", () => {
     )
   })
 
-  it("renders result cards for providers selected through the real picker", () => {
+  it("defaults the sidebar candidate to Gemini 3 Flash", () => {
     providersConfigMock.mockReturnValue([
       {
-        id: "deepseek",
-        name: "DeepSeek-V4-Pro",
-        provider: "deepseek",
+        id: "google",
+        name: "Google Translate",
+        provider: "google-translate",
+        enabled: true,
+      },
+      {
+        id: "getu-pro-gemini-3-flash-preview",
+        name: "Gemini-3-flash",
+        provider: "getu-pro",
         enabled: true,
         apiKey: "test",
-        model: { model: "deepseek-chat", isCustomModel: false, customModel: null },
+        model: { model: "gemini-3-flash-preview", isCustomModel: false, customModel: null },
+      },
+      {
+        id: "getu-pro-default",
+        name: "DeepSeek-V4-Pro",
+        provider: "getu-pro",
+        enabled: true,
+        apiKey: "test",
+        model: { model: "deepseek-v4-pro", isCustomModel: false, customModel: null },
+      },
+    ])
+
+    renderSidebarTextTab()
+
+    const resultCards = screen.getAllByTestId("translation-result-card")
+    expect(resultCards).toHaveLength(1)
+    expect(within(resultCards[0]).getByText("Gemini-3-flash")).toBeInTheDocument()
+  })
+
+  it("keeps selected free providers before paid providers and persists the choice", async () => {
+    providersConfigMock.mockReturnValue([
+      {
+        id: "getu-pro-gemini-3-flash-preview",
+        name: "Gemini-3-flash",
+        provider: "getu-pro",
+        enabled: true,
+        apiKey: "test",
+        model: { model: "gemini-3-flash-preview", isCustomModel: false, customModel: null },
       },
       {
         id: "google",
@@ -259,32 +296,79 @@ describe("sidebarTextTab", () => {
         enabled: true,
       },
       {
-        id: "qwen",
-        name: "Qwen3.5-plus",
-        provider: "alibaba",
+        id: "getu-pro-default",
+        name: "DeepSeek-V4-Pro",
+        provider: "getu-pro",
         enabled: true,
         apiKey: "test",
-        model: { model: "qwen-plus", isCustomModel: false, customModel: null },
+        model: { model: "deepseek-v4-pro", isCustomModel: false, customModel: null },
+      },
+    ])
+
+    const rendered = renderSidebarTextTab()
+
+    let resultCards = screen.getAllByTestId("translation-result-card")
+    expect(resultCards).toHaveLength(1)
+    expect(within(resultCards[0]).getByText("Gemini-3-flash")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "translationWorkbench.selectProviders" }))
+    fireEvent.click(screen.getByRole("checkbox", { name: /Google Translate/ }))
+
+    resultCards = screen.getAllByTestId("translation-result-card")
+    expect(resultCards).toHaveLength(2)
+    expect(within(resultCards[0]).getByText("Google Translate")).toBeInTheDocument()
+    expect(within(resultCards[1]).getByText("Gemini-3-flash")).toBeInTheDocument()
+
+    await waitFor(async () => {
+      const stored = await fakeBrowser.storage.local.get(SIDEBAR_SELECTED_PROVIDERS_DRIVER_KEY)
+      expect(stored[SIDEBAR_SELECTED_PROVIDERS_DRIVER_KEY]).toEqual(["google", "getu-pro-gemini-3-flash-preview"])
+    })
+
+    rendered.unmount()
+    renderSidebarTextTab()
+
+    await waitFor(() => {
+      const reopenedCards = screen.getAllByTestId("translation-result-card")
+      expect(reopenedCards).toHaveLength(2)
+      expect(within(reopenedCards[0]).getByText("Google Translate")).toBeInTheDocument()
+      expect(within(reopenedCards[1]).getByText("Gemini-3-flash")).toBeInTheDocument()
+    })
+  })
+
+  it("hydrates the last selected sidebar providers from storage", async () => {
+    await fakeBrowser.storage.local.set({
+      [SIDEBAR_SELECTED_PROVIDERS_DRIVER_KEY]: ["microsoft", "getu-pro-gemini-3-flash-preview"],
+    })
+    providersConfigMock.mockReturnValue([
+      {
+        id: "getu-pro-gemini-3-flash-preview",
+        name: "Gemini-3-flash",
+        provider: "getu-pro",
+        enabled: true,
+        apiKey: "test",
+        model: { model: "gemini-3-flash-preview", isCustomModel: false, customModel: null },
+      },
+      {
+        id: "google",
+        name: "Google Translate",
+        provider: "google-translate",
+        enabled: true,
+      },
+      {
+        id: "microsoft",
+        name: "Microsoft Translate",
+        provider: "microsoft-translate",
+        enabled: true,
       },
     ])
 
     renderSidebarTextTab()
 
-    let resultCards = screen.getAllByTestId("translation-result-card")
-    expect(resultCards).toHaveLength(3)
-    expect(within(resultCards[0]).getByText("DeepSeek-V4-Pro")).toBeInTheDocument()
-    expect(within(resultCards[1]).getByText("Google Translate")).toBeInTheDocument()
-    expect(within(resultCards[2]).getByText("Microsoft Translate")).toBeInTheDocument()
-    expect(resultCards.some(card => within(card).queryByText("Qwen3.5-plus"))).toBe(false)
-
-    fireEvent.click(screen.getByRole("button", { name: "translationWorkbench.selectProviders" }))
-    fireEvent.click(screen.getByRole("checkbox", { name: /Qwen3.5-plus/ }))
-
-    resultCards = screen.getAllByTestId("translation-result-card")
-    expect(resultCards).toHaveLength(4)
-    expect(within(resultCards[0]).getByText("DeepSeek-V4-Pro")).toBeInTheDocument()
-    expect(within(resultCards[1]).getByText("Google Translate")).toBeInTheDocument()
-    expect(within(resultCards[2]).getByText("Microsoft Translate")).toBeInTheDocument()
-    expect(within(resultCards[3]).getByText("Qwen3.5-plus")).toBeInTheDocument()
+    await waitFor(() => {
+      const resultCards = screen.getAllByTestId("translation-result-card")
+      expect(resultCards).toHaveLength(2)
+      expect(within(resultCards[0]).getByText("Microsoft Translate")).toBeInTheDocument()
+      expect(within(resultCards[1]).getByText("Gemini-3-flash")).toBeInTheDocument()
+    })
   })
 })
