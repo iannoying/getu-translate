@@ -37,13 +37,24 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-
       - run: pnpm install --frozen-lockfile
 
-      # Force compile better-sqlite3 from source against the active Node so
-      # ABI version matches at vitest runtime (prebuild-install can pick the
-      # wrong binary if pnpm's bundled Node differs from setup-node's).
+      # Force compile better-sqlite3 from source against the active Node ABI.
+      # `pnpm rebuild` doesn't reliably pass --build-from-source to the install
+      # script, so we use npm rebuild from the api package directory which
+      # honors the flag. The "|| true" guards against the no-op case where
+      # the binary is already the right ABI.
       - name: Rebuild better-sqlite3 from source
-        env:
-          npm_config_build_from_source: 'true'
-        run: pnpm --filter @getu/api rebuild better-sqlite3
+        working-directory: apps/api
+        run: |
+          set -e
+          # Resolve the actual better-sqlite3 dir in pnpm's flat store
+          BS3_DIR=$(node -e "console.log(require.resolve('better-sqlite3/package.json'))" | xargs dirname)
+          echo "Rebuilding $BS3_DIR"
+          cd "$BS3_DIR"
+          # Remove cached prebuild + build artifacts
+          rm -rf build prebuilds
+          # Compile fresh against the current Node ABI
+          npx --no-install node-gyp rebuild --release
+          ls -la build/Release/
 
       - name: Test
         run: pnpm --filter @getu/api test --run
