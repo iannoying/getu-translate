@@ -373,6 +373,17 @@ export const documentRetry = authed
       throw new ORPCError("CONFLICT", { message: "Another translation is already in progress" })
     }
 
+    // Validate source still exists in R2 (could have been deleted by retention)
+    const bucket = context.env.BUCKET_PDFS
+    if (bucket) {
+      const sourceObj = await bucket.head(origJob.sourceKey)
+      if (!sourceObj) {
+        throw new ORPCError("NOT_FOUND", {
+          message: "源文件已过期，请重新上传 PDF",
+        })
+      }
+    }
+
     const newJobId = crypto.randomUUID()
     const expiresAt = new Date(
       Date.now() + (plan === "free" ? FREE_PDF_RETENTION_MS : PRO_PDF_RETENTION_MS),

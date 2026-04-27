@@ -33,6 +33,7 @@ export function PreviewClient({
 }) {
   const router = useRouter()
   const [state, setState] = useState<PreviewState>({ kind: "loading" })
+  const [retrying, setRetrying] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
@@ -93,13 +94,16 @@ export function PreviewClient({
   )
 
   const handleRetry = useCallback(async () => {
+    if (retrying) return
+    setRetrying(true)
     try {
       const { jobId: newJobId } = await orpcClient.translate.document.retry({ jobId })
       router.push(localeHref(locale, `/document/preview?jobId=${newJobId}`))
     } catch {
       // Non-fatal.
+      setRetrying(false)
     }
-  }, [jobId, locale, router])
+  }, [jobId, locale, retrying, router])
 
   return (
     <TranslateShell locale={locale} labels={shellLabels}>
@@ -164,8 +168,9 @@ export function PreviewClient({
                   type="button"
                   className="button secondary small"
                   onClick={handleRetry}
+                  disabled={retrying}
                 >
-                  {messages.retryButton}
+                  {retrying ? messages.retryingButton : messages.retryButton}
                 </button>
               </div>
             )}
@@ -224,6 +229,7 @@ function IframePreview({
     <iframe
       src={iframeSrc}
       sandbox="allow-same-origin"
+      referrerPolicy="no-referrer"
       className="document-preview-iframe"
       title={messages.iframeTitle}
     />

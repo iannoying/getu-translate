@@ -12,12 +12,8 @@ vi.mock("@getu/db", async (orig) => {
 vi.mock("../../billing/entitlements", () => ({
   loadEntitlements: vi.fn(async () => FREE_ENTITLEMENTS),
 }))
-vi.mock("../../billing/quota", () => ({
-  consumeQuota: vi.fn(async () => ({
-    bucket: "web_pdf_translate_monthly",
-    remaining: 99,
-    reset_at: "2026-05-01T00:00:00.000Z",
-  })),
+vi.mock("../translate/quota", () => ({
+  consumeTranslateQuota: vi.fn(async () => undefined),
 }))
 
 // Mock aws4fetch so signing is deterministic in tests
@@ -281,14 +277,27 @@ describe("translate.document.retry", () => {
   it("consumes quota with new web-pdf:{userId}:{newJobId} requestId", async () => {
     pendingJobRow = failedJob
     pendingActiveJobs = []
-    const quota = await import("../../billing/quota")
+    const translateQuota = await import("../translate/quota")
     const client = createRouterClient(router, { context: ctx(freeSession) })
     const out = await client.translate.document.retry({ jobId: "job-failed" })
-    expect(quota.consumeQuota).toHaveBeenCalledTimes(1)
-    const [, calledUserId, calledBucket, calledPages, calledRequestId] = (quota.consumeQuota as any).mock.calls[0]
+    expect(translateQuota.consumeTranslateQuota).toHaveBeenCalledTimes(1)
+    const [, calledUserId, calledBucket, calledPages, calledRequestId] = (translateQuota.consumeTranslateQuota as any).mock.calls[0]
     expect(calledUserId).toBe("u-free")
     expect(calledBucket).toBe("web_pdf_translate_monthly")
     expect(calledPages).toBe(failedJob.sourcePages)
     expect(calledRequestId).toBe(`web-pdf:u-free:${out.jobId}`)
+  })
+
+  it("rejects NOT_FOUND when source.pdf has been deleted from R2", async () => {
+    pendingJobRow = failedJob
+    pendingActiveJobs = []
+    const bucket = { head: vi.fn(async () => null), get: vi.fn(async () => null) }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { BUCKET_PDFS: bucket as any }),
+    })
+    await expect(
+      client.translate.document.retry({ jobId: "job-failed" }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND", message: expect.stringContaining("源文件") })
+    expect(bucket.head).toHaveBeenCalledWith(failedJob.sourceKey)
   })
 })

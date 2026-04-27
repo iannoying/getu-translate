@@ -174,6 +174,7 @@ export type Messages = {
       downloadHtml: string
       downloadMd: string
       retryButton: string
+      retryingButton: string
       refreshButton: string
       timeoutMessage: string
       iframeTitle: string
@@ -661,6 +662,7 @@ export const messages: Record<Locale, Messages> = {
         downloadHtml: "Download HTML",
         downloadMd: "Download Markdown",
         retryButton: "Retry",
+        retryingButton: "Retrying…",
         refreshButton: "Refresh",
         timeoutMessage: "Translation is taking longer than expected. Please refresh to check again.",
         iframeTitle: "Translated document preview",
@@ -1144,6 +1146,7 @@ export const messages: Record<Locale, Messages> = {
         downloadHtml: "下载 HTML",
         downloadMd: "下载 Markdown",
         retryButton: "重试",
+        retryingButton: "重试中…",
         refreshButton: "刷新",
         timeoutMessage: "翻译时间超过预期，请刷新页面重新查看。",
         iframeTitle: "文档翻译预览",
@@ -1627,6 +1630,7 @@ export const messages: Record<Locale, Messages> = {
         downloadHtml: "下載 HTML",
         downloadMd: "下載 Markdown",
         retryButton: "重試",
+        retryingButton: "重試中…",
         refreshButton: "重新整理",
         timeoutMessage: "翻譯時間超過預期，請重新整理頁面再確認。",
         iframeTitle: "文件翻譯預覽",
