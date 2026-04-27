@@ -51,6 +51,9 @@ export interface WorkerEnv {
   EMAIL_FROM?: string
   WEBAUTHN_RP_ID?: string
   WEBAUTHN_ORIGINS?: string
+  // M6.13 — analytics & error capture
+  POSTHOG_PROJECT_KEY?: string
+  SENTRY_DSN?: string
 }
 
 export const SecretsSchema = z.object({

@@ -62,7 +62,7 @@ const rpcHandler = new RPCHandler(router)
 app.all("/orpc/*", async (c) => {
   const auth = createAuth(c.env)
   const session = await auth.api.getSession({ headers: c.req.raw.headers }).catch(() => null)
-  const ctx = { env: c.env, auth, session }
+  const ctx = { env: c.env, auth, session, executionCtx: c.executionCtx }
   const { response } = await rpcHandler.handle(c.req.raw, { prefix: "/orpc", context: ctx })
   return response ?? c.notFound()
 })
