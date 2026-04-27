@@ -67,6 +67,16 @@ describe("workbenchProviderLogo", () => {
 
     render(<WorkbenchProviderLogo provider={unknownProvider} />)
 
+    expect(screen.getByText("Mystery Model")).toBeInTheDocument()
+    expect(screen.queryByLabelText("Mystery Model")).not.toBeInTheDocument()
+  })
+
+  it("keeps icon-only fallback accessible by provider name", async () => {
+    const { WorkbenchProviderLogo } = await import("../provider-logo")
+
+    render(<WorkbenchProviderLogo provider={unknownProvider} iconOnly />)
+
     expect(screen.getByLabelText("Mystery Model")).toHaveTextContent("M")
+    expect(screen.queryByText("Mystery Model")).not.toBeInTheDocument()
   })
 })

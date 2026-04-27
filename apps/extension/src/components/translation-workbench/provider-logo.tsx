@@ -58,8 +58,9 @@ export function WorkbenchProviderLogo({
     <span className={cn("flex min-w-0 items-center gap-1.5", className)}>
       <span
         className="bg-muted text-muted-foreground grid size-5 shrink-0 place-items-center rounded-full border border-border text-[10px] font-semibold"
-        aria-label={provider.name}
-        title={provider.name}
+        aria-hidden={iconOnly ? undefined : true}
+        aria-label={iconOnly ? provider.name : undefined}
+        title={iconOnly ? provider.name : undefined}
       >
         {getWorkbenchProviderInitial(provider)}
       </span>
