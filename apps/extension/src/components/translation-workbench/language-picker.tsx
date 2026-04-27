@@ -32,6 +32,7 @@ interface LanguageSelectProps {
   value: SidebarLanguageCode | undefined
   fallbackValue: string
   label: string
+  triggerLabel: string
   unsupportedLabel: string
   options: typeof SIDEBAR_SOURCE_LANGUAGES
   portalContainer: HTMLElement
@@ -59,6 +60,7 @@ function LanguageSelect({
   value,
   fallbackValue,
   label,
+  triggerLabel,
   unsupportedLabel,
   options,
   portalContainer,
@@ -73,8 +75,7 @@ function LanguageSelect({
           <Button
             type="button"
             variant="ghost"
-            role="combobox"
-            aria-label={label}
+            aria-label={triggerLabel}
             aria-expanded={open}
             className="h-12 min-w-0 rounded-none border-0 bg-transparent px-3 text-sm font-medium shadow-none sm:px-4"
           >
@@ -90,12 +91,10 @@ function LanguageSelect({
         positionerClassName="z-[2147483647]"
         className="z-[2147483647] max-h-[min(24rem,var(--available-height))] min-w-36 overflow-y-auto p-1"
       >
-        <div role="listbox" aria-label={label}>
+        <div role="group" aria-label={triggerLabel}>
           {value === undefined && (
             <button
               type="button"
-              role="option"
-              aria-selected={false}
               disabled
               value={fallbackValue}
               className="flex w-full cursor-default items-center rounded-md px-2 py-1.5 text-left text-sm opacity-50"
@@ -107,8 +106,7 @@ function LanguageSelect({
             <button
               key={option.code}
               type="button"
-              role="option"
-              aria-selected={value === option.code}
+              aria-pressed={value === option.code}
               className="flex w-full cursor-default items-center rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground focus:outline-hidden"
               onClick={() => {
                 onValueChange(option.code)
@@ -143,6 +141,7 @@ export function WorkbenchLanguagePicker({
         value={sourceCode}
         fallbackValue={sourceValue}
         label={getLanguageLabel(source)}
+        triggerLabel={`Source language: ${getLanguageLabel(source)}`}
         unsupportedLabel={unsupportedLanguageLabel(source)}
         options={SIDEBAR_SOURCE_LANGUAGES}
         portalContainer={portalContainer}
@@ -169,6 +168,7 @@ export function WorkbenchLanguagePicker({
         value={targetCode}
         fallbackValue={targetValue}
         label={getLanguageLabel(target)}
+        triggerLabel={`Target language: ${getLanguageLabel(target)}`}
         unsupportedLabel={unsupportedLanguageLabel(target)}
         options={SIDEBAR_TARGET_LANGUAGES}
         portalContainer={portalContainer}

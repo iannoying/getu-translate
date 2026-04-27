@@ -25,13 +25,30 @@ describe("workbenchLanguagePicker", () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole("combobox", { name: /translationWorkbench\.languages\.auto/ }))
-    fireEvent.click(screen.getByRole("option", { name: "languages.eng" }))
+    fireEvent.click(screen.getByRole("button", { name: "Source language: translationWorkbench.languages.auto" }))
+    fireEvent.click(screen.getByRole("button", { name: "languages.eng" }))
     expect(onSourceChange).toHaveBeenCalledWith("eng")
 
-    fireEvent.click(screen.getByRole("combobox", { name: /languages\.cmn/ }))
-    fireEvent.click(screen.getByRole("option", { name: "languages.jpn" }))
+    fireEvent.click(screen.getByRole("button", { name: "Target language: languages.cmn" }))
+    fireEvent.click(screen.getByRole("button", { name: "languages.jpn" }))
     expect(onTargetChange).toHaveBeenCalledWith("jpn")
+  })
+
+  it("uses distinct source and target trigger names for the same selected language", () => {
+    render(
+      <WorkbenchLanguagePicker
+        source="eng"
+        target="eng"
+        onSourceChange={vi.fn()}
+        onTargetChange={vi.fn()}
+        onSwap={vi.fn()}
+        portalContainer={document.body}
+      />,
+    )
+
+    expect(screen.getByRole("button", { name: "Source language: languages.eng" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Target language: languages.eng" })).toBeInTheDocument()
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument()
   })
 
   it("disables swap only while source is auto", () => {
