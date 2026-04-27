@@ -42,6 +42,8 @@ vi.mock("@/utils/constants/providers", () => ({
   PROVIDER_ITEMS: {
     "getu-pro": { logo: () => "/getu-pro.svg", name: "GetU Pro", website: "" },
     "deepseek": { logo: () => "/deepseek.svg", name: "DeepSeek", website: "" },
+    "google-translate": { logo: () => "/google.svg", name: "Google Translate", website: "" },
+    "microsoft-translate": { logo: () => "/microsoft.svg", name: "Microsoft Translate", website: "" },
     "alibaba": { logo: () => "/alibaba.svg", name: "Alibaba", website: "" },
   },
 }))
@@ -242,6 +244,18 @@ describe("sidebarTextTab", () => {
         model: { model: "deepseek-chat", isCustomModel: false, customModel: null },
       },
       {
+        id: "google",
+        name: "Google Translate",
+        provider: "google-translate",
+        enabled: true,
+      },
+      {
+        id: "microsoft",
+        name: "Microsoft Translate",
+        provider: "microsoft-translate",
+        enabled: true,
+      },
+      {
         id: "qwen",
         name: "Qwen3.5-plus",
         provider: "alibaba",
@@ -253,12 +267,21 @@ describe("sidebarTextTab", () => {
 
     renderSidebarTextTab()
 
+    let resultCards = screen.getAllByTestId("translation-result-card")
+    expect(resultCards).toHaveLength(3)
+    expect(within(resultCards[0]).getByText("DeepSeek-V4-Pro")).toBeInTheDocument()
+    expect(within(resultCards[1]).getByText("Google Translate")).toBeInTheDocument()
+    expect(within(resultCards[2]).getByText("Microsoft Translate")).toBeInTheDocument()
+    expect(resultCards.some(card => within(card).queryByText("Qwen3.5-plus"))).toBe(false)
+
     fireEvent.click(screen.getByRole("button", { name: "translationWorkbench.selectProviders" }))
     fireEvent.click(screen.getByRole("menuitemcheckbox", { name: /Qwen3.5-plus/ }))
-    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: /Qwen3.5-plus/ }))
 
-    const resultCards = screen.getAllByTestId("translation-result-card")
+    resultCards = screen.getAllByTestId("translation-result-card")
+    expect(resultCards).toHaveLength(4)
     expect(within(resultCards[0]).getByText("DeepSeek-V4-Pro")).toBeInTheDocument()
-    expect(within(resultCards[1]).getByText("Qwen3.5-plus")).toBeInTheDocument()
+    expect(within(resultCards[1]).getByText("Google Translate")).toBeInTheDocument()
+    expect(within(resultCards[2]).getByText("Microsoft Translate")).toBeInTheDocument()
+    expect(within(resultCards[3]).getByText("Qwen3.5-plus")).toBeInTheDocument()
   })
 })
