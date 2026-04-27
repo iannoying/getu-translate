@@ -10,15 +10,15 @@
 
 ## Open decision points (cannot start without these)
 
-| # | Question | Default if user doesn't pick |
+| # | Question | User decision (confirmed 2026-04-27) |
 |---|---|---|
-| D1 | Analytics backend? PostHog Cloud? Plausible? Self-hosted? | **PostHog Cloud** (most flexible for funnel analysis) |
-| D2 | Sentry/observability tool for runtime errors? | **Skip Sentry** — use Workers' built-in `console.error` + Workers Analytics Engine (free, integrated). Adopt Sentry only if signal/noise becomes painful. |
-| D3 | Help docs in MDX or plain Next.js page? | **MDX** — easier to maintain prose + screenshots |
-| D4 | Should the help docs be /docs/ subpath or /guide/? | **/guide/** (issue body uses this) |
-| D5 | Truly public docs (no login) or behind login? | **Public** (SEO + onboarding value) |
+| D1 | Analytics backend? PostHog Cloud? Plausible? Self-hosted? | **PostHog Cloud** — `@sentry/cloudflare`-style SDK; free tier 1M events/month |
+| D2 | Sentry/observability tool for runtime errors? | **Sentry Cloud** — official `@sentry/cloudflare` SDK; new `SENTRY_DSN` secret; `withSentry()` wraps default export; sourcemap upload via wrangler deploy; free Developer plan 5K errors/month |
+| D3 | Help docs in MDX or plain Next.js page? | **MDX** — `@next/mdx` + remark-gfm |
+| D4 | Should the help docs be /docs/ subpath or /guide/? | **/guide/** (issue body convention) |
+| D5 | Truly public docs (no login) or behind login? | **Mixed (public-with-auth-gated-details)** — page shells + intro + screenshots are SEO-public; specific quota numbers + paid model details inside an `<AuthGate>` component visible only after login. Better SEO than full-private; better anti-scraping than fully-public. |
 
-**The executing agent must NOT proceed past Step 0 until the user has confirmed each of D1–D5.**
+All 5 decisions are locked. Implementation can proceed.
 
 ---
 
