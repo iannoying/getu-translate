@@ -23,5 +23,14 @@
     "@commitlint/config-conventional": "^20.5.0",
     "lint-staged": "^16.4.0",
     "nx": "^22.6.5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "core-js",
+      "nx",
+      "protobufjs",
+      "spawn-sync"
+    ]
   }
 }
