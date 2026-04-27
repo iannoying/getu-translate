@@ -1,6 +1,7 @@
 import type { ProviderGate, TranslationWorkbenchPlan } from "./types"
 import type { TranslateProviderConfig } from "@/types/config/provider"
 import type { Entitlements } from "@/types/entitlements"
+import { isNonAPIProvider } from "@/types/config/provider"
 import { isPro } from "@/types/entitlements"
 
 const TEXT_TRANSLATE_CHAR_LIMITS: Record<TranslationWorkbenchPlan, number> = {
@@ -28,6 +29,10 @@ export function isGetuProProvider(provider: TranslateProviderConfig): boolean {
   return provider.provider === "getu-pro"
 }
 
+export function isFreeTranslateProvider(provider: TranslateProviderConfig): boolean {
+  return isNonAPIProvider(provider.provider)
+}
+
 export function getProviderGate(provider: TranslateProviderConfig, plan: TranslationWorkbenchPlan): ProviderGate {
   if (plan === "anonymous")
     return "login-required"
@@ -39,7 +44,7 @@ export function getProviderGate(provider: TranslateProviderConfig, plan: Transla
 }
 
 export function buildSidebarClickRequestId(clickId: string): string {
-  return `sidebar-web-text:${clickId}`
+  return clickId
 }
 
 export function buildSidebarTokenRequestId(clickId: string, providerId: string): string {

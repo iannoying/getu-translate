@@ -33,6 +33,7 @@ interface ProtocolMap {
   getEnablePageTranslationFromContentScript: () => Promise<boolean>
   tryToSetEnablePageTranslationByTabId: (data: { tabId: number, enabled: boolean, analyticsContext?: FeatureUsageContext }) => void
   tryToSetEnablePageTranslationOnContentScript: (data: { enabled: boolean, analyticsContext?: FeatureUsageContext }) => void
+  setSidebarOpenOnContentScript: (data: { open: boolean }) => void
   setAndNotifyPageTranslationStateChangedByManager: (data: { enabled: boolean }) => void
   notifyTranslationStateChanged: (data: { enabled: boolean }) => void
   // for auto start page translation

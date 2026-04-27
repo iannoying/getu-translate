@@ -1,60 +1,11 @@
 import type { TranslateProviderConfig } from "@/types/config/provider"
-import ProviderIcon from "@/components/provider-icon"
 import { useTheme } from "@/components/providers/theme-provider"
-import { PROVIDER_ITEMS } from "@/utils/constants/providers"
 import { cn } from "@/utils/styles/utils"
+import { WorkbenchProviderLogo } from "./provider-logo"
 
 interface ProviderIconStackProps {
   providers: TranslateProviderConfig[]
   className?: string
-}
-
-function providerInitial(provider: TranslateProviderConfig): string {
-  return provider.name.trim().charAt(0).toUpperCase() || "?"
-}
-
-function resolveProviderLogo(provider: TranslateProviderConfig, theme: string): string | undefined {
-  const item = PROVIDER_ITEMS[provider.provider as keyof typeof PROVIDER_ITEMS]
-  if (!item)
-    return undefined
-
-  try {
-    return item.logo(theme as never)
-  }
-  catch {
-    return undefined
-  }
-}
-
-function ProviderIconOrFallback({
-  provider,
-  theme,
-}: {
-  provider: TranslateProviderConfig
-  theme: string
-}) {
-  const logo = resolveProviderLogo(provider, theme)
-
-  if (logo) {
-    return (
-      <ProviderIcon
-        logo={logo}
-        name={provider.name}
-        size="sm"
-        textClassName="sr-only"
-      />
-    )
-  }
-
-  return (
-    <span
-      className="bg-muted text-muted-foreground grid size-5 place-items-center rounded-full border border-border text-[10px] font-semibold"
-      aria-label={provider.name}
-      title={provider.name}
-    >
-      {providerInitial(provider)}
-    </span>
-  )
 }
 
 export function ProviderIconStack({ providers, className }: ProviderIconStackProps) {
@@ -75,7 +26,7 @@ export function ProviderIconStack({ providers, className }: ProviderIconStackPro
             index > 0 && "-ml-2",
           )}
         >
-          <ProviderIconOrFallback provider={provider} theme={theme} />
+          <WorkbenchProviderLogo provider={provider} theme={theme} size="sm" iconOnly />
         </span>
       ))}
       {overflowCount > 0 && (

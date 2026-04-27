@@ -6,6 +6,7 @@ import {
   buildSidebarTokenRequestId,
   getProviderGate,
   getTextTranslateCharLimit,
+  isFreeTranslateProvider,
   isGetuProProvider,
   planFromEntitlements,
 } from "../provider-gating"
@@ -42,6 +43,11 @@ describe("provider-gating", () => {
   it("identifies GetU Pro providers", () => {
     expect(isGetuProProvider(getuProProvider)).toBe(true)
     expect(isGetuProProvider(googleProvider)).toBe(false)
+  })
+
+  it("identifies free built-in translate providers", () => {
+    expect(isFreeTranslateProvider(googleProvider)).toBe(true)
+    expect(isFreeTranslateProvider(getuProProvider)).toBe(false)
   })
 
   it("requires login before anonymous users can invoke any provider", () => {
@@ -86,8 +92,12 @@ describe("provider-gating", () => {
     expect(planFromEntitlements("u1", entitlements({ tier: "enterprise", expiresAt: "2000-01-01T00:00:00.000Z" }))).toBe("free")
   })
 
-  it("builds separate request ids for click and token buckets", () => {
-    expect(buildSidebarClickRequestId("abc")).toBe("sidebar-web-text:abc")
+  it("keeps click quota request ids compatible with UUID-based API validators", () => {
+    const clickId = "01929b2e-7a94-7c9e-9f3a-8b4c5d6e7f80"
+    expect(buildSidebarClickRequestId(clickId)).toBe(clickId)
+  })
+
+  it("builds separate request ids for token buckets", () => {
     expect(buildSidebarTokenRequestId("abc", "getu-pro-default")).toBe("sidebar-web-text-token:abc:getu-pro-default")
   })
 })

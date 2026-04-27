@@ -59,6 +59,8 @@ const proProvider = {
   model: { model: "deepseek-v4-pro", isCustomModel: false, customModel: null },
 } as TranslateProviderConfig
 
+const uuidClickId = "01929b2e-7a94-7c9e-9f3a-8b4c5d6e7f80"
+
 describe("runTranslationWorkbenchRequest", () => {
   beforeEach(() => {
     sendMessageMock.mockReset()
@@ -122,7 +124,7 @@ describe("runTranslationWorkbenchRequest", () => {
     ])
   })
 
-  it("consumes one web text click quota for signed-in runnable requests", async () => {
+  it("does not consume GetU quota for signed-in free translation providers", async () => {
     await runTranslationWorkbenchRequest({
       plan: "free",
       userId: "user-1",
@@ -130,16 +132,33 @@ describe("runTranslationWorkbenchRequest", () => {
         text: "hello",
         sourceLanguage: "auto",
         targetLanguage: "cmn",
-        clickId: "click-3",
+        clickId: uuidClickId,
       },
       providers: [googleProvider],
+      languageLevel: "intermediate",
+    })
+
+    expect(consumeQuotaMock).not.toHaveBeenCalled()
+  })
+
+  it("consumes one web text click quota for signed-in runnable GetU Pro requests", async () => {
+    await runTranslationWorkbenchRequest({
+      plan: "pro",
+      userId: "user-1",
+      request: {
+        text: "hello",
+        sourceLanguage: "auto",
+        targetLanguage: "cmn",
+        clickId: uuidClickId,
+      },
+      providers: [proProvider],
       languageLevel: "intermediate",
     })
 
     expect(consumeQuotaMock).toHaveBeenCalledWith({
       bucket: "web_text_translate_monthly",
       amount: 1,
-      request_id: "sidebar-web-text:click-3",
+      request_id: uuidClickId,
     })
   })
 
@@ -165,6 +184,7 @@ describe("runTranslationWorkbenchRequest", () => {
         providerConfig: googleProvider,
       },
     )
+    expect(consumeQuotaMock).not.toHaveBeenCalled()
   })
 
   it("uses separate token request headers for each GetU Pro provider background call", async () => {
@@ -233,13 +253,14 @@ describe("runTranslationWorkbenchRequest", () => {
       { providerId: "google-translate-default", status: "success", text: "translated" },
       { providerId: "getu-pro-default", status: "upgrade-required" },
     ])
+    expect(consumeQuotaMock).not.toHaveBeenCalled()
   })
 
-  it("returns quota-exhausted results and skips providers when click quota is exhausted", async () => {
+  it("returns quota-exhausted results and skips GetU Pro providers when click quota is exhausted", async () => {
     consumeQuotaMock.mockRejectedValueOnce({ code: "QUOTA_EXCEEDED", message: "quota exhausted" })
 
     const results = await runTranslationWorkbenchRequest({
-      plan: "free",
+      plan: "pro",
       userId: "user-1",
       request: {
         text: "hello",
@@ -247,14 +268,41 @@ describe("runTranslationWorkbenchRequest", () => {
         targetLanguage: "cmn",
         clickId: "click-7",
       },
-      providers: [googleProvider],
+      providers: [proProvider],
       languageLevel: "intermediate",
     })
 
     expect(results).toEqual([
-      { providerId: "google-translate-default", status: "quota-exhausted", errorMessage: "quota exhausted" },
+      { providerId: "getu-pro-default", status: "quota-exhausted", errorMessage: "quota exhausted" },
     ])
     expect(sendMessageMock).not.toHaveBeenCalled()
+  })
+
+  it("still runs free providers when a mixed GetU Pro click quota check fails", async () => {
+    consumeQuotaMock.mockRejectedValueOnce({ code: "QUOTA_EXCEEDED", message: "quota exhausted" })
+
+    const results = await runTranslationWorkbenchRequest({
+      plan: "pro",
+      userId: "user-1",
+      request: {
+        text: "hello",
+        sourceLanguage: "auto",
+        targetLanguage: "cmn",
+        clickId: "click-mixed-quota",
+      },
+      providers: [googleProvider, proProvider],
+      languageLevel: "intermediate",
+    })
+
+    expect(results).toEqual([
+      { providerId: "google-translate-default", status: "success", text: "translated" },
+      { providerId: "getu-pro-default", status: "quota-exhausted", errorMessage: "quota exhausted" },
+    ])
+    expect(sendMessageMock).toHaveBeenCalledTimes(1)
+    expect(sendMessageMock).toHaveBeenCalledWith(
+      "executeTranslationWorkbenchRequest",
+      expect.objectContaining({ providerConfig: googleProvider }),
+    )
   })
 
   it("returns quota-exhausted when a GetU Pro token request exhausts token quota", async () => {
@@ -280,11 +328,11 @@ describe("runTranslationWorkbenchRequest", () => {
     ])
   })
 
-  it("returns error results and skips providers when click quota check fails for a non-quota error", async () => {
+  it("returns error results and skips GetU Pro providers when click quota check fails for a non-quota error", async () => {
     consumeQuotaMock.mockRejectedValueOnce(new Error("network down"))
 
     const results = await runTranslationWorkbenchRequest({
-      plan: "free",
+      plan: "pro",
       userId: "user-1",
       request: {
         text: "hello",
@@ -292,12 +340,12 @@ describe("runTranslationWorkbenchRequest", () => {
         targetLanguage: "cmn",
         clickId: "click-8",
       },
-      providers: [googleProvider],
+      providers: [proProvider],
       languageLevel: "intermediate",
     })
 
     expect(results).toEqual([
-      { providerId: "google-translate-default", status: "error", errorMessage: "network down" },
+      { providerId: "getu-pro-default", status: "error", errorMessage: "network down" },
     ])
     expect(sendMessageMock).not.toHaveBeenCalled()
   })

@@ -1,21 +1,17 @@
 import type { TranslateProviderConfig } from "@/types/config/provider"
-import ProviderIcon from "@/components/provider-icon"
+import { IconCheck, IconChevronDown } from "@tabler/icons-react"
 import { useTheme } from "@/components/providers/theme-provider"
+import { Button } from "@/components/ui/base-ui/button"
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/base-ui/select"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/base-ui/popover"
 import { isLLMProviderConfig, isPureAPIProviderConfig } from "@/types/config/provider"
-import { PROVIDER_ITEMS } from "@/utils/constants/providers"
 import { i18n } from "@/utils/i18n"
-import { cn } from "@/utils/styles/utils"
-import { isGetuProProvider } from "./provider-gating"
+import { isFreeTranslateProvider, isGetuProProvider } from "./provider-gating"
 import { ProviderIconStack } from "./provider-icon-stack"
+import { WorkbenchProviderLogo } from "./provider-logo"
 
 interface ProviderMultiSelectProps {
   providers: TranslateProviderConfig[]
@@ -30,49 +26,6 @@ interface ProviderGroup {
   providers: TranslateProviderConfig[]
 }
 
-const FREE_REST_PROVIDER_TYPES = new Set([
-  "google-translate",
-  "microsoft-translate",
-  "bing-translate",
-  "yandex-translate",
-])
-
-function resolveProviderLogo(provider: TranslateProviderConfig, theme: string): string | undefined {
-  const item = PROVIDER_ITEMS[provider.provider as keyof typeof PROVIDER_ITEMS]
-  if (!item)
-    return undefined
-
-  try {
-    return item.logo(theme as never)
-  }
-  catch {
-    return undefined
-  }
-}
-
-function providerInitial(provider: TranslateProviderConfig): string {
-  return provider.name.trim().charAt(0).toUpperCase() || "?"
-}
-
-function ProviderRowIcon({ provider, theme }: { provider: TranslateProviderConfig, theme: string }) {
-  const logo = resolveProviderLogo(provider, theme)
-
-  if (logo)
-    return <ProviderIcon logo={logo} name={provider.name} size="sm" />
-
-  return (
-    <span className="flex min-w-0 items-center gap-1.5">
-      <span
-        className="bg-muted text-muted-foreground grid size-5 shrink-0 place-items-center rounded-full border border-border text-[10px] font-semibold"
-        aria-hidden="true"
-      >
-        {providerInitial(provider)}
-      </span>
-      <span className="truncate">{provider.name}</span>
-    </span>
-  )
-}
-
 function getProviderGroups(providers: TranslateProviderConfig[]): ProviderGroup[] {
   const free: TranslateProviderConfig[] = []
   const pro: TranslateProviderConfig[] = []
@@ -80,7 +33,7 @@ function getProviderGroups(providers: TranslateProviderConfig[]): ProviderGroup[
   const api: TranslateProviderConfig[] = []
 
   for (const provider of providers) {
-    if (FREE_REST_PROVIDER_TYPES.has(provider.provider)) {
+    if (isFreeTranslateProvider(provider)) {
       free.push(provider)
     }
     else if (isGetuProProvider(provider)) {
@@ -119,49 +72,89 @@ export function ProviderMultiSelect({
     .filter((provider): provider is TranslateProviderConfig => provider !== undefined)
   const providerGroups = getProviderGroups(providers)
 
+  function toggleProvider(providerId: string) {
+    if (selectedIds.includes(providerId)) {
+      if (selectedIds.length <= 1)
+        return
+      onSelectedIdsChange(selectedIds.filter(id => id !== providerId))
+      return
+    }
+
+    onSelectedIdsChange([...selectedIds, providerId])
+  }
+
   return (
-    <Select
-      multiple
-      value={selectedIds}
-      onValueChange={onSelectedIdsChange}
-    >
-      <SelectTrigger className="h-10 min-w-36 rounded-full border-0 bg-muted px-3 shadow-none">
-        <SelectValue placeholder={i18n.t("translationWorkbench.selectProviders")}>
-          {selectedProviders.length > 0
-            ? (
-                <span className="flex min-w-0 items-center gap-2">
-                  <ProviderIconStack providers={selectedProviders} />
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {selectedProviders.length}
-                  </span>
-                </span>
-              )
-            : (
-                <span className="truncate text-muted-foreground">
-                  {i18n.t("translationWorkbench.selectProviders")}
-                </span>
-              )}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent container={portalContainer} className="w-72">
-        {providerGroups.map(group => (
-          <SelectGroup key={group.id}>
-            <SelectLabel>{i18n.t(group.labelKey)}</SelectLabel>
-            {group.providers.map(provider => (
-              <SelectItem key={provider.id} value={provider.id}>
-                <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                  <ProviderRowIcon provider={provider} theme={theme} />
-                  {isGetuProProvider(provider) && (
-                    <span className={cn("rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary")}>
-                      Pro
+    <Popover>
+      <PopoverTrigger
+        render={(
+          <Button
+            type="button"
+            variant="ghost"
+            aria-label={i18n.t("translationWorkbench.selectProviders")}
+            className="h-10 min-w-36 rounded-full border-0 bg-muted px-3 shadow-none hover:bg-muted/80"
+          >
+            {selectedProviders.length > 0
+              ? (
+                  <span className="flex min-w-0 items-center gap-2">
+                    <ProviderIconStack providers={selectedProviders} />
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {selectedProviders.length}
                     </span>
-                  )}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        ))}
-      </SelectContent>
-    </Select>
+                  </span>
+                )
+              : (
+                  <span className="truncate text-muted-foreground">
+                    {i18n.t("translationWorkbench.selectProviders")}
+                  </span>
+                )}
+            <IconChevronDown className="size-4 text-muted-foreground" />
+          </Button>
+        )}
+      />
+      <PopoverContent
+        container={portalContainer}
+        align="end"
+        sideOffset={8}
+        positionerClassName="z-[2147483647]"
+        className="z-[2147483647] max-h-[min(28rem,var(--available-height))] w-80 overflow-y-auto p-2"
+      >
+        <div role="group" aria-label={i18n.t("translationWorkbench.selectProviders")} className="space-y-2">
+          {providerGroups.map(group => (
+            <section key={group.id} className="space-y-1">
+              <h3 className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                {i18n.t(group.labelKey)}
+              </h3>
+              {group.providers.map((provider) => {
+                const checked = selectedIds.includes(provider.id)
+                return (
+                  <label
+                    key={provider.id}
+                    className="flex w-full min-w-0 cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-muted focus-within:bg-muted"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        className="peer sr-only"
+                        onChange={() => toggleProvider(provider.id)}
+                      />
+                      <span className="grid size-4 place-items-center rounded border border-border">
+                        {checked && <IconCheck className="size-3" aria-hidden="true" />}
+                      </span>
+                      <WorkbenchProviderLogo provider={provider} theme={theme} size="sm" />
+                    </span>
+                    {isGetuProProvider(provider) && (
+                      <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                        Pro
+                      </span>
+                    )}
+                  </label>
+                )
+              })}
+            </section>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }

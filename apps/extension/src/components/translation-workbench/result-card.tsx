@@ -1,16 +1,16 @@
+import type { LangCodeISO6393 } from "@getu/definitions"
 import type { TranslationResultState } from "./types"
 import type { TranslateProviderConfig } from "@/types/config/provider"
 import { IconAlertTriangle, IconCopy, IconLoader2, IconPlayerStopFilled, IconRefresh, IconVolume } from "@tabler/icons-react"
 import { useAtomValue } from "jotai"
 import { toast } from "sonner"
-import ProviderIcon from "@/components/provider-icon"
 import { useTheme } from "@/components/providers/theme-provider"
 import { Button } from "@/components/ui/base-ui/button"
 import { useTextToSpeech } from "@/hooks/use-text-to-speech"
 import { ANALYTICS_SURFACE } from "@/types/analytics"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
-import { PROVIDER_ITEMS } from "@/utils/constants/providers"
 import { i18n } from "@/utils/i18n"
+import { WorkbenchProviderLogo } from "./provider-logo"
 
 interface TranslationWorkbenchResultCardProps {
   provider: TranslateProviderConfig
@@ -18,39 +18,7 @@ interface TranslationWorkbenchResultCardProps {
   onRetry: (providerId: string) => void
   onLogin: () => void
   onUpgrade: () => void
-}
-
-function providerInitial(provider: TranslateProviderConfig): string {
-  return provider.name.trim().charAt(0).toUpperCase() || "?"
-}
-
-function resolveProviderLogo(provider: TranslateProviderConfig, theme: string): string | undefined {
-  const item = PROVIDER_ITEMS[provider.provider as keyof typeof PROVIDER_ITEMS]
-  if (!item)
-    return undefined
-
-  try {
-    return item.logo(theme as never)
-  }
-  catch {
-    return undefined
-  }
-}
-
-function ProviderHeaderIcon({ provider, theme }: { provider: TranslateProviderConfig, theme: string }) {
-  const logo = resolveProviderLogo(provider, theme)
-
-  if (logo)
-    return <ProviderIcon logo={logo} name={provider.name} size="sm" />
-
-  return (
-    <span className="flex min-w-0 items-center gap-1.5">
-      <span className="bg-muted text-muted-foreground grid size-5 shrink-0 place-items-center rounded-full border border-border text-[10px] font-semibold">
-        {providerInitial(provider)}
-      </span>
-      <span className="truncate text-sm">{provider.name}</span>
-    </span>
-  )
+  speechLanguage?: LangCodeISO6393
 }
 
 export function TranslationWorkbenchResultCard({
@@ -59,6 +27,7 @@ export function TranslationWorkbenchResultCard({
   onRetry,
   onLogin,
   onUpgrade,
+  speechLanguage,
 }: TranslationWorkbenchResultCardProps) {
   const { theme = "light" } = useTheme()
   const ttsConfig = useAtomValue(configFieldsAtomMap.tts)
@@ -90,6 +59,10 @@ export function TranslationWorkbenchResultCard({
     }
     if (!result.text)
       return
+    if (speechLanguage) {
+      void play(result.text, ttsConfig, { language: speechLanguage })
+      return
+    }
     void play(result.text, ttsConfig)
   }
 
@@ -103,7 +76,7 @@ export function TranslationWorkbenchResultCard({
   return (
     <article className="rounded-md border border-border bg-card p-4 text-card-foreground">
       <header className="mb-3 flex items-center justify-between gap-3">
-        <ProviderHeaderIcon provider={provider} theme={theme} />
+        <WorkbenchProviderLogo provider={provider} theme={theme} size="sm" />
         <div className="flex items-center gap-1">
           {result.status === "loading" && (
             <IconLoader2 className="size-4 animate-spin text-muted-foreground" aria-hidden="true" />

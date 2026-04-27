@@ -168,6 +168,23 @@ describe("floatingButton open panel tab", () => {
     expect(openPanelTab).not.toHaveClass("group-hover:block")
   })
 
+  it("updates the sidebar open atom when opening from the tab", async () => {
+    const { store } = renderWithStore(
+      <>
+        <FloatingButton />
+        <SideOpenProbe />
+      </>,
+      { isSideOpen: false },
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "translationWorkbench.openPanel" }))
+
+    await vi.waitFor(() => {
+      expect(store.get(isSideOpenAtom)).toBe(true)
+      expect(screen.getByTestId("side-open-state")).toHaveTextContent("true")
+    })
+  })
+
   it("opens the sidebar without sending the page translation message when the main logo action is translate", () => {
     const { store } = renderWithStore(
       <>

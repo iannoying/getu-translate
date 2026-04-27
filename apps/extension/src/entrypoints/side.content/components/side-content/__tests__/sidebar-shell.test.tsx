@@ -24,7 +24,7 @@ vi.mock("../sidebar-document-tab", () => ({
 
 function renderWithStore(ui: ReactNode) {
   const store = createStore()
-  store.set(isSideOpenAtom, true)
+  void store.set(isSideOpenAtom, true)
 
   return {
     store,
@@ -46,11 +46,13 @@ describe("sidebarShell", () => {
     expect(screen.getByRole("heading", { name: "translationWorkbench.documentTitle" })).toBeInTheDocument()
   })
 
-  it("closes the sidebar", () => {
+  it("closes the sidebar", async () => {
     const { store } = renderWithStore(<SidebarShell />)
 
     fireEvent.click(screen.getByLabelText("translationWorkbench.closeSidebar"))
 
-    expect(store.get(isSideOpenAtom)).toBe(false)
+    await vi.waitFor(() => {
+      expect(store.get(isSideOpenAtom)).toBe(false)
+    })
   })
 })

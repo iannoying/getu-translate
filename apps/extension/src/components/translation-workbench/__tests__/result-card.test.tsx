@@ -160,4 +160,23 @@ describe("translation workbench result card", () => {
       expect(ttsPlayMock).toHaveBeenCalledWith("你好", ttsConfigMock)
     })
   })
+
+  it("plays successful translation text through TTS with a target language", async () => {
+    render(
+      <TranslationWorkbenchResultCard
+        provider={provider}
+        result={{ providerId: provider.id, status: "success", text: "你好" }}
+        speechLanguage="cmn"
+        onRetry={vi.fn()}
+        onLogin={vi.fn()}
+        onUpgrade={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByLabelText("action.speak"))
+
+    await waitFor(() => {
+      expect(ttsPlayMock).toHaveBeenCalledWith("你好", ttsConfigMock, { language: "cmn" })
+    })
+  })
 })

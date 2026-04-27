@@ -9,12 +9,36 @@ vi.mock("@/utils/i18n", () => ({
   },
 }))
 
-describe("workbench language picker", () => {
-  it("disables swap while source is auto", () => {
+describe("workbenchLanguagePicker", () => {
+  it("selects source and target languages from portaled content", () => {
+    const onSourceChange = vi.fn()
+    const onTargetChange = vi.fn()
+
     render(
       <WorkbenchLanguagePicker
         source="auto"
         target="cmn"
+        onSourceChange={onSourceChange}
+        onTargetChange={onTargetChange}
+        onSwap={vi.fn()}
+        portalContainer={document.body}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "Source language: translationWorkbench.languages.auto" }))
+    fireEvent.click(screen.getByRole("button", { name: "languages.eng" }))
+    expect(onSourceChange).toHaveBeenCalledWith("eng")
+
+    fireEvent.click(screen.getByRole("button", { name: "Target language: languages.cmn" }))
+    fireEvent.click(screen.getByRole("button", { name: "languages.jpn" }))
+    expect(onTargetChange).toHaveBeenCalledWith("jpn")
+  })
+
+  it("uses distinct source and target trigger names for the same selected language", () => {
+    render(
+      <WorkbenchLanguagePicker
+        source="eng"
+        target="eng"
         onSourceChange={vi.fn()}
         onTargetChange={vi.fn()}
         onSwap={vi.fn()}
@@ -22,12 +46,27 @@ describe("workbench language picker", () => {
       />,
     )
 
-    expect(screen.getByLabelText("translationWorkbench.swapLanguages")).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Source language: languages.eng" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Target language: languages.eng" })).toBeInTheDocument()
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument()
   })
 
-  it("enables swap and calls onSwap when source is concrete", () => {
+  it("disables swap only while source is auto", () => {
     const onSwap = vi.fn()
-    render(
+    const { rerender } = render(
+      <WorkbenchLanguagePicker
+        source="auto"
+        target="cmn"
+        onSourceChange={vi.fn()}
+        onTargetChange={vi.fn()}
+        onSwap={onSwap}
+        portalContainer={document.body}
+      />,
+    )
+
+    expect(screen.getByRole("button", { name: "translationWorkbench.swapLanguages" })).toBeDisabled()
+
+    rerender(
       <WorkbenchLanguagePicker
         source="eng"
         target="cmn"
@@ -38,10 +77,7 @@ describe("workbench language picker", () => {
       />,
     )
 
-    const swap = screen.getByLabelText("translationWorkbench.swapLanguages")
-    expect(swap).not.toBeDisabled()
-
-    fireEvent.click(swap)
+    fireEvent.click(screen.getByRole("button", { name: "translationWorkbench.swapLanguages" }))
 
     expect(onSwap).toHaveBeenCalledTimes(1)
   })

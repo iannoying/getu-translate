@@ -18,6 +18,7 @@ import { initMockData } from "./mock-data"
 import { newUserGuide } from "./new-user-guide"
 import { isPdfTab, setUpPdfTabDetect } from "./pdf-tab-detect"
 import { proxyFetch } from "./proxy-fetch"
+import { setupSidebarOpenSync } from "./sidebar-open-sync"
 import { setUpSubtitlesTranslationQueue, setUpWebPageTranslationQueue } from "./translation-queues"
 import { translationMessage } from "./translation-signal"
 import { setupTTSPlaybackMessageHandlers } from "./tts-playback"
@@ -85,6 +86,7 @@ export default defineBackground({
     newUserGuide()
     setupAnalyticsMessageHandlers()
     translationMessage()
+    setupSidebarOpenSync()
 
     // Register context menu listeners synchronously
     // This ensures listeners are registered before Chrome completes initialization

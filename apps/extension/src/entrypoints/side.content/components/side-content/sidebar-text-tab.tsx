@@ -1,12 +1,13 @@
 import type { TranslationRequestSnapshot, TranslationResultState } from "@/components/translation-workbench/types"
 import type { Config } from "@/types/config/config"
 import type { TranslateProviderConfig } from "@/types/config/provider"
+import { storage } from "#imports"
 import { IconCornerDownLeft } from "@tabler/icons-react"
 import { useAtom, useAtomValue } from "jotai"
-import { useEffect, useEffectEvent, useMemo, useState } from "react"
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { WorkbenchLanguagePicker } from "@/components/translation-workbench/language-picker"
-import { getTextTranslateCharLimit, isGetuProProvider, planFromEntitlements } from "@/components/translation-workbench/provider-gating"
+import { getTextTranslateCharLimit, isFreeTranslateProvider, isGetuProProvider, planFromEntitlements } from "@/components/translation-workbench/provider-gating"
 import { ProviderMultiSelect } from "@/components/translation-workbench/provider-multi-select"
 import { TranslationWorkbenchResultCard } from "@/components/translation-workbench/result-card"
 import { runTranslationWorkbenchRequest } from "@/components/translation-workbench/translate-runner"
@@ -17,21 +18,56 @@ import { useEntitlements } from "@/hooks/use-entitlements"
 import { configFieldsAtomMap } from "@/utils/atoms/config"
 import { authClient } from "@/utils/auth/auth-client"
 import { filterEnabledProvidersConfig, getTranslateProvidersConfig } from "@/utils/config/helpers"
+import { SIDEBAR_SELECTED_PROVIDERS_STORAGE_KEY } from "@/utils/constants/storage-keys"
 import { WEBSITE_URL } from "@/utils/constants/url"
-import { swallowExtensionLifecycleError } from "@/utils/extension-lifecycle"
+import { swallowExtensionLifecycleError, swallowInvalidatedStorageRead } from "@/utils/extension-lifecycle"
 import { i18n } from "@/utils/i18n"
 import { sendMessage } from "@/utils/message"
 import { shadowWrapper } from "../../index"
+
+const DEFAULT_SIDEBAR_PROVIDER_ID = "getu-pro-gemini-3-flash-preview"
 
 function createClickId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
     return crypto.randomUUID()
 
-  return `${Date.now()}:${Math.random().toString(36).slice(2)}`
+  const bytes = new Uint8Array(16)
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    crypto.getRandomValues(bytes)
+  }
+  else {
+    for (let index = 0; index < bytes.length; index += 1) {
+      bytes[index] = Math.floor(Math.random() * 256)
+    }
+  }
+  bytes[6] = (bytes[6] & 0x0F) | 0x40
+  bytes[8] = (bytes[8] & 0x3F) | 0x80
+  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, "0"))
+  return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10).join("")}`
 }
 
 function resolvePortalContainer(): HTMLElement {
   return shadowWrapper ?? document.body
+}
+
+function defaultSelectedProviderIds(providers: TranslateProviderConfig[]): string[] {
+  const defaultProvider = providers.find(provider => provider.id === DEFAULT_SIDEBAR_PROVIDER_ID)
+  return defaultProvider ? [defaultProvider.id] : providers.slice(0, 1).map(provider => provider.id)
+}
+
+function normalizeSelectedProviderIds(ids: string[], providers: TranslateProviderConfig[]): string[] {
+  const providerById = new Map(providers.map(provider => [provider.id, provider]))
+  const dedupedIds = Array.from(new Set(ids)).filter(id => providerById.has(id))
+
+  return dedupedIds.sort((leftId, rightId) => {
+    const left = providerById.get(leftId)
+    const right = providerById.get(rightId)
+    const leftIsFree = left ? isFreeTranslateProvider(left) : false
+    const rightIsFree = right ? isFreeTranslateProvider(right) : false
+    if (leftIsFree === rightIsFree)
+      return 0
+    return leftIsFree ? -1 : 1
+  })
 }
 
 interface PendingSidebarTranslation {
@@ -62,13 +98,13 @@ export function SidebarTextTab() {
   const [results, setResults] = useState<Record<string, TranslationResultState>>({})
   const [isTranslating, setIsTranslating] = useState(false)
   const [pendingTranslation, setPendingTranslation] = useState<PendingSidebarTranslation | null>(null)
+  const selectedIdsWriteVersionRef = useRef(0)
   const portalContainer = resolvePortalContainer()
   const selectedProviderIds = useMemo(() => {
-    const providerIds = new Set(providers.map(provider => provider.id))
-    const baseIds = selectedIds ?? providers.slice(0, 3).map(provider => provider.id)
-
-    return baseIds.filter(id => providerIds.has(id))
+    const normalizedIds = normalizeSelectedProviderIds(selectedIds ?? defaultSelectedProviderIds(providers), providers)
+    return normalizedIds.length > 0 ? normalizedIds : defaultSelectedProviderIds(providers)
   }, [providers, selectedIds])
+
   const selectedProviders = selectedProviderIds
     .map(id => providers.find(provider => provider.id === id))
     .filter((provider): provider is TranslateProviderConfig => provider !== undefined)
@@ -96,14 +132,25 @@ export function SidebarTextTab() {
     return authGateLoading && providersToRun.some(isGetuProProvider)
   }
 
-  function setLoadingResults(providersToRun: TranslateProviderConfig[]) {
+  function setLoadingResults(
+    providersToRun: TranslateProviderConfig[],
+    speechLanguage: TranslationRequestSnapshot["targetLanguage"],
+  ) {
     setResults((current) => {
       const next = { ...current }
       for (const provider of providersToRun) {
-        next[provider.id] = { providerId: provider.id, status: "loading" }
+        next[provider.id] = { providerId: provider.id, status: "loading", speechLanguage }
       }
       return next
     })
+  }
+
+  function persistSelectedProviderIds(ids: string[]) {
+    const normalizedIds = normalizeSelectedProviderIds(ids, providers)
+    selectedIdsWriteVersionRef.current += 1
+    setSelectedIds(normalizedIds)
+    void storage.setItem(SIDEBAR_SELECTED_PROVIDERS_STORAGE_KEY, normalizedIds)
+      .catch(swallowExtensionLifecycleError("sidebar selected providers persist"))
   }
 
   async function translate(providerIds = selectedProviderIds, pending?: PendingSidebarTranslation) {
@@ -127,14 +174,14 @@ export function SidebarTextTab() {
     const languageLevel = pending?.languageLevel ?? language.level
 
     if (shouldWaitForProviderGate(providersToRun)) {
-      setLoadingResults(providersToRun)
+      setLoadingResults(providersToRun, request.targetLanguage)
       setPendingTranslation({ providerIds, request, languageLevel })
       return
     }
 
     setPendingTranslation(null)
     setIsTranslating(true)
-    setLoadingResults(providersToRun)
+    setLoadingResults(providersToRun, request.targetLanguage)
 
     try {
       const nextResults = await runTranslationWorkbenchRequest({
@@ -148,7 +195,10 @@ export function SidebarTextTab() {
       setResults((current) => {
         const next = { ...current }
         for (const result of nextResults) {
-          next[result.providerId] = result
+          next[result.providerId] = {
+            ...result,
+            speechLanguage: request.targetLanguage,
+          }
         }
         return next
       })
@@ -163,6 +213,7 @@ export function SidebarTextTab() {
             providerId: provider.id,
             status: "error",
             errorMessage: message,
+            speechLanguage: request.targetLanguage,
           }
         }
         return next
@@ -183,6 +234,16 @@ export function SidebarTextTab() {
 
     continuePendingTranslation(pendingTranslation)
   }, [pendingTranslation, authGateLoading])
+
+  useEffect(() => {
+    const initialWriteVersion = selectedIdsWriteVersionRef.current
+    void storage.getItem<string[]>(SIDEBAR_SELECTED_PROVIDERS_STORAGE_KEY)
+      .then((storedIds) => {
+        if (Array.isArray(storedIds) && selectedIdsWriteVersionRef.current === initialWriteVersion)
+          setSelectedIds(storedIds)
+      })
+      .catch(swallowInvalidatedStorageRead("sidebar selected providers initial"))
+  }, [])
 
   function login() {
     void sendMessage("openPage", { url: `${WEBSITE_URL}/log-in?redirect=/` })
@@ -207,7 +268,7 @@ export function SidebarTextTab() {
           <ProviderMultiSelect
             providers={providers}
             selectedIds={selectedProviderIds}
-            onSelectedIdsChange={setSelectedIds}
+            onSelectedIdsChange={persistSelectedProviderIds}
             portalContainer={portalContainer}
           />
         </div>
@@ -264,16 +325,21 @@ export function SidebarTextTab() {
 
       {selectedProviders.length > 0 && (
         <div className="space-y-3">
-          {selectedProviders.map(provider => (
-            <TranslationWorkbenchResultCard
-              key={provider.id}
-              provider={provider}
-              result={results[provider.id] ?? { providerId: provider.id, status: "idle" }}
-              onRetry={providerId => void translate([providerId])}
-              onLogin={login}
-              onUpgrade={upgrade}
-            />
-          ))}
+          {selectedProviders.map((provider) => {
+            const result = results[provider.id] ?? { providerId: provider.id, status: "idle" }
+
+            return (
+              <TranslationWorkbenchResultCard
+                key={provider.id}
+                provider={provider}
+                result={result}
+                speechLanguage={result.speechLanguage ?? language.targetCode}
+                onRetry={providerId => void translate([providerId])}
+                onLogin={login}
+                onUpgrade={upgrade}
+              />
+            )
+          })}
         </div>
       )}
     </div>
