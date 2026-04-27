@@ -1,0 +1,116 @@
+import { AuthGate } from "@/components/AuthGate"
+import Link from "next/link"
+
+<p className="guide-doc-eyebrow">Help &amp; Guide</p>
+
+# PDF Document Translation
+
+Upload any PDF and receive a fully translated bilingual output — side-by-side
+HTML view and alternating Markdown. Powered by the same AI models as the text
+translator.
+
+---
+
+## Use Cases
+
+- **Academic papers** — translate research articles while keeping structure
+- **Contracts &amp; legal docs** — review foreign-language agreements
+- **Technical documentation** — manuals, specifications, datasheets
+- **Books &amp; long reports** — multi-page documents translated in one job
+
+---
+
+## How It Works
+
+1. **Upload** — drag and drop a PDF or click to select a file
+2. **Extract** — the server parses the PDF and extracts text by page
+3. **Chunk** — text is split into translation-friendly segments
+4. **Translate** — each chunk is sent to your chosen AI model
+5. **Output** — results are assembled into bilingual HTML and Markdown
+
+---
+
+## File Size &amp; Page Limits
+
+<AuthGate fallback={<p>File size and page limits apply. Log in to see your tier's specific limits.</p>}>
+
+| Limit | Free | Pro |
+|---|---|---|
+| Max file size | 10 MB | 50 MB |
+| Max pages | 20 pages | 200 pages |
+| Jobs per month | 10 | Unlimited |
+
+</AuthGate>
+
+---
+
+## Output Formats
+
+**Side-by-side HTML** — original and translated text displayed in two columns,
+page by page. Download as a self-contained HTML file and view offline.
+
+**Alternating Markdown** — original paragraph followed immediately by its
+translation, repeated throughout the document. Ideal for copying into note
+apps or further editing.
+
+---
+
+## Quota Rules
+
+<AuthGate fallback={<p>We offer Free and Pro tiers. Log in to see your specific PDF quota.</p>}>
+
+| Resource | Free | Pro |
+|---|---|---|
+| PDF pages / month | 10 pages | 500 pages |
+| Concurrent jobs | 1 | 5 |
+| Result retention | 3 days | 30 days |
+
+</AuthGate>
+
+---
+
+## Screenshots
+
+<figure>
+  <p>Document upload interface — screenshot coming soon</p>
+</figure>
+
+<figure>
+  <p>Bilingual HTML output preview — screenshot coming soon</p>
+</figure>
+
+---
+
+## Known Limitations
+
+- **Scanned PDFs** (image-only, no text layer) are not supported. The extractor
+  requires selectable text. OCR support is planned for a future release.
+- Tables and complex layouts may lose some formatting in the output.
+- Very large files may take several minutes to process.
+
+---
+
+## FAQ
+
+**Which AI models are available for document translation?**
+The same models as text translation. Free users can use Google, Microsoft,
+LibreTranslate, and GPT-4o mini. Pro users have access to all 11 models.
+
+**How long does translation take?**
+Typically 1–3 minutes for a 10-page document, depending on the model and server
+load. You can close the tab and come back — results are stored for your session.
+
+**Can I translate a PDF from a URL?**
+Yes. Append `?src=<url>` to the `/document` page URL and the system will
+fetch and translate it automatically.
+
+**Are my PDF files stored permanently?**
+Source files are deleted after processing. Output HTML/MD files are retained
+according to your tier's retention policy (see Quota Rules above).
+
+---
+
+<div className="guide-doc-cta">
+  <Link href="/upgrade" className="button primary">Upgrade to Pro</Link>
+  <Link href="/document" className="button secondary">Go to Document</Link>
+</div>

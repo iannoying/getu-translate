@@ -1,0 +1,107 @@
+import { AuthGate } from "@/components/AuthGate"
+import Link from "next/link"
+
+<p className="guide-doc-eyebrow">Help &amp; Guide</p>
+
+# Web Text Translation
+
+Translate any text using 11 AI models side by side — compare quality, style,
+and nuance across Google, Microsoft, GPT, Claude, Gemini, DeepSeek and more,
+all in one view.
+
+---
+
+## Use Cases
+
+- **Short text** — phrases, captions, labels
+- **Paragraphs** — articles, emails, product descriptions
+- **Model comparison** — check how different engines handle the same sentence
+- **Language learning** — see multiple interpretations at once
+
+---
+
+## Available Models
+
+<AuthGate fallback={<p>Log in to see the full model list with names and tiers.</p>}>
+
+GetU Translate currently offers **11 AI translation models**:
+
+| Model | Tier |
+|---|---|
+| Google Translate | Free &amp; Pro |
+| Microsoft Translator | Free &amp; Pro |
+| LibreTranslate | Free &amp; Pro |
+| OpenAI GPT-4o mini | Free &amp; Pro |
+| OpenAI GPT-4o | Pro only |
+| Claude 3.5 Haiku | Pro only |
+| Claude 3.5 Sonnet | Pro only |
+| Gemini 1.5 Flash | Pro only |
+| Gemini 1.5 Pro | Pro only |
+| DeepSeek V3 | Pro only |
+| DeepL | Pro only |
+
+</AuthGate>
+
+---
+
+## Quota Rules
+
+<AuthGate fallback={<p>We offer Free and Pro tiers. Log in to see your specific limits.</p>}>
+
+| Resource | Free | Pro |
+|---|---|---|
+| Translation requests | 100 / month | Unlimited |
+| Tokens (characters) | — | 2,000,000 / month |
+| Concurrent models | Up to 3 | All 11 |
+
+</AuthGate>
+
+---
+
+## Character Limits
+
+<AuthGate fallback={<p>Character limits apply per translation request. Log in to view your tier's limit.</p>}>
+
+| Tier | Characters per request |
+|---|---|
+| Free | 500 |
+| Pro | 5,000 |
+
+If you exceed the limit, split the text into shorter segments or upgrade to Pro.
+
+</AuthGate>
+
+---
+
+## Screenshots
+
+<figure>
+  <p>Translation interface screenshot — coming soon</p>
+</figure>
+
+---
+
+## FAQ
+
+**Which languages are supported?**
+All major languages supported by the underlying model. Google and Microsoft cover
+100+ languages. GPT/Claude/Gemini support fewer but with higher quality for common
+languages.
+
+**Why are some models greyed out?**
+Pro-only models require an active Pro subscription. Click the model card to see
+the upgrade prompt.
+
+**Is language detection automatic?**
+Yes. Set the source language to "Auto" and the engine will detect it for you.
+Note: detection accuracy varies by model and text length.
+
+**Are translations stored?**
+Logged-in users have access to translation history. Anonymous sessions are not stored.
+
+---
+
+<div className="guide-doc-cta">
+  <Link href="/upgrade" className="button primary">Upgrade to Pro</Link>
+  <Link href="/translate" className="button secondary">Go to Translate</Link>
+</div>

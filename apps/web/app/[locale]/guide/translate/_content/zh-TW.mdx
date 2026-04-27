@@ -1,0 +1,103 @@
+import { AuthGate } from "@/components/AuthGate"
+import Link from "next/link"
+
+<p className="guide-doc-eyebrow">說明與指南</p>
+
+# 網頁文字翻譯
+
+使用 11 個 AI 模型並排翻譯同一段文字——同時對比 Google、Microsoft、GPT、Claude、Gemini、DeepSeek
+等的翻譯品質與風格，一覽無遺。
+
+---
+
+## 適用情境
+
+- **短句翻譯** — 短語、標題、標籤
+- **段落翻譯** — 文章、電子郵件、產品說明
+- **模型比較** — 針對同一句話查看多個引擎的不同翻譯
+- **語言學習** — 一次看到多種表達方式
+
+---
+
+## 可用模型
+
+<AuthGate fallback={<p>登入後查看完整模型清單（含名稱與使用權限）。</p>}>
+
+GetU Translate 目前提供 **11 個 AI 翻譯模型**：
+
+| 模型 | 可用層級 |
+|---|---|
+| Google 翻譯 | 免費 &amp; Pro |
+| Microsoft 翻譯 | 免費 &amp; Pro |
+| LibreTranslate | 免費 &amp; Pro |
+| OpenAI GPT-4o mini | 免費 &amp; Pro |
+| OpenAI GPT-4o | 僅 Pro |
+| Claude 3.5 Haiku | 僅 Pro |
+| Claude 3.5 Sonnet | 僅 Pro |
+| Gemini 1.5 Flash | 僅 Pro |
+| Gemini 1.5 Pro | 僅 Pro |
+| DeepSeek V3 | 僅 Pro |
+| DeepL | 僅 Pro |
+
+</AuthGate>
+
+---
+
+## 配額規則
+
+<AuthGate fallback={<p>我們提供免費與 Pro 兩種方案。登入後查看詳細配額數字。</p>}>
+
+| 資源 | 免費 | Pro |
+|---|---|---|
+| 翻譯請求次數 | 100 次/月 | 不限次 |
+| Token（字元數） | — | 200 萬/月 |
+| 同時模型數 | 最多 3 個 | 全部 11 個 |
+
+</AuthGate>
+
+---
+
+## 字元限制
+
+<AuthGate fallback={<p>每次翻譯有字元數上限。登入後查看您所在方案的限制。</p>}>
+
+| 方案 | 每次最多字元數 |
+|---|---|
+| 免費 | 500 字元 |
+| Pro | 5,000 字元 |
+
+超出上限時，請將文字拆分成較短的片段，或升級至 Pro。
+
+</AuthGate>
+
+---
+
+## 截圖範例
+
+<figure>
+  <p>翻譯介面截圖 — 即將更新</p>
+</figure>
+
+---
+
+## 常見問題
+
+**支援哪些語言？**
+支援各底層模型所涵蓋的主流語言。Google 與 Microsoft 支援 100+ 種語言；GPT / Claude / Gemini 涵蓋
+語言較少，但對常用語言的翻譯品質更高。
+
+**為什麼有些模型是灰色的？**
+Pro 專屬模型需要有效的 Pro 訂閱。點擊模型卡片可查看升級提示。
+
+**會自動偵測語言嗎？**
+會。將來源語言設定為「自動」，引擎便會自動識別輸入語言。偵測準確度因模型與文字長度而有所不同。
+
+**翻譯紀錄會被儲存嗎？**
+已登入的使用者可存取翻譯歷史紀錄。未登入的工作階段不會被儲存。
+
+---
+
+<div className="guide-doc-cta">
+  <Link href="/upgrade" className="button primary">升級 Pro</Link>
+  <Link href="/translate" className="button secondary">前往翻譯</Link>
+</div>

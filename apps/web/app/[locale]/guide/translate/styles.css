@@ -1,0 +1,128 @@
+/* Guide doc page — shared between /guide/translate and /guide/document.
+   Uses design tokens from apps/web/app/globals.css. */
+
+.guide-doc-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
+
+.guide-doc-page h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.guide-doc-page .guide-doc-eyebrow {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  margin-bottom: 12px;
+}
+
+.guide-doc-page h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 40px;
+  margin-bottom: 12px;
+}
+
+.guide-doc-page h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 24px;
+  margin-bottom: 8px;
+}
+
+.guide-doc-page p {
+  line-height: 1.7;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+
+.guide-doc-page ul,
+.guide-doc-page ol {
+  padding-left: 1.4em;
+  margin-bottom: 12px;
+  line-height: 1.7;
+}
+
+.guide-doc-page li {
+  margin-bottom: 4px;
+}
+
+.guide-doc-page table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin: 16px 0;
+}
+
+.guide-doc-page th {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 2px solid var(--line);
+  font-weight: 600;
+}
+
+.guide-doc-page td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.guide-doc-page figure {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  margin: 24px 0;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.guide-doc-page .guide-doc-cta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.guide-doc-page hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 32px 0;
+}
+
+/* AuthGate wrapper styling inside MDX */
+.guide-doc-page .auth-gate-prompt {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.9rem;
+}
+
+/* Help link in TranslateShell sidebar */
+.translate-sidenav-help-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 6px 0;
+  margin-bottom: 8px;
+}
+
+.translate-sidenav-help-link:hover {
+  color: var(--ink);
+}
