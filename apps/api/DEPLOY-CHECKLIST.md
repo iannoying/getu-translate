@@ -45,7 +45,9 @@ This is the canonical list of Cloudflare resources that must exist before deploy
 | `GITHUB_CLIENT_SECRET` | OAuth |
 | `GOOGLE_CLIENT_ID` | OAuth |
 | `GOOGLE_CLIENT_SECRET` | OAuth |
-| `POSTHOG_PROJECT_KEY` | (M6.13 Track A — to be added) Server-side analytics |
+| `POSTHOG_PROJECT_KEY` | Server-side analytics; **absent in env = silent no-op (analytics off)**. Required if you want event capture in PostHog. |
+| `POSTHOG_HOST` | Optional. Defaults to `https://us.i.posthog.com`. Set to `https://eu.i.posthog.com` for EU residency. |
+| `SENTRY_DSN` | Error capture; **absent in env = silent no-op (Sentry off)**. Required for production error monitoring. |
 
 To verify all secrets are set:
 

@@ -67,4 +67,21 @@ describe("captureEvent", () => {
       captureEvent({ apiKey: "phc_test", distinctId: "u1", event: "test_event" }, fetchImpl),
     ).rejects.toThrow("PostHog capture failed: HTTP 400")
   })
+
+  it("uses default US host when host is not specified", async () => {
+    const fetchImpl = mockFetch(200)
+    await captureEvent({ apiKey: "phc_test", distinctId: "u1", event: "test_event" }, fetchImpl)
+    const [url] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("https://us.i.posthog.com/capture/")
+  })
+
+  it("uses custom host when provided", async () => {
+    const fetchImpl = mockFetch(200)
+    await captureEvent(
+      { apiKey: "phc_test", distinctId: "u1", event: "test_event", host: "https://eu.i.posthog.com" },
+      fetchImpl,
+    )
+    const [url] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("https://eu.i.posthog.com/capture/")
+  })
 })

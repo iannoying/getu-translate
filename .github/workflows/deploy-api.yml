@@ -26,6 +26,12 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
 
+      - name: Test
+        run: pnpm --filter @getu/api test --run
+
+      - name: Type-check
+        run: pnpm --filter @getu/api type-check
+
       - name: Apply D1 migrations to production
         working-directory: apps/api
         env:

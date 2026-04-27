@@ -27,6 +27,7 @@ function emit(
         distinctId: typeof props["userId"] === "string" ? props["userId"] : "system",
         event: "internal_log",
         properties: { level, message, ...props },
+        host: opts.env.POSTHOG_HOST,
       }).catch(() => {
         // Swallow — PostHog must never break the worker.
       }),

@@ -11,6 +11,8 @@ export type AnalyticsContext = {
   userId: string | null
   apiKey: string
   fetchImpl?: typeof fetch
+  /** PostHog ingest host. Defaults to https://us.i.posthog.com. */
+  host?: string
 }
 
 export async function trackTextTranslateCompleted(
@@ -23,6 +25,7 @@ export async function trackTextTranslateCompleted(
       distinctId: ctx.userId ?? "anonymous",
       event: "text_translate_completed",
       properties: props,
+      host: ctx.host,
     },
     ctx.fetchImpl,
   )
@@ -38,6 +41,7 @@ export async function trackPdfUploaded(
       distinctId: ctx.userId ?? "anonymous",
       event: "pdf_uploaded",
       properties: props,
+      host: ctx.host,
     },
     ctx.fetchImpl,
   )
@@ -53,6 +57,7 @@ export async function trackPdfCompleted(
       distinctId: ctx.userId ?? "anonymous",
       event: "pdf_completed",
       properties: props,
+      host: ctx.host,
     },
     ctx.fetchImpl,
   )
@@ -68,6 +73,7 @@ export async function trackProUpgradeTriggered(
       distinctId: ctx.userId ?? "anonymous",
       event: "pro_upgrade_triggered",
       properties: props,
+      host: ctx.host,
     },
     ctx.fetchImpl,
   )
