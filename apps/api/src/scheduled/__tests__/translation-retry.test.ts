@@ -195,4 +195,30 @@ describe("runTranslationRetry", () => {
     expect(result.errors).toHaveLength(1)
     expect(result.errors[0]).toMatch(/queue unavailable/)
   })
+
+  it("reverts D1 row to failed when queue.send throws, keeping original retriedCount and errorCode", async () => {
+    const { db } = makeTestDb()
+    await insertUser(db, "u9")
+    await insertFailedJob(db, {
+      id: "j-revert",
+      userId: "u9",
+      errorCode: "transient_llm",
+      retriedCount: 1,
+      failedAt: new Date(RECENT_FAIL_MS),
+    })
+
+    const send = vi.fn(async () => { throw new Error("queue send failed") })
+    const result = await runTranslationRetry(db as any, { send } as any, { now: NOW_MS })
+
+    expect(result.retried).toBe(0)
+    expect(result.errors).toHaveLength(1)
+    expect(result.errors[0]).toMatch(/queue send failed/)
+
+    // D1 row must be reverted: still failed, original retriedCount, original errorCode
+    const job = await db.select().from(schema.translationJobs).where(eq(schema.translationJobs.id, "j-revert")).get()
+    expect(job?.status).toBe("failed")
+    expect(job?.retriedCount).toBe(1)
+    expect(job?.errorCode).toBe("transient_llm")
+    expect(job?.failedAt).not.toBeNull()
+  })
 })

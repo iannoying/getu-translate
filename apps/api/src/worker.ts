@@ -15,13 +15,15 @@ export default {
 
     ctx.waitUntil(
       Promise.allSettled([
-        runRetention(db, { now, retentionDays: 30 }),
-        runTranslationCleanup(db, env.BUCKET_PDFS, { now }),
-        runTranslationStuckSweep(db, { now }),
-        runTranslationRetry(db, env.TRANSLATE_QUEUE, { now }),
+        runRetention(db, { now, retentionDays: 30 }).then(() => ({ task: "retention" as const, ok: true as const })),
+        runTranslationCleanup(db, env.BUCKET_PDFS, { now }).then((r) => ({ task: "translation-cleanup" as const, ok: true as const, ...r })),
+        runTranslationStuckSweep(db, { now }).then((r) => ({ task: "translation-stuck-sweep" as const, ok: true as const, ...r })),
+        runTranslationRetry(db, env.TRANSLATE_QUEUE, { now }).then((r) => ({ task: "translation-retry" as const, ok: true as const, ...r })),
       ]).then((results) => {
         for (const r of results) {
-          if (r.status === "rejected") {
+          if (r.status === "fulfilled") {
+            console.info("[scheduled]", r.value)
+          } else {
             console.error("[scheduled] task failed", r.reason)
           }
         }

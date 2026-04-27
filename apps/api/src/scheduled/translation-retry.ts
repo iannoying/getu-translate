@@ -50,7 +50,24 @@ export async function runTranslationRetry(
           errorMessage: null,
         })
         .where(eq(schema.translationJobs.id, job.id))
-      await queue.send({ jobId: job.id })
+
+      try {
+        await queue.send({ jobId: job.id })
+      } catch (sendErr) {
+        // Revert D1 so the row stays eligible for next-tick retry
+        await db
+          .update(schema.translationJobs)
+          .set({
+            status: "failed",
+            retriedCount: job.retriedCount,
+            failedAt: job.failedAt,
+            errorCode: job.errorCode,
+            errorMessage: job.errorMessage,
+          })
+          .where(eq(schema.translationJobs.id, job.id))
+        throw sendErr
+      }
+
       result.retried++
     } catch (err) {
       result.errors.push(`retry ${job.id}: ${(err as Error).message}`)
