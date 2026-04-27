@@ -26,8 +26,11 @@ Phase 2 went live on Cloudflare D1 + Workers + Pages 2026-04-21. Key gotchas:
 
 **10. First cold-start after deploy can 503.** D1 + Worker init + better-auth schema first query can time out on the first request. Retry once; if it still 503s, investigate.
 
+**11. Pages deploy token needs Pages permission.** `wrangler pages deploy` reads `/accounts/<id>/pages/projects/getu-web` before uploading. A token that can deploy Workers/D1 can still fail Web deploy with `Authentication error [code: 10000]` if it lacks `Account → Cloudflare Pages → Edit` on the account. Prefer a dedicated GitHub secret `CLOUDFLARE_PAGES_API_TOKEN`; `Deploy Web` falls back to `CLOUDFLARE_API_TOKEN` only for compatibility.
+
 **How to apply:**
 - Any new API route on apps/api: verify CORS preflight separately from 200 responses.
 - Any new frontend consumer of auth: mirror the extension's auth-client pattern (explicit baseURL including AUTH_BASE_PATH).
 - Any CF account-touching command: prefix with `HTTP_PROXY=""` env cleanup.
 - Any `NEXT_PUBLIC_*` change: rebuild + redeploy, don't rely on dashboard env.
+- Any CF Pages automation: validate the GitHub token has `Account → Cloudflare Pages → Edit` before debugging the build.

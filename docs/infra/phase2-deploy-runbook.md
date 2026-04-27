@@ -165,28 +165,33 @@ curl -i https://api.getutranslate.com/health
 
 ---
 
-## 4. Deploy `apps/web` to CF Pages via `@cloudflare/next-on-pages`
+## 4. Deploy `apps/web` to CF Pages
 
-### 4a. Install `@cloudflare/next-on-pages` dev dependency
+### 4a. Configure GitHub Actions secrets
+
+The `Deploy Web` workflow publishes the static `apps/web/out/` directory with Wrangler Pages. Set these repository secrets:
+
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_PAGES_API_TOKEN` (preferred) or `CLOUDFLARE_API_TOKEN` (fallback)
+
+The Pages token must be scoped to the account that owns `getu-web` and include:
+
+- Account → Cloudflare Pages → Edit
+
+The Worker/D1 deployment token is not enough if it only grants Workers and D1 permissions. If the workflow fails with `Authentication error [code: 10000]` while requesting `/pages/projects/getu-web`, rotate or update the Pages token permission.
+
+### 4b. Build static output
 
 ```bash
-pnpm add -F @getu/web -D @cloudflare/next-on-pages
+pnpm --filter @getu/web build:prod
 ```
 
-### 4b. Build for CF Pages edge runtime
-
-```bash
-pnpm --filter @getu/web exec next-on-pages
-```
-
-This runs `next build` internally and outputs to `.vercel/output/static/`.
-
-If the build fails on unsupported Next.js features (e.g., Node.js runtime routes), see [Gotchas §7.2](#72-next-on-pages-build-quirks) below.
+This runs `next build` with `NEXT_PUBLIC_API_BASE_URL=https://api.getutranslate.com` and outputs to `apps/web/out/`.
 
 ### 4c. Deploy to CF Pages
 
 ```bash
-pnpm --filter @getu/web exec wrangler pages deploy .vercel/output/static \
+pnpm --filter @getu/web exec wrangler pages deploy out \
   --project-name=getu-web
 ```
 
@@ -200,19 +205,13 @@ In CF Dashboard:
    - `getutranslate.com`
    - `www.getutranslate.com`
 
-### 4e. Set production environment variables
+### 4e. Production API URL
 
-In CF Dashboard:
-1. Workers & Pages → `getu-web` → **Settings** → **Environment variables**
-2. Add under **Production**:
-   - `NEXT_PUBLIC_API_BASE_URL` = `https://api.getutranslate.com`
-3. Trigger a new deployment (or redeploy) so the variable is picked up.
-
-Redeploy after setting env vars:
+`NEXT_PUBLIC_API_BASE_URL` is baked into the static bundle at build time. Do not rely on Cloudflare Pages runtime environment variables for an already-built `out/` directory. Rebuild before redeploying:
 
 ```bash
-pnpm --filter @getu/web exec next-on-pages
-pnpm --filter @getu/web exec wrangler pages deploy .vercel/output/static \
+pnpm --filter @getu/web build:prod
+pnpm --filter @getu/web exec wrangler pages deploy out \
   --project-name=getu-web
 ```
 

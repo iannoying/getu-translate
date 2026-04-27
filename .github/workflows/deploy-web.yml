@@ -50,9 +50,40 @@ jobs:
           NEXT_PUBLIC_API_BASE_URL: https://api.getutranslate.com
         run: pnpm exec next build
 
+      - name: Verify Cloudflare Pages access
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT: getu-web
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo "::error title=Missing Cloudflare Pages token::Set CLOUDFLARE_PAGES_API_TOKEN with Account > Cloudflare Pages > Edit permission, or update CLOUDFLARE_API_TOKEN with that permission."
+            exit 1
+          fi
+
+          if [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo "::error title=Missing Cloudflare account id::Set the CLOUDFLARE_ACCOUNT_ID repository secret."
+            exit 1
+          fi
+
+          response_file="$(mktemp)"
+          status="$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${CLOUDFLARE_PAGES_PROJECT}")"
+
+          if [ "$status" != "200" ]; then
+            echo "::error title=Cloudflare Pages token cannot access ${CLOUDFLARE_PAGES_PROJECT}::Create/update CLOUDFLARE_PAGES_API_TOKEN with Account > Cloudflare Pages > Edit permission scoped to this account."
+            jq -r '.errors[]? | "Cloudflare: \(.message) [code: \(.code)]"' "$response_file" || cat "$response_file"
+            exit 1
+          fi
+
       - name: Deploy to Cloudflare Pages
         working-directory: apps/web
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm exec wrangler pages deploy out --project-name=getu-web --branch=main
