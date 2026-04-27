@@ -1,9 +1,9 @@
 import { atom, createStore } from "jotai"
 import { createTranslationStateAtomForContentScript } from "@/utils/atoms/translation-state"
 
-export const store = createStore()
+export { isSideOpenAtom } from "./utils/sidebar-open-state"
 
-export const isSideOpenAtom = atom(false)
+export const store = createStore()
 
 export const isDraggingButtonAtom = atom(false)
 
