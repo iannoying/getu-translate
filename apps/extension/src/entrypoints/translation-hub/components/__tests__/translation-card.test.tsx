@@ -70,6 +70,12 @@ vi.mock("@/utils/analytics", () => ({
   trackFeatureAttempt: async (_context: unknown, run: () => Promise<unknown>) => run(),
 }))
 
+vi.mock("@iconify/react", () => ({
+  Icon: ({ className, icon }: { className?: string, icon: string }) => (
+    <span aria-hidden="true" className={className} data-icon={icon} />
+  ),
+}))
+
 vi.mock("@/utils/atoms/config", async () => {
   const { atom } = await vi.importActual<typeof import("jotai")>("jotai")
   return {
