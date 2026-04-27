@@ -26,6 +26,7 @@ interface ProtocolMap {
   // navigation
   openPage: (data: { url: string, active?: boolean }) => void
   openOptionsPage: () => void
+  closeNativeSidePanel: () => Promise<{ closed: boolean }>
   // config
   getInitialConfig: () => Config | null
   // translation state
