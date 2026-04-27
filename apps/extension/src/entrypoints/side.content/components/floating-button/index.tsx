@@ -117,7 +117,7 @@ export default function FloatingButton() {
           }).catch(swallowExtensionLifecycleError("floating-button translate click"))
         }
         else {
-          setIsSideOpen(o => !o)
+          void setIsSideOpen(o => !o)
         }
       }
     }
@@ -129,7 +129,7 @@ export default function FloatingButton() {
   const handleOpenPanelClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
     e.stopPropagation()
-    setIsSideOpen(true)
+    void setIsSideOpen(true)
   }
 
   const attachSideClassName = isDraggingButton || isSideOpen || isDropdownOpen ? "translate-x-0" : ""

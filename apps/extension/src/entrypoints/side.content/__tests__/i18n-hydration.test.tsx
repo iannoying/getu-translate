@@ -53,10 +53,15 @@ vi.mock("../components/side-content/sidebar-document-tab", () => ({
 }))
 
 function HydrateAtoms({ children }: { children: ReactNode }) {
-  useHydrateAtoms([
+  const initialValues: [
+    [typeof configAtom, typeof DEFAULT_CONFIG],
+    [typeof baseUILocalePreferenceAtom, "auto"],
+  ] = [
     [configAtom, DEFAULT_CONFIG],
     [baseUILocalePreferenceAtom, "auto"],
-  ])
+  ]
+
+  useHydrateAtoms(initialValues)
   return children
 }
 

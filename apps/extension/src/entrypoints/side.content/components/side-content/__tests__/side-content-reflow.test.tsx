@@ -26,7 +26,7 @@ vi.mock("../sidebar-document-tab", () => ({
 describe("sideContent page reflow", () => {
   it("does not mount sidebar tab contents while closed", () => {
     const store = createStore()
-    store.set(isSideOpenAtom, false)
+    void store.set(isSideOpenAtom, false)
 
     render(
       <JotaiProvider store={store}>
@@ -40,7 +40,7 @@ describe("sideContent page reflow", () => {
 
   it("shrinks html width while open and renders the sidebar shell", () => {
     const store = createStore()
-    store.set(isSideOpenAtom, true)
+    void store.set(isSideOpenAtom, true)
 
     render(
       <JotaiProvider store={store}>
