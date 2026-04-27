@@ -91,6 +91,12 @@ export const translationJobs = sqliteTable(
     /** JSON-serialized `{ stage: string; pct: number }`. Null until first update. */
     progress: text("progress"),
     errorMessage: text("error_message"),
+    /** M6.12: Categorical failure code for retry routing. See ERROR_CODES in translate-document.ts. */
+    errorCode: text("error_code"),
+    /** M6.12: Timestamp (ms) when the job transitioned to failed. Null for non-failed jobs. */
+    failedAt: integer("failed_at", { mode: "timestamp_ms" }),
+    /** M6.12: Number of times the auto-retry sweeper has re-queued this job. */
+    retriedCount: integer("retried_count").notNull().default(0),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .notNull()
       .default(unixMsDefault),
