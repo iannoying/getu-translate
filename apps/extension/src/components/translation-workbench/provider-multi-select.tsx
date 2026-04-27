@@ -1,5 +1,4 @@
 import type { TranslateProviderConfig } from "@/types/config/provider"
-import ProviderIcon from "@/components/provider-icon"
 import { useTheme } from "@/components/providers/theme-provider"
 import {
   Select,
@@ -11,11 +10,11 @@ import {
   SelectValue,
 } from "@/components/ui/base-ui/select"
 import { isLLMProviderConfig, isPureAPIProviderConfig } from "@/types/config/provider"
-import { PROVIDER_ITEMS } from "@/utils/constants/providers"
 import { i18n } from "@/utils/i18n"
 import { cn } from "@/utils/styles/utils"
 import { isGetuProProvider } from "./provider-gating"
 import { ProviderIconStack } from "./provider-icon-stack"
+import { WorkbenchProviderLogo } from "./provider-logo"
 
 interface ProviderMultiSelectProps {
   providers: TranslateProviderConfig[]
@@ -36,42 +35,6 @@ const FREE_REST_PROVIDER_TYPES = new Set([
   "bing-translate",
   "yandex-translate",
 ])
-
-function resolveProviderLogo(provider: TranslateProviderConfig, theme: string): string | undefined {
-  const item = PROVIDER_ITEMS[provider.provider as keyof typeof PROVIDER_ITEMS]
-  if (!item)
-    return undefined
-
-  try {
-    return item.logo(theme as never)
-  }
-  catch {
-    return undefined
-  }
-}
-
-function providerInitial(provider: TranslateProviderConfig): string {
-  return provider.name.trim().charAt(0).toUpperCase() || "?"
-}
-
-function ProviderRowIcon({ provider, theme }: { provider: TranslateProviderConfig, theme: string }) {
-  const logo = resolveProviderLogo(provider, theme)
-
-  if (logo)
-    return <ProviderIcon logo={logo} name={provider.name} size="sm" />
-
-  return (
-    <span className="flex min-w-0 items-center gap-1.5">
-      <span
-        className="bg-muted text-muted-foreground grid size-5 shrink-0 place-items-center rounded-full border border-border text-[10px] font-semibold"
-        aria-hidden="true"
-      >
-        {providerInitial(provider)}
-      </span>
-      <span className="truncate">{provider.name}</span>
-    </span>
-  )
-}
 
 function getProviderGroups(providers: TranslateProviderConfig[]): ProviderGroup[] {
   const free: TranslateProviderConfig[] = []
@@ -150,7 +113,7 @@ export function ProviderMultiSelect({
             {group.providers.map(provider => (
               <SelectItem key={provider.id} value={provider.id}>
                 <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                  <ProviderRowIcon provider={provider} theme={theme} />
+                  <WorkbenchProviderLogo provider={provider} theme={theme} size="sm" />
                   {isGetuProProvider(provider) && (
                     <span className={cn("rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary")}>
                       Pro
