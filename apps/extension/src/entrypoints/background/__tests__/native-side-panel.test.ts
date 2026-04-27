@@ -1,9 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const onMessageHandlers = vi.hoisted(() => new Map<string, (message: { data: unknown, sender: chrome.runtime.MessageSender }) => unknown>())
+interface NativeSidePanelTestMessage {
+  data: unknown
+  sender: {
+    tab?: {
+      id?: number
+      windowId?: number
+    }
+  }
+}
+
+const onMessageHandlers = vi.hoisted(() => new Map<string, (message: NativeSidePanelTestMessage) => unknown>())
 
 vi.mock("@/utils/message", () => ({
-  onMessage: vi.fn((type: string, handler: (message: { data: unknown, sender: chrome.runtime.MessageSender }) => unknown) => {
+  onMessage: vi.fn((type: string, handler: (message: NativeSidePanelTestMessage) => unknown) => {
     onMessageHandlers.set(type, handler)
     return vi.fn()
   }),
@@ -39,7 +49,7 @@ describe("native side panel background handlers", () => {
 
     expect(await handler?.({
       data: undefined,
-      sender: { tab: { id: 17, windowId: 91 } } as chrome.runtime.MessageSender,
+      sender: { tab: { id: 17, windowId: 91 } },
     })).toEqual({ opened: true })
     expect(open).toHaveBeenCalledWith({ windowId: 91 })
   })
@@ -58,7 +68,7 @@ describe("native side panel background handlers", () => {
 
     expect(await handler?.({
       data: { windowId: 34 },
-      sender: { tab: { id: 17, windowId: 91 } } as chrome.runtime.MessageSender,
+      sender: { tab: { id: 17, windowId: 91 } },
     })).toEqual({ opened: true })
     expect(open).toHaveBeenCalledWith({ windowId: 34 })
   })

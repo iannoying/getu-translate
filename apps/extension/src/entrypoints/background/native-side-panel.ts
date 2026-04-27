@@ -14,6 +14,12 @@ interface ChromeWithSidePanel {
   }
 }
 
+interface NativeSidePanelMessageSender {
+  tab?: {
+    windowId?: number
+  }
+}
+
 function getChromeWithSidePanel(): ChromeWithSidePanel | undefined {
   return (globalThis as typeof globalThis & { chrome?: ChromeWithSidePanel }).chrome
 }
@@ -22,7 +28,7 @@ function getSidePanelApi(): ChromeSidePanelApi | undefined {
   return getChromeWithSidePanel()?.sidePanel
 }
 
-function getSenderWindowId(sender: chrome.runtime.MessageSender): number | undefined {
+function getSenderWindowId(sender: NativeSidePanelMessageSender): number | undefined {
   return sender.tab?.windowId
 }
 

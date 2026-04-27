@@ -13,7 +13,7 @@ vi.mock("@/utils/i18n", () => ({
   i18n: { t: (key: string) => key },
 }))
 
-vi.mock("@/entrypoints/side.content/components/side-content/sidebar-shell", () => ({
+vi.mock("@/components/translation-workbench/sidebar-shell", () => ({
   SidebarShell: ({ onClose }: { onClose: () => void }) => (
     <button type="button" onClick={onClose}>translationWorkbench.closeSidebar</button>
   ),

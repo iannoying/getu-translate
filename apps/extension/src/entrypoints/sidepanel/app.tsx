@@ -1,4 +1,4 @@
-import { SidebarShell } from "@/entrypoints/side.content/components/side-content/sidebar-shell"
+import { SidebarShell } from "@/components/translation-workbench/sidebar-shell"
 import { swallowExtensionLifecycleError } from "@/utils/extension-lifecycle"
 import { sendMessage } from "@/utils/message"
 
