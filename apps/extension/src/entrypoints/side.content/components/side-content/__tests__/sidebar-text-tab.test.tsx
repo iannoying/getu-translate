@@ -228,7 +228,10 @@ describe("sidebarTextTab", () => {
       expect.objectContaining({
         plan: "pro",
         userId: "user-pro",
-        request: expect.objectContaining({ text: "你好呀" }),
+        request: expect.objectContaining({
+          text: "你好呀",
+          clickId: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
+        }),
       }),
     )
   })

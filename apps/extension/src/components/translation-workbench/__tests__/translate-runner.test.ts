@@ -59,6 +59,8 @@ const proProvider = {
   model: { model: "deepseek-v4-pro", isCustomModel: false, customModel: null },
 } as TranslateProviderConfig
 
+const uuidClickId = "01929b2e-7a94-7c9e-9f3a-8b4c5d6e7f80"
+
 describe("runTranslationWorkbenchRequest", () => {
   beforeEach(() => {
     sendMessageMock.mockReset()
@@ -130,7 +132,7 @@ describe("runTranslationWorkbenchRequest", () => {
         text: "hello",
         sourceLanguage: "auto",
         targetLanguage: "cmn",
-        clickId: "click-3",
+        clickId: uuidClickId,
       },
       providers: [googleProvider],
       languageLevel: "intermediate",
@@ -139,7 +141,7 @@ describe("runTranslationWorkbenchRequest", () => {
     expect(consumeQuotaMock).toHaveBeenCalledWith({
       bucket: "web_text_translate_monthly",
       amount: 1,
-      request_id: "sidebar-web-text:click-3",
+      request_id: uuidClickId,
     })
   })
 

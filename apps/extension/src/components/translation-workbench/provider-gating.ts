@@ -39,7 +39,7 @@ export function getProviderGate(provider: TranslateProviderConfig, plan: Transla
 }
 
 export function buildSidebarClickRequestId(clickId: string): string {
-  return `sidebar-web-text:${clickId}`
+  return clickId
 }
 
 export function buildSidebarTokenRequestId(clickId: string, providerId: string): string {
