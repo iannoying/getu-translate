@@ -121,3 +121,61 @@ done
 # 6. Deploy
 pnpm deploy
 ```
+
+## M7-A3 — Auto-rollback Verification & Manual Procedures
+
+### Worker (api) — Auto-rollback
+
+`deploy-api.yml` rolls the Worker back to the previous version automatically when `pnpm smoke:prod` exits non-zero after deploy. The workflow uses a `concurrency` group so capture-previous-version + deploy is atomic per branch.
+
+To verify the rollback path works:
+
+1. Go to **GitHub → Actions → Deploy API → Run workflow**.
+2. Set `force_smoke_fail = true`. Trigger.
+3. Workflow should:
+   - Capture the previous version id (current production)
+   - Deploy the new version
+   - Smoke test exits 1 with `SMOKE_FORCE_FAIL=true`
+   - `wrangler rollback --version-id <previous>` runs (id: `rollback`)
+   - Job fails with the right error message based on rollback outcome (success / skipped / failed)
+4. Verify production is back on the previous version:
+
+```bash
+cd apps/api
+pnpm exec wrangler versions list --env production --json | head -50
+# The latest entry should have `metadata.message` containing "auto-rollback"
+# pointing to the version that's now live.
+curl -sf https://api.getutranslate.com/health | jq .
+```
+
+### Worker (api) — Manual rollback
+
+If auto-rollback fails (e.g. token permissions issue, version retention) or you need to roll back past a successful deploy:
+
+```bash
+cd apps/api
+pnpm exec wrangler versions list --env production --json | head -50
+# Find the version id you want to roll back to.
+pnpm exec wrangler rollback --env production --version-id <id> --message "manual rollback: <reason>"
+# Verify
+curl -sf https://api.getutranslate.com/health | jq .
+```
+
+If the auto-rollback step itself failed in CI (rollback step `outcome == failure`), production is on the **bad** version — drop everything and run the manual rollback above.
+
+### Web (Pages) — Manual rollback
+
+Cloudflare Pages does NOT have CLI auto-rollback. If `deploy-web.yml` smoke test fails the workflow exits red with an actionable error message, but production is still on the broken deployment. Manual recovery:
+
+1. Open https://dash.cloudflare.com/?to=/:account/pages/view/getu-web/
+2. Click the **Deployments** tab.
+3. Find the most recent successful deployment (NOT the failed one).
+4. Click ⋯ → **Rollback to this deployment**.
+5. Confirm.
+6. Verify:
+
+```bash
+curl -sf https://getutranslate.com/ | head -5
+```
+
+Pages auto-rollback CLI support is tracked as a M7+ follow-up.
