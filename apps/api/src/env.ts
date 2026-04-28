@@ -1,5 +1,14 @@
 import { z } from "zod"
 import type { D1Database, KVNamespace, Queue, R2Bucket } from "@cloudflare/workers-types"
+import type { createAuth } from "./auth"
+
+type AuthLike = ReturnType<typeof createAuth>
+type SessionLike = Awaited<ReturnType<AuthLike["api"]["getSession"]>> | null
+
+export type AppVariables = {
+  session: SessionLike
+  auth: AuthLike
+}
 
 /** Workers env bindings.
  *  D1 is injected as a binding (not a URL). Secrets come from `wrangler secret put`. */
