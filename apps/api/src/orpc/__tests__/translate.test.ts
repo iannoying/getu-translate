@@ -409,13 +409,17 @@ describe("translate.text — auth & gating", () => {
           clickId: sharedClickId,
         }),
       ])
-      const calls = (quota.consumeQuota as any).mock.calls
-      expect(calls).toHaveLength(3)
-      // All three calls must use the SAME requestId so consumeQuota's
+      const calls = (quota.consumeQuota as any).mock.calls as Array<unknown[]>
+      // 3 per-click count calls + 2 token calls (claude + gpt-5.5; google skips token bucket)
+      const clickCalls = calls.filter((args) => args[2] === "web_text_translate_monthly")
+      expect(clickCalls).toHaveLength(3)
+      const tokenCalls = calls.filter((args) => args[2] === "web_text_translate_token_monthly")
+      expect(tokenCalls).toHaveLength(2) // 2 LLM columns
+      // All three click calls must use the SAME requestId so consumeQuota's
       // (userId, requestId) idempotency collapses them to one decrement.
-      const requestIds = calls.map((args: unknown[]) => args[4])
-      expect(new Set(requestIds).size).toBe(1)
-      expect(requestIds[0]).toBe(`web-text:u-pro:${sharedClickId}`)
+      const clickRequestIds = new Set(clickCalls.map((args) => args[4]))
+      expect(clickRequestIds.size).toBe(1)
+      expect(clickRequestIds.has(`web-text:u-pro:${sharedClickId}`)).toBe(true)
     } finally {
       fetchSpy.mockRestore()
     }
@@ -873,6 +877,69 @@ describe("translate.clearHistory", () => {
     // Still issues the DELETE statement — D1 is fine with empty deletes,
     // and the round-trip is cheap enough that we don't optimize for it.
     expect(deleteCalls).toHaveLength(1)
+  })
+})
+
+describe("translate.text — token quota consumption", () => {
+  it("consumes web_text_translate_token_monthly with normalized units after a successful LLM call", async () => {
+    const ent = await import("../../billing/entitlements")
+    const quota = await import("../../billing/quota")
+    ;(ent.loadEntitlements as any).mockResolvedValueOnce({ ...FREE_ENTITLEMENTS, tier: "pro" })
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          choices: [{ message: { content: "你好" } }],
+          usage: { prompt_tokens: 10, completion_tokens: 5 },
+        }),
+        { status: 200 },
+      ),
+    )
+    try {
+      const client = createRouterClient(router, { context: ctx(proSession) })
+      await client.translate.translate({
+        text: "hello",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+        modelId: "claude-sonnet-4-6", // input=20, output=75
+        columnId: "col-claude",
+        clickId: SAMPLE_CLICK_ID,
+      })
+      // claude-sonnet-4-6 cost: 10*20 + 5*75 = 200 + 375 = 575 units
+      expect(quota.consumeQuota).toHaveBeenCalledWith(
+        expect.anything(),
+        "u-pro",
+        "web_text_translate_token_monthly",
+        575,
+        `web-text-token:u-pro:${SAMPLE_CLICK_ID}:col-claude`,
+        undefined,
+      )
+    } finally {
+      fetchSpy.mockRestore()
+    }
+  })
+
+  it("does NOT consume token bucket for free providers (google)", async () => {
+    const quota = await import("../../billing/quota")
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify([[["你好", "hi", null, null, 0]]]), { status: 200 }),
+    )
+    try {
+      const client = createRouterClient(router, { context: ctx(freeSession) })
+      await client.translate.translate({
+        text: "hi",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+        modelId: "google",
+        columnId: "c1",
+        clickId: SAMPLE_CLICK_ID,
+      })
+      // Only the per-click count bucket should fire — never the token bucket.
+      const calls = (quota.consumeQuota as any).mock.calls as Array<unknown[]>
+      const tokenBucketCalls = calls.filter((c) => c[2] === "web_text_translate_token_monthly")
+      expect(tokenBucketCalls).toHaveLength(0)
+    } finally {
+      fetchSpy.mockRestore()
+    }
   })
 })
 
