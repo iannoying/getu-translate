@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { D1Database, Queue, R2Bucket } from "@cloudflare/workers-types"
+import type { D1Database, KVNamespace, Queue, R2Bucket } from "@cloudflare/workers-types"
 
 /** Workers env bindings.
  *  D1 is injected as a binding (not a URL). Secrets come from `wrangler secret put`. */
@@ -56,6 +56,10 @@ export interface WorkerEnv {
   /** PostHog ingest host. Defaults to https://us.i.posthog.com. Set to https://eu.i.posthog.com for EU residency. */
   POSTHOG_HOST?: string
   SENTRY_DSN?: string
+  // M7-A2 — KV-backed edge rate limit
+  RATE_LIMIT_KV?: KVNamespace
+  /** When set, requests with header X-Internal-Smoke: <value> bypass the rate limit. */
+  RATE_LIMIT_SMOKE_SECRET?: string
 }
 
 export const SecretsSchema = z.object({

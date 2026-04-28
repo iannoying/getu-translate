@@ -22,6 +22,13 @@ migrations_dir = "../../packages/db/drizzle"
 binding = "BUCKET_PDFS"
 bucket_name = "getu-pdfs"
 
+# M7-A2 — KV namespace for edge rate limit
+# TODO(M7-A2 deploy): replace PLACEHOLDER_DEV_KV_ID after running:
+#   pnpm wrangler kv namespace create RATE_LIMIT_KV
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "PLACEHOLDER_DEV_KV_ID"
+
 # M6.8 — Cloudflare Queue for PDF translation jobs.
 # `documentCreate` enqueues `{ jobId }`; the consumer worker (M6.9) drains it.
 # Created out-of-band: `wrangler queues create getu-translate-jobs`
@@ -67,6 +74,12 @@ migrations_dir = "../../packages/db/drizzle"
 [[env.production.r2_buckets]]
 binding = "BUCKET_PDFS"
 bucket_name = "getu-pdfs"
+
+# TODO(M7-A2 deploy): replace PLACEHOLDER_PROD_KV_ID after running:
+#   pnpm wrangler kv namespace create RATE_LIMIT_KV --env production
+[[env.production.kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "PLACEHOLDER_PROD_KV_ID"
 
 [[env.production.queues.producers]]
 binding = "TRANSLATE_QUEUE"
