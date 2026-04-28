@@ -92,6 +92,15 @@ const checks: Check[] = [
 ]
 
 async function main() {
+  // M7-A3 — test hook for the auto-rollback path. Closed-by-default: only
+  // fires when the env value is the literal string "true". Triggered via the
+  // `force_smoke_fail` workflow_dispatch input on deploy-api.yml.
+  if (process.env.SMOKE_FORCE_FAIL === "true") {
+    console.error(
+      "SMOKE_FORCE_FAIL=true — exiting 1 to test the auto-rollback path",
+    )
+    process.exit(1)
+  }
   console.log(`Smoke testing ${API_BASE}`)
   let failed = 0
   for (const check of checks) {
