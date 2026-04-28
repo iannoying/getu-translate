@@ -17,6 +17,24 @@ This is the canonical list of Cloudflare resources that must exist before deploy
 |---|---|---|---|
 | `BUCKET_PDFS` | `getu-pdfs` | PDF source + output blobs | `wrangler r2 bucket create getu-pdfs` |
 
+## KV Namespaces
+
+| Binding | Purpose | Created via |
+|---|---|---|
+| `RATE_LIMIT_KV` | Edge rate limit fixed-window counters (M7-A2). Fail-open if missing — middleware logs `console.warn` and lets requests through, so `wrangler dev` doesn't break before namespace is created. | `wrangler kv namespace create RATE_LIMIT_KV` |
+
+**One-time setup before merging M7-A2 to production:**
+
+```bash
+cd apps/api
+pnpm exec wrangler kv namespace create RATE_LIMIT_KV
+pnpm exec wrangler kv namespace create RATE_LIMIT_KV --env production
+```
+
+Paste the returned `id` values into `wrangler.toml` (replace `PLACEHOLDER_DEV_KV_ID` / `PLACEHOLDER_PROD_KV_ID`) for both the default and `[env.production]` blocks, commit + push as a fast-follow.
+
+**Verification post-deploy:** Curl `/orpc/billing.getEntitlements` 31 times from the same IP within 60 seconds (no auth cookie). The 31st should return `429` with `Retry-After`.
+
 ## Queues
 
 | Binding | Name | Producer | Consumer | Created via |
@@ -48,6 +66,7 @@ This is the canonical list of Cloudflare resources that must exist before deploy
 | `POSTHOG_PROJECT_KEY` | Server-side analytics; **absent in env = silent no-op (analytics off)**. Required if you want event capture in PostHog. |
 | `POSTHOG_HOST` | Optional. Defaults to `https://us.i.posthog.com`. Set to `https://eu.i.posthog.com` for EU residency. |
 | `SENTRY_DSN` | Error capture; **absent in env = silent no-op (Sentry off)**. Required for production error monitoring. |
+| `RATE_LIMIT_SMOKE_SECRET` | Optional. M7-A2 rate-limit bypass for CI smoke tests. **Closed-by-default** — if unset, the `X-Internal-Smoke` header has no effect. Set only if CI runs end-to-end probes against the live API. |
 
 To verify all secrets are set:
 
@@ -86,6 +105,11 @@ pnpm exec wrangler r2 bucket create getu-pdfs
 
 # 3. Queue
 pnpm exec wrangler queues create getu-translate-jobs
+
+# 3b. KV namespace (M7-A2 rate limit) — both envs
+pnpm exec wrangler kv namespace create RATE_LIMIT_KV
+pnpm exec wrangler kv namespace create RATE_LIMIT_KV --env production
+# Paste returned ids into wrangler.toml [[kv_namespaces]] / [[env.production.kv_namespaces]] blocks
 
 # 4. Secrets (each prompts interactively)
 for s in AUTH_SECRET AI_JWT_SECRET BIANXIE_API_KEY R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET_PDFS_NAME RESEND_API_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_PRO_MONTHLY STRIPE_PRICE_PRO_YEARLY STRIPE_PRICE_CNY_MONTHLY STRIPE_PRICE_CNY_YEARLY GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET POSTHOG_PROJECT_KEY; do
