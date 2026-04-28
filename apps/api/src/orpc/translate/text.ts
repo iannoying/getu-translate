@@ -16,6 +16,7 @@ import {
   translateTextInputSchema,
   translateTextOutputSchema,
 } from "@getu/contract"
+import { normalizeTranslateTokens } from "@getu/definitions"
 import { loadEntitlements } from "../../billing/entitlements"
 import { TranslateProviderError } from "../../translate/free-providers"
 import { dispatchTranslate } from "../../translate/dispatch"
@@ -82,7 +83,28 @@ export const translateText = authed
     //    and other columns may have succeeded — refund logic is a per-click
     //    aggregate decision, not per-column).
     try {
-      const result = await dispatchTranslate(modelId, input.text, input.sourceLang, input.targetLang)
+      const result = await dispatchTranslate(
+        modelId,
+        input.text,
+        input.sourceLang,
+        input.targetLang,
+        context.env,
+      )
+      // M7-A1: charge LLM tokens against the per-month token bucket.
+      // Free providers return tokens=null and skip — they're billed via the
+      // per-click count bucket only. QUOTA_EXCEEDED bubbles up through the
+      // existing consumeQuota wrapper as a 429.
+      if (result.tokens) {
+        const units = normalizeTranslateTokens(modelId, result.tokens)
+        await consumeTranslateQuota(
+          db,
+          userId,
+          "web_text_translate_token_monthly",
+          units,
+          `web-text-token:${userId}:${input.clickId}:${input.columnId}`,
+        )
+      }
+
       return {
         columnId: input.columnId,
         modelId,

@@ -58,7 +58,13 @@ const fakeDb = {
 
 function ctx(session: Ctx["session"], envOverrides: Partial<Ctx["env"]> = {}): Ctx {
   return {
-    env: { DB: {} as any, BILLING_ENABLED: "false", ...envOverrides } as Ctx["env"],
+    env: {
+      DB: {} as any,
+      BILLING_ENABLED: "false",
+      BIANXIE_API_KEY: "bx-test-key",
+      BIANXIE_BASE_URL: "https://api.bianxie.ai/v1",
+      ...envOverrides,
+    } as Ctx["env"],
     auth: {} as Ctx["auth"],
     session,
   }
@@ -258,25 +264,78 @@ describe("translate.text — auth & gating", () => {
     }
   })
 
-  it("pro user invoking an LLM model gets non-zero token mock (M6.5 stub)", async () => {
+  it("pro user invoking an LLM model gets real bianxie translation + token usage", async () => {
     const ent = await import("../../billing/entitlements")
     ;(ent.loadEntitlements as any).mockResolvedValueOnce({ ...FREE_ENTITLEMENTS, tier: "pro" })
-    const client = createRouterClient(router, { context: ctx(proSession) })
-    const out = await client.translate.translate({
-      text: "hello",
-      sourceLang: "en",
-      targetLang: "zh-CN",
-      modelId: "claude-sonnet-4-6",
-      columnId: "col-claude",
-      clickId: SAMPLE_CLICK_ID,
-    })
-    expect(out.modelId).toBe("claude-sonnet-4-6")
-    expect(out.text).toContain("Pro stub")
-    // M6.5b will replace this with real bianxie.ai token usage; for now
-    // the stub computes 1.5x char count split across input/output so the
-    // Pro token-quota math has non-zero values to exercise.
-    expect(out.tokens?.input).toBeGreaterThan(0)
-    expect(out.tokens?.output).toBeGreaterThan(0)
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          choices: [{ message: { content: "你好" } }],
+          usage: { prompt_tokens: 12, completion_tokens: 4 },
+        }),
+        { status: 200 },
+      ),
+    )
+    try {
+      const client = createRouterClient(router, { context: ctx(proSession) })
+      const out = await client.translate.translate({
+        text: "hello",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+        modelId: "claude-sonnet-4-6",
+        columnId: "col-claude",
+        clickId: SAMPLE_CLICK_ID,
+      })
+      expect(out.modelId).toBe("claude-sonnet-4-6")
+      expect(out.text).toBe("你好")
+      expect(out.text).not.toMatch(/Pro stub/)
+      expect(out.tokens).toEqual({ input: 12, output: 4 })
+      // 防 swapped-arg / broken model mapping / 丢 Bearer 等回归
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      const [url, init] = (fetchSpy.mock.calls[0] as unknown) as [string, RequestInit]
+      expect(url).toBe("https://api.bianxie.ai/v1/chat/completions")
+      expect(init.method).toBe("POST")
+      expect((init.headers as Record<string, string>).authorization).toBe("Bearer bx-test-key")
+      const body = JSON.parse(init.body as string)
+      expect(body.model).toBe("claude-sonnet-4-6")
+      expect(body.stream).toBe(false)
+      const sys = (body.messages as Array<{ role: string; content: string }>).find((m) => m.role === "system")
+      expect(sys?.content).toMatch(/en/)
+      expect(sys?.content).toMatch(/zh-CN/)
+      const user = (body.messages as Array<{ role: string; content: string }>).find((m) => m.role === "user")
+      expect(user?.content).toBe("hello")
+    } finally {
+      fetchSpy.mockRestore()
+    }
+  })
+
+  it("propagates bianxie upstream failure as PROVIDER_FAILED", async () => {
+    const ent = await import("../../billing/entitlements")
+    ;(ent.loadEntitlements as any).mockResolvedValueOnce({ ...FREE_ENTITLEMENTS, tier: "pro" })
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("Service Unavailable", { status: 503 }),
+    )
+    try {
+      const client = createRouterClient(router, { context: ctx(proSession) })
+      await expect(
+        client.translate.translate({
+          text: "hello",
+          sourceLang: "en",
+          targetLang: "zh-CN",
+          modelId: "claude-sonnet-4-6",
+          columnId: "col-claude",
+          clickId: SAMPLE_CLICK_ID,
+        }),
+      ).rejects.toMatchObject({
+        code: "INTERNAL_SERVER_ERROR",
+        data: {
+          code: "PROVIDER_FAILED",
+          providerId: "bianxie:claude-sonnet-4-6",
+        },
+      })
+    } finally {
+      fetchSpy.mockRestore()
+    }
   })
 
   it("rejects non-UUID clickId at the schema layer", async () => {
@@ -302,41 +361,68 @@ describe("translate.text — auth & gating", () => {
     const quota = await import("../../billing/quota")
     const ent = await import("../../billing/entitlements")
     ;(ent.loadEntitlements as any).mockResolvedValue({ ...FREE_ENTITLEMENTS, tier: "pro" })
-    const client = createRouterClient(router, { context: ctx(proSession) })
-    const sharedClickId = SHARED_CLICK_ID
-    await Promise.all([
-      client.translate.translate({
-        text: "hi",
-        sourceLang: "en",
-        targetLang: "zh-CN",
-        modelId: "google",
-        columnId: "col-google",
-        clickId: sharedClickId,
-      }),
-      client.translate.translate({
-        text: "hi",
-        sourceLang: "en",
-        targetLang: "zh-CN",
-        modelId: "claude-sonnet-4-6",
-        columnId: "col-claude",
-        clickId: sharedClickId,
-      }),
-      client.translate.translate({
-        text: "hi",
-        sourceLang: "en",
-        targetLang: "zh-CN",
-        modelId: "gpt-5.5",
-        columnId: "col-gpt",
-        clickId: sharedClickId,
-      }),
-    ])
-    const calls = (quota.consumeQuota as any).mock.calls
-    expect(calls).toHaveLength(3)
-    // All three calls must use the SAME requestId so consumeQuota's
-    // (userId, requestId) idempotency collapses them to one decrement.
-    const requestIds = calls.map((args: unknown[]) => args[4])
-    expect(new Set(requestIds).size).toBe(1)
-    expect(requestIds[0]).toBe(`web-text:u-pro:${sharedClickId}`)
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
+      const urlStr = String(url)
+      if (urlStr.includes("translate.googleapis.com")) {
+        return new Response(JSON.stringify([[["你好", "hi", null, null, 0]]]), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
+      }
+      if (urlStr.includes("bianxie.ai")) {
+        return new Response(
+          JSON.stringify({
+            choices: [{ message: { content: "你好" } }],
+            usage: { prompt_tokens: 1, completion_tokens: 1 },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        )
+      }
+      throw new Error(`unexpected url: ${urlStr}`)
+    })
+    try {
+      const client = createRouterClient(router, { context: ctx(proSession) })
+      const sharedClickId = SHARED_CLICK_ID
+      await Promise.all([
+        client.translate.translate({
+          text: "hi",
+          sourceLang: "en",
+          targetLang: "zh-CN",
+          modelId: "google",
+          columnId: "col-google",
+          clickId: sharedClickId,
+        }),
+        client.translate.translate({
+          text: "hi",
+          sourceLang: "en",
+          targetLang: "zh-CN",
+          modelId: "claude-sonnet-4-6",
+          columnId: "col-claude",
+          clickId: sharedClickId,
+        }),
+        client.translate.translate({
+          text: "hi",
+          sourceLang: "en",
+          targetLang: "zh-CN",
+          modelId: "gpt-5.5",
+          columnId: "col-gpt",
+          clickId: sharedClickId,
+        }),
+      ])
+      const calls = (quota.consumeQuota as any).mock.calls as Array<unknown[]>
+      // 3 per-click count calls + 2 token calls (claude + gpt-5.5; google skips token bucket)
+      const clickCalls = calls.filter((args) => args[2] === "web_text_translate_monthly")
+      expect(clickCalls).toHaveLength(3)
+      const tokenCalls = calls.filter((args) => args[2] === "web_text_translate_token_monthly")
+      expect(tokenCalls).toHaveLength(2) // 2 LLM columns
+      // All three click calls must use the SAME requestId so consumeQuota's
+      // (userId, requestId) idempotency collapses them to one decrement.
+      const clickRequestIds = new Set(clickCalls.map((args) => args[4]))
+      expect(clickRequestIds.size).toBe(1)
+      expect(clickRequestIds.has(`web-text:u-pro:${sharedClickId}`)).toBe(true)
+    } finally {
+      fetchSpy.mockRestore()
+    }
   })
 })
 
@@ -791,6 +877,69 @@ describe("translate.clearHistory", () => {
     // Still issues the DELETE statement — D1 is fine with empty deletes,
     // and the round-trip is cheap enough that we don't optimize for it.
     expect(deleteCalls).toHaveLength(1)
+  })
+})
+
+describe("translate.text — token quota consumption", () => {
+  it("consumes web_text_translate_token_monthly with normalized units after a successful LLM call", async () => {
+    const ent = await import("../../billing/entitlements")
+    const quota = await import("../../billing/quota")
+    ;(ent.loadEntitlements as any).mockResolvedValueOnce({ ...FREE_ENTITLEMENTS, tier: "pro" })
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          choices: [{ message: { content: "你好" } }],
+          usage: { prompt_tokens: 10, completion_tokens: 5 },
+        }),
+        { status: 200 },
+      ),
+    )
+    try {
+      const client = createRouterClient(router, { context: ctx(proSession) })
+      await client.translate.translate({
+        text: "hello",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+        modelId: "claude-sonnet-4-6", // input=20, output=75
+        columnId: "col-claude",
+        clickId: SAMPLE_CLICK_ID,
+      })
+      // claude-sonnet-4-6 cost: 10*20 + 5*75 = 200 + 375 = 575 units
+      expect(quota.consumeQuota).toHaveBeenCalledWith(
+        expect.anything(),
+        "u-pro",
+        "web_text_translate_token_monthly",
+        575,
+        `web-text-token:u-pro:${SAMPLE_CLICK_ID}:col-claude`,
+        undefined,
+      )
+    } finally {
+      fetchSpy.mockRestore()
+    }
+  })
+
+  it("does NOT consume token bucket for free providers (google)", async () => {
+    const quota = await import("../../billing/quota")
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify([[["你好", "hi", null, null, 0]]]), { status: 200 }),
+    )
+    try {
+      const client = createRouterClient(router, { context: ctx(freeSession) })
+      await client.translate.translate({
+        text: "hi",
+        sourceLang: "en",
+        targetLang: "zh-CN",
+        modelId: "google",
+        columnId: "c1",
+        clickId: SAMPLE_CLICK_ID,
+      })
+      // Only the per-click count bucket should fire — never the token bucket.
+      const calls = (quota.consumeQuota as any).mock.calls as Array<unknown[]>
+      const tokenBucketCalls = calls.filter((c) => c[2] === "web_text_translate_token_monthly")
+      expect(tokenBucketCalls).toHaveLength(0)
+    } finally {
+      fetchSpy.mockRestore()
+    }
   })
 })
 

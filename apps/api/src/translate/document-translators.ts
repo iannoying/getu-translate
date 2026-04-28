@@ -3,6 +3,7 @@ import { TRANSLATE_MODEL_BY_ID } from "@getu/definitions"
 import type { Chunk } from "./document-chunker"
 import type { TranslateChunkFn } from "./document-pipeline"
 import { dispatchTranslate } from "./dispatch"
+import type { BianxieLlmEnv } from "./llm-providers"
 
 /**
  * Returns a TranslateChunkFn that translates one chunk via dispatchTranslate.
@@ -13,7 +14,7 @@ import { dispatchTranslate } from "./dispatch"
  * When the underlying free-providers / LLM client gain abort support, plumb
  * the signal through to fetch.
  */
-export function makeTranslateChunkFn(): TranslateChunkFn {
+export function makeTranslateChunkFn(env: BianxieLlmEnv): TranslateChunkFn {
   return async (chunk: Chunk, ctx, _signal) => {
     if (!isKnownModelId(ctx.modelId)) {
       throw new Error(`unknown modelId: ${ctx.modelId}`)
@@ -23,6 +24,7 @@ export function makeTranslateChunkFn(): TranslateChunkFn {
       chunk.text,
       ctx.sourceLang,
       ctx.targetLang,
+      env,
     )
     return out.text
   }
