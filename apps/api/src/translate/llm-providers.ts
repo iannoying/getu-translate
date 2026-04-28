@@ -88,7 +88,7 @@ export async function bianxieLlmTranslate(
     const errBody = await resp.text().catch(() => "")
     throw new TranslateProviderError(
       providerId,
-      `request failed: ${resp.status}${errBody ? ` — ${errBody.slice(0, 200)}` : ""}`,
+      `request failed: ${resp.status} ${resp.statusText}${errBody ? ` — ${errBody.slice(0, 200)}` : ""}`,
       resp.status,
     )
   }
