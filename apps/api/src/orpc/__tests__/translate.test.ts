@@ -290,6 +290,20 @@ describe("translate.text — auth & gating", () => {
       expect(out.text).toBe("你好")
       expect(out.text).not.toMatch(/Pro stub/)
       expect(out.tokens).toEqual({ input: 12, output: 4 })
+      // 防 swapped-arg / broken model mapping / 丢 Bearer 等回归
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      const [url, init] = (fetchSpy.mock.calls[0] as unknown) as [string, RequestInit]
+      expect(url).toBe("https://api.bianxie.ai/v1/chat/completions")
+      expect(init.method).toBe("POST")
+      expect((init.headers as Record<string, string>).authorization).toBe("Bearer bx-test-key")
+      const body = JSON.parse(init.body as string)
+      expect(body.model).toBe("claude-sonnet-4-6")
+      expect(body.stream).toBe(false)
+      const sys = (body.messages as Array<{ role: string; content: string }>).find((m) => m.role === "system")
+      expect(sys?.content).toMatch(/en/)
+      expect(sys?.content).toMatch(/zh-CN/)
+      const user = (body.messages as Array<{ role: string; content: string }>).find((m) => m.role === "user")
+      expect(user?.content).toBe("hello")
     } finally {
       fetchSpy.mockRestore()
     }
@@ -355,14 +369,16 @@ describe("translate.text — auth & gating", () => {
           headers: { "content-type": "application/json" },
         })
       }
-      // bianxie LLM calls
-      return new Response(
-        JSON.stringify({
-          choices: [{ message: { content: "你好" } }],
-          usage: { prompt_tokens: 1, completion_tokens: 1 },
-        }),
-        { status: 200, headers: { "content-type": "application/json" } },
-      )
+      if (urlStr.includes("bianxie.ai")) {
+        return new Response(
+          JSON.stringify({
+            choices: [{ message: { content: "你好" } }],
+            usage: { prompt_tokens: 1, completion_tokens: 1 },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        )
+      }
+      throw new Error(`unexpected url: ${urlStr}`)
     })
     try {
       const client = createRouterClient(router, { context: ctx(proSession) })
