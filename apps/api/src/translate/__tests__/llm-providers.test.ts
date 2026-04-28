@@ -101,7 +101,11 @@ describe("bianxieLlmTranslate — error paths", () => {
     ) as unknown as typeof fetch
     await expect(
       bianxieLlmTranslate("gpt-5.5", "hi", "auto", "zh-Hans", env, fetchSpy),
-    ).rejects.toMatchObject({ statusCode: 503 })
+    ).rejects.toMatchObject({
+      name: "TranslateProviderError",
+      providerId: "bianxie:gpt-5.5",
+      statusCode: 503,
+    })
   })
 
   it("throws TranslateProviderError on network error (fetch rejects)", async () => {
