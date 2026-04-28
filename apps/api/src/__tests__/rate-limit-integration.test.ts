@@ -60,7 +60,7 @@ describe("rate-limit integration on /orpc/*", () => {
     // 30 anonymous calls allowed
     for (let i = 0; i < 30; i++) {
       const r = await make()
-      expect(r.status).not.toBe(429)
+      expect(r.status, `request ${i + 1}/30`).not.toBe(429)
     }
     // 31st blocked
     const blocked = await make()
@@ -71,9 +71,10 @@ describe("rate-limit integration on /orpc/*", () => {
   it("/health endpoint is NOT rate-limited (no middleware on /health)", async () => {
     const env = makeEnv()
     const make = () => app.fetch(new Request("https://api.example.com/health"), env)
+    // 50 > anon limit (30) — would see 429 if middleware was wrongly attached to /health
     for (let i = 0; i < 50; i++) {
       const r = await make()
-      expect(r.status).toBe(200)
+      expect(r.status, `health request ${i + 1}/50`).toBe(200)
     }
   })
 
@@ -92,9 +93,10 @@ describe("rate-limit integration on /orpc/*", () => {
         }),
         env,
       )
+    // 50 > both limits (30 anon / 60 auth) — confirms bypass works regardless of cap
     for (let i = 0; i < 50; i++) {
       const r = await make()
-      expect(r.status).not.toBe(429)
+      expect(r.status, `smoke bypass request ${i + 1}/50`).not.toBe(429)
     }
   })
 })
