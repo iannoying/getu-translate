@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import { Hono } from "hono"
+import type { KVNamespace } from "@cloudflare/workers-types"
 import { rateLimit, type RateLimitMiddlewareOptions } from "../rate-limit"
 
 function makeKv() {
@@ -7,7 +8,15 @@ function makeKv() {
   return {
     store,
     kv: {
-      async get(k: string) { return store.get(k)?.value ?? null },
+      async get(k: string) {
+        const e = store.get(k)
+        if (!e) return null
+        if (e.expiresAt <= Date.now()) {
+          store.delete(k)
+          return null
+        }
+        return e.value
+      },
       async put(k: string, v: string, opts?: { expirationTtl?: number }) {
         store.set(k, { value: v, expiresAt: Date.now() + (opts?.expirationTtl ?? 0) * 1000 })
       },
