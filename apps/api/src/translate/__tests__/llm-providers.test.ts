@@ -80,3 +80,75 @@ describe("bianxieLlmTranslate — happy path", () => {
     )
   })
 })
+
+describe("bianxieLlmTranslate — error paths", () => {
+  it("throws TranslateProviderError with statusCode 429 on rate limit", async () => {
+    const fetchSpy = vi.fn(async () =>
+      new Response("rate limited", { status: 429 }),
+    ) as unknown as typeof fetch
+    await expect(
+      bianxieLlmTranslate("gpt-5.5", "hi", "auto", "zh-Hans", env, fetchSpy),
+    ).rejects.toMatchObject({
+      name: "TranslateProviderError",
+      providerId: "bianxie:gpt-5.5",
+      statusCode: 429,
+    })
+  })
+
+  it("throws TranslateProviderError with statusCode 503 on upstream 5xx", async () => {
+    const fetchSpy = vi.fn(async () =>
+      new Response("Service Unavailable", { status: 503 }),
+    ) as unknown as typeof fetch
+    await expect(
+      bianxieLlmTranslate("gpt-5.5", "hi", "auto", "zh-Hans", env, fetchSpy),
+    ).rejects.toMatchObject({ statusCode: 503 })
+  })
+
+  it("throws TranslateProviderError on network error (fetch rejects)", async () => {
+    const fetchSpy = vi.fn(async () => {
+      throw new TypeError("fetch failed")
+    }) as unknown as typeof fetch
+    await expect(
+      bianxieLlmTranslate("gpt-5.5", "hi", "auto", "zh-Hans", env, fetchSpy),
+    ).rejects.toThrow(/network error/)
+  })
+
+  it("throws on malformed JSON (no choices array)", async () => {
+    const fetchSpy = vi.fn(async () =>
+      new Response(JSON.stringify({ ok: false }), { status: 200 }),
+    ) as unknown as typeof fetch
+    await expect(
+      bianxieLlmTranslate("gpt-5.5", "hi", "auto", "zh-Hans", env, fetchSpy),
+    ).rejects.toThrow(/missing translation/)
+  })
+
+  it("throws on missing usage", async () => {
+    const fetchSpy = vi.fn(async () =>
+      new Response(
+        JSON.stringify({ choices: [{ message: { content: "ok" } }] }),
+        { status: 200 },
+      ),
+    ) as unknown as typeof fetch
+    await expect(
+      bianxieLlmTranslate("gpt-5.5", "hi", "auto", "zh-Hans", env, fetchSpy),
+    ).rejects.toThrow(/usage/)
+  })
+
+  it("throws when modelId is not in TRANSLATE_MODEL_TO_BIANXIE map", async () => {
+    const fetchSpy = vi.fn() as unknown as typeof fetch
+    await expect(
+      bianxieLlmTranslate(
+        "coder-claude-4.7-opus",
+        "hi",
+        "auto",
+        "zh-Hans",
+        env,
+        fetchSpy,
+      ),
+    ).rejects.toMatchObject({
+      providerId: "coder-claude-4.7-opus",
+      message: expect.stringMatching(/not yet wired/),
+    })
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+})
