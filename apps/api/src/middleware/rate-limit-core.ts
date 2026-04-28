@@ -2,7 +2,7 @@ import type { KVNamespace } from "@cloudflare/workers-types"
 
 export type RateLimitConfig = {
   limit: number
-  windowMs: number  // currently always 60_000 — kept for forward-compat
+  windowMs: number
 }
 
 export type RateLimitResult = {
@@ -11,11 +11,11 @@ export type RateLimitResult = {
   retryAfterSeconds: number
 }
 
-const KV_TTL_SECONDS = 120  // 1-min window + ~60s safety buffer for KV propagation
-
 /**
  * Fixed-window rate limit backed by Cloudflare KV.
  * Key: `rl:<key>:<minuteEpoch>`. Value: ASCII int count.
+ *
+ * TTL = ceil(windowMs / 1000) + 60s safety buffer for KV propagation.
  *
  * Race note: KV is eventually consistent. Two concurrent requests on the
  * same key may both read N and both write N+1, effectively allowing one
@@ -44,7 +44,7 @@ export async function checkAndIncrementRateLimit(
   }
 
   const next = safeCurrent + 1
-  await kv.put(kvKey, String(next), { expirationTtl: KV_TTL_SECONDS })
+  await kv.put(kvKey, String(next), { expirationTtl: Math.ceil(cfg.windowMs / 1000) + 60 })
   return {
     allowed: true,
     remaining: cfg.limit - next,

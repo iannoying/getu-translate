@@ -1,5 +1,6 @@
 // apps/api/src/middleware/__tests__/rate-limit-core.test.ts
 import { describe, expect, it, vi } from "vitest"
+import type { KVNamespace } from "@cloudflare/workers-types"
 import { checkAndIncrementRateLimit, type RateLimitConfig } from "../rate-limit-core"
 
 function makeKv() {
@@ -131,5 +132,13 @@ describe("checkAndIncrementRateLimit", () => {
     const r = await checkAndIncrementRateLimit(kv, "u-corrupt", cfg)
     expect(r.allowed).toBe(true)
     expect(r.remaining).toBe(59)
+  })
+
+  it("rejects all requests when limit=0", async () => {
+    const { kv } = makeKv()
+    const r = await checkAndIncrementRateLimit(kv, "u-blocked", { limit: 0, windowMs: 60_000 })
+    expect(r.allowed).toBe(false)
+    expect(r.remaining).toBe(0)
+    expect(r.retryAfterSeconds).toBeGreaterThanOrEqual(1)
   })
 })
