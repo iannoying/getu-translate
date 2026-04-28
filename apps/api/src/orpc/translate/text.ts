@@ -82,7 +82,13 @@ export const translateText = authed
     //    and other columns may have succeeded — refund logic is a per-click
     //    aggregate decision, not per-column).
     try {
-      const result = await dispatchTranslate(modelId, input.text, input.sourceLang, input.targetLang)
+      const result = await dispatchTranslate(
+        modelId,
+        input.text,
+        input.sourceLang,
+        input.targetLang,
+        context.env,
+      )
       return {
         columnId: input.columnId,
         modelId,

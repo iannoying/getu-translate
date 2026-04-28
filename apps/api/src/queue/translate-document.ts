@@ -40,7 +40,7 @@ export type CreateQueueHandlerOpts = {
 }
 
 export function createQueueHandler(opts: CreateQueueHandlerOpts) {
-  const translateChunk = opts.translateChunk ?? makeTranslateChunkFn()
+  const translateChunk = opts.translateChunk ?? makeTranslateChunkFn(opts.env)
 
   return {
     async queue(
