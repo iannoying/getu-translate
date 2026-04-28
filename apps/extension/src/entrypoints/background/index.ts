@@ -15,6 +15,7 @@ import { setupEdgeTTSMessageHandlers } from "./edge-tts"
 import { setupIframeInjection } from "./iframe-injection"
 import { setupLLMGenerateTextMessageHandlers } from "./llm-generate-text"
 import { initMockData } from "./mock-data"
+import { setupNativeSidePanelHandlers } from "./native-side-panel"
 import { newUserGuide } from "./new-user-guide"
 import { isPdfTab, setUpPdfTabDetect } from "./pdf-tab-detect"
 import { proxyFetch } from "./proxy-fetch"
@@ -86,6 +87,7 @@ export default defineBackground({
     newUserGuide()
     setupAnalyticsMessageHandlers()
     translationMessage()
+    setupNativeSidePanelHandlers()
     setupSidebarOpenSync()
 
     // Register context menu listeners synchronously

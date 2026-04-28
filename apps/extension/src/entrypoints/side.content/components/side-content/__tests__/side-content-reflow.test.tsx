@@ -15,11 +15,11 @@ vi.mock("@/utils/i18n", () => ({
   i18n: { t: (key: string) => key },
 }))
 
-vi.mock("../sidebar-text-tab", () => ({
+vi.mock("@/components/translation-workbench/sidebar-text-tab", () => ({
   SidebarTextTab: () => <h2>translationWorkbench.textTitle</h2>,
 }))
 
-vi.mock("../sidebar-document-tab", () => ({
+vi.mock("@/components/translation-workbench/sidebar-document-tab", () => ({
   SidebarDocumentTab: () => <h2>translationWorkbench.documentTitle</h2>,
 }))
 

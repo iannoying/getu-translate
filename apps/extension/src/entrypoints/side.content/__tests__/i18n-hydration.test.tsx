@@ -50,11 +50,11 @@ vi.mock("../components/floating-button", () => ({
   default: () => null,
 }))
 
-vi.mock("../components/side-content/sidebar-text-tab", () => ({
+vi.mock("@/components/translation-workbench/sidebar-text-tab", () => ({
   SidebarTextTab: () => <h2>文本翻译</h2>,
 }))
 
-vi.mock("../components/side-content/sidebar-document-tab", () => ({
+vi.mock("@/components/translation-workbench/sidebar-document-tab", () => ({
   SidebarDocumentTab: () => <h2>文档翻译</h2>,
 }))
 

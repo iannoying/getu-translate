@@ -8,7 +8,7 @@ import FloatingButton from ".."
 import { isSideOpenAtom } from "../../../atoms"
 
 const { sendMessageMock } = vi.hoisted(() => ({
-  sendMessageMock: vi.fn(() => Promise.resolve()),
+  sendMessageMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(() => Promise.resolve()),
 }))
 
 vi.mock("#imports", () => ({
@@ -75,7 +75,8 @@ beforeAll(() => {
 })
 
 beforeEach(() => {
-  sendMessageMock.mockClear()
+  sendMessageMock.mockReset()
+  sendMessageMock.mockResolvedValue({ opened: true })
 })
 
 interface FloatingButtonConfig {
@@ -168,7 +169,27 @@ describe("floatingButton open panel tab", () => {
     expect(openPanelTab).not.toHaveClass("group-hover:block")
   })
 
-  it("updates the sidebar open atom when opening from the tab", async () => {
+  it("opens the native side panel from the tab without opening the overlay when native succeeds", async () => {
+    sendMessageMock.mockResolvedValue({ opened: true })
+    const { store } = renderWithStore(
+      <>
+        <FloatingButton />
+        <SideOpenProbe />
+      </>,
+      { isSideOpen: false },
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "translationWorkbench.openPanel" }))
+
+    await vi.waitFor(() => {
+      expect(sendMessageMock).toHaveBeenCalledWith("openNativeSidePanel", undefined)
+    })
+    expect(store.get(isSideOpenAtom)).toBe(false)
+    expect(screen.getByTestId("side-open-state")).toHaveTextContent("false")
+  })
+
+  it("falls back to the overlay when native side panel is unavailable", async () => {
+    sendMessageMock.mockResolvedValue({ opened: false })
     const { store } = renderWithStore(
       <>
         <FloatingButton />
@@ -183,9 +204,30 @@ describe("floatingButton open panel tab", () => {
       expect(store.get(isSideOpenAtom)).toBe(true)
       expect(screen.getByTestId("side-open-state")).toHaveTextContent("true")
     })
+    expect(sendMessageMock).toHaveBeenCalledWith("openNativeSidePanel", undefined)
   })
 
-  it("opens the sidebar without sending the page translation message when the main logo action is translate", () => {
+  it("falls back to the overlay when native side panel opening rejects", async () => {
+    sendMessageMock.mockRejectedValue(new Error("native side panel unavailable"))
+    const { store } = renderWithStore(
+      <>
+        <FloatingButton />
+        <SideOpenProbe />
+      </>,
+      { isSideOpen: false },
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "translationWorkbench.openPanel" }))
+
+    await vi.waitFor(() => {
+      expect(store.get(isSideOpenAtom)).toBe(true)
+      expect(screen.getByTestId("side-open-state")).toHaveTextContent("true")
+    })
+    expect(sendMessageMock).toHaveBeenCalledWith("openNativeSidePanel", undefined)
+  })
+
+  it("opens the panel tab through native side panel without sending the page translation message when the main logo action is translate", async () => {
+    sendMessageMock.mockResolvedValue({ opened: false })
     const { store } = renderWithStore(
       <>
         <FloatingButton />
@@ -205,9 +247,16 @@ describe("floatingButton open panel tab", () => {
     fireEvent.mouseUp(document)
     fireEvent.click(openPanelTab)
 
-    expect(store.get(isSideOpenAtom)).toBe(true)
-    expect(screen.getByTestId("side-open-state")).toHaveTextContent("true")
-    expect(sendMessageMock).not.toHaveBeenCalled()
+    await vi.waitFor(() => {
+      expect(store.get(isSideOpenAtom)).toBe(true)
+      expect(screen.getByTestId("side-open-state")).toHaveTextContent("true")
+    })
+    expect(sendMessageMock).toHaveBeenCalledTimes(1)
+    expect(sendMessageMock).toHaveBeenCalledWith("openNativeSidePanel", undefined)
+    expect(sendMessageMock).not.toHaveBeenCalledWith(
+      "tryToSetEnablePageTranslationOnContentScript",
+      expect.anything(),
+    )
   })
 
   it("keeps the open-panel tab visible and attached while the sidebar is open", () => {

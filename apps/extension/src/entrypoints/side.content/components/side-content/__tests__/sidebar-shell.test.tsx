@@ -14,11 +14,11 @@ vi.mock("@/utils/i18n", () => ({
   i18n: { t: (key: string) => key },
 }))
 
-vi.mock("../sidebar-text-tab", () => ({
+vi.mock("@/components/translation-workbench/sidebar-text-tab", () => ({
   SidebarTextTab: () => <h2>translationWorkbench.textTitle</h2>,
 }))
 
-vi.mock("../sidebar-document-tab", () => ({
+vi.mock("@/components/translation-workbench/sidebar-document-tab", () => ({
   SidebarDocumentTab: () => <h2>translationWorkbench.documentTitle</h2>,
 }))
 
@@ -54,5 +54,22 @@ describe("sidebarShell", () => {
     await vi.waitFor(() => {
       expect(store.get(isSideOpenAtom)).toBe(false)
     })
+  })
+
+  it("uses the provided close handler when rendered outside the content overlay", () => {
+    const store = createStore()
+    const onClose = vi.fn()
+    void store.set(isSideOpenAtom, true)
+
+    render(
+      <JotaiProvider store={store}>
+        <SidebarShell onClose={onClose} portalContainer={document.body} />
+      </JotaiProvider>,
+    )
+
+    fireEvent.click(screen.getByLabelText("translationWorkbench.closeSidebar"))
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(store.get(isSideOpenAtom)).toBe(true)
   })
 })
