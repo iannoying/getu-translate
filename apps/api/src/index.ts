@@ -1,16 +1,27 @@
 import { Hono } from "hono"
 import { cors } from "hono/cors"
+import type { Context, Next } from "hono"
 import { RPCHandler } from "@orpc/server/fetch"
 import { createAuth } from "./auth"
-import type { WorkerEnv } from "./env"
+import type { WorkerEnv, AppVariables } from "./env"
 import { router } from "./orpc"
 import { handleChatCompletions } from "./ai/proxy"
 import { signAiJwt, AI_JWT_TTL_SECONDS, isAiProxyQuotaBucket } from "./ai/jwt"
 import { handlePaddleWebhook } from "./billing/webhook-handler"
 import { handleStripeWebhook } from "./billing/stripe-webhook-handler"
 import { documentRoutes } from "./translate/document"
+import { rateLimit } from "./middleware/rate-limit"
 
-const app = new Hono<{ Bindings: WorkerEnv }>()
+const app = new Hono<{ Bindings: WorkerEnv; Variables: AppVariables }>()
+
+// Shared session-attaching middleware (used by both rate-limit and orpc/ai handlers)
+async function attachSession(c: Context<{ Bindings: WorkerEnv; Variables: AppVariables }>, next: Next) {
+  const auth = createAuth(c.env)
+  const session = await auth.api.getSession({ headers: c.req.raw.headers }).catch(() => null)
+  c.set("auth", auth)
+  c.set("session", session)
+  await next()
+}
 
 function makeCorsMw(env: WorkerEnv) {
   const allowed = env.ALLOWED_EXTENSION_ORIGINS.split(",").map(s => s.trim()).filter(Boolean)
@@ -59,19 +70,23 @@ app.all("/api/identity/*", async (c) => {
 
 const rpcHandler = new RPCHandler(router)
 
+app.use("/orpc/*", attachSession)
+app.use("/orpc/*", rateLimit({ limitAuth: 60, limitAnon: 30 }))
+
 app.all("/orpc/*", async (c) => {
-  const auth = createAuth(c.env)
-  const session = await auth.api.getSession({ headers: c.req.raw.headers }).catch(() => null)
+  const auth = c.get("auth")
+  const session = c.get("session")
   const ctx = { env: c.env, auth, session, executionCtx: c.executionCtx }
   const { response } = await rpcHandler.handle(c.req.raw, { prefix: "/orpc", context: ctx })
   return response ?? c.notFound()
 })
 
 app.use("/ai/*", async (c, next) => makeCorsMw(c.env)(c, next))
+app.use("/ai/v1/*", attachSession)
+app.use("/ai/v1/*", rateLimit({ limitAuth: 60, limitAnon: 30 }))
 
 app.post("/ai/v1/token", async (c) => {
-  const auth = createAuth(c.env)
-  const session = await auth.api.getSession({ headers: c.req.raw.headers }).catch(() => null)
+  const session = c.get("session")
   if (!session?.user) return c.json({ error: "unauthorized" }, 401)
   const body = await c.req.json().catch(() => null) as { quota_bucket?: unknown } | null
   const requestedQuotaBucket = body?.quota_bucket
