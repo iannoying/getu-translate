@@ -86,11 +86,7 @@ async function processOne(
   }
 
   // 2. Idempotency check — skip if already past 'queued'
-  if (
-    job.status === "done" ||
-    job.status === "failed" ||
-    job.status === "processing"
-  ) {
+  if (job.status !== "queued") {
     console.info("[queue.translate-document] job not queued, skipping", {
       jobId,
       status: job.status,
@@ -99,13 +95,36 @@ async function processOne(
   }
 
   // 3. Transition to processing
-  await db
+  const now = new Date()
+  const claimedRows = await db
     .update(schema.translationJobs)
     .set({
       status: "processing",
       progress: JSON.stringify({ stage: "extracting", pct: 0 }),
+      progressUpdatedAt: now,
     })
-    .where(eq(schema.translationJobs.id, jobId))
+    .where(
+      and(
+        eq(schema.translationJobs.id, jobId),
+        eq(schema.translationJobs.status, "queued"),
+      ),
+    )
+    .returning({ id: schema.translationJobs.id })
+
+  if (claimedRows.length !== 1) {
+    console.info("[queue.translate-document] job claim skipped", { jobId })
+    return
+  }
+
+  if (!job.sourceKey.endsWith("/source.pdf")) {
+    console.error("[queue.translate-document] unexpected sourceKey shape", {
+      jobId,
+      sourceKey: job.sourceKey,
+    })
+    await fail(db, job, FAILURE_MSG_GENERIC, ERROR_CODES.GENERIC)
+    await refundQuota(db, job)
+    return
+  }
 
   const ac = new AbortController()
 
@@ -145,7 +164,10 @@ async function processOne(
     }) => {
       await db
         .update(schema.translationJobs)
-        .set({ progress: JSON.stringify(p) })
+        .set({
+          progress: JSON.stringify(p),
+          progressUpdatedAt: new Date(),
+        })
         .where(eq(schema.translationJobs.id, jobId))
     }
 
@@ -167,12 +189,6 @@ async function processOne(
     )
 
     // 10. Write segments.json to R2
-    if (!job.sourceKey.endsWith("/source.pdf")) {
-      console.error("[queue.translate-document] unexpected sourceKey shape", { jobId, sourceKey: job.sourceKey })
-      await fail(db, job, FAILURE_MSG_GENERIC, ERROR_CODES.GENERIC)
-      await refundQuota(db, job)
-      return
-    }
     const segmentsKey = job.sourceKey.replace(/source\.pdf$/, "segments.json")
     try {
       await bucket.put(segmentsKey, JSON.stringify(segmentsFile), {
@@ -204,6 +220,7 @@ async function processOne(
           outputHtmlKey: htmlKey,
           outputMdKey: mdKey,
           progress: null,
+          progressUpdatedAt: new Date(),
         })
         .where(eq(schema.translationJobs.id, jobId))
       console.info("[queue.translate-document] job done", { jobId })
@@ -234,6 +251,7 @@ async function fail(
     .set({
       status: "failed",
       progress: null,
+      progressUpdatedAt: now,
       errorMessage,
       errorCode,
       failedAt: now,

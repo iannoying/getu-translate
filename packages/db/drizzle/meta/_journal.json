@@ -50,6 +50,13 @@
       "when": 1777250380233,
       "tag": "0006_modern_lenny_balinger",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1777908635647,
+      "tag": "0007_progress_updated_at",
+      "breakpoints": true
     }
   ]
 }
