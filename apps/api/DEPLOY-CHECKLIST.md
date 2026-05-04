@@ -67,20 +67,40 @@ Paste the returned `id` values into `wrangler.toml` (replace `PLACEHOLDER_DEV_KV
 | `POSTHOG_HOST` | Optional. Defaults to `https://us.i.posthog.com`. Set to `https://eu.i.posthog.com` for EU residency. |
 | `SENTRY_DSN` | Error capture; **absent in env = silent no-op (Sentry off)**. Required for production error monitoring. |
 | `RATE_LIMIT_SMOKE_SECRET` | Optional. M7-A2 rate-limit bypass for CI smoke tests. **Closed-by-default** — if unset, the `X-Internal-Smoke` header has no effect. Set only if CI runs end-to-end probes against the live API. |
+| `SLACK_WEBHOOK_URL` | M7-B3 spend monitor Slack incoming webhook. Optional for non-prod; required for production spend alerts. |
 
 To verify all secrets are set:
 
 ```bash
 cd apps/api && pnpm exec wrangler secret list | grep -c '"name"'
-# Expected: 17+ (lines, all non-empty)
+# Expected: 18+ (lines, all non-empty; includes SLACK_WEBHOOK_URL when production spend alerts are enabled)
 ```
 
 ## Cron Triggers
 
 Configured in `wrangler.toml`:
-- `0 3 * * *` daily — runs `runRetention`, `runTranslationCleanup`, `runTranslationStuckSweep`, `runTranslationRetry`
+- `0 3 * * *` daily — runs `runRetention`, `runTranslationCleanup`, `runTranslationStuckSweep`, `runTranslationRetry`, `runSpendMonitor`
 
 To trigger manually for testing: Cloudflare Dashboard → Workers → getu-api → Triggers → Cron Triggers → "Trigger".
+
+## M7-B3 — Spend Monitor Alerts
+
+The API Worker daily cron (`0 3 * * *`) aggregates `usage_log.amount` over the previous 24 hours by bucket and compares totals with these vars in `wrangler.toml`:
+
+- `SPEND_ALERT_AI_TRANSLATE_PER_DAY`
+- `SPEND_ALERT_WEB_TEXT_TRANSLATE_PER_DAY`
+- `SPEND_ALERT_WEB_TEXT_TRANSLATE_TOKENS_PER_DAY`
+- `SPEND_ALERT_DOCUMENT_PAGES_PER_DAY`
+- `SPEND_ALERT_AI_RATE_LIMIT_WRITES_PER_DAY`
+
+Set the Slack webhook secret in production:
+
+```bash
+cd apps/api
+pnpm exec wrangler secret put SLACK_WEBHOOK_URL --env production
+```
+
+If the webhook is absent, the cron still computes breaches and logs `skippedReason: "no_webhook"` without posting externally. Thresholds set to missing, empty, zero, negative, or non-numeric values disable that bucket.
 
 ## R2 Lifecycle Rules (Cloudflare Dashboard)
 
@@ -111,8 +131,8 @@ pnpm exec wrangler kv namespace create RATE_LIMIT_KV
 pnpm exec wrangler kv namespace create RATE_LIMIT_KV --env production
 # Paste returned ids into wrangler.toml [[kv_namespaces]] / [[env.production.kv_namespaces]] blocks
 
-# 4. Secrets (each prompts interactively)
-for s in AUTH_SECRET AI_JWT_SECRET BIANXIE_API_KEY R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET_PDFS_NAME RESEND_API_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_PRO_MONTHLY STRIPE_PRICE_PRO_YEARLY STRIPE_PRICE_CNY_MONTHLY STRIPE_PRICE_CNY_YEARLY GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET POSTHOG_PROJECT_KEY; do
+# 4. Secrets (each prompts interactively; SLACK_WEBHOOK_URL enables production spend alerts)
+for s in AUTH_SECRET AI_JWT_SECRET BIANXIE_API_KEY R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET_PDFS_NAME RESEND_API_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_PRO_MONTHLY STRIPE_PRICE_PRO_YEARLY STRIPE_PRICE_CNY_MONTHLY STRIPE_PRICE_CNY_YEARLY GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET POSTHOG_PROJECT_KEY SLACK_WEBHOOK_URL; do
   pnpm exec wrangler secret put "$s"
 done
 
