@@ -4,7 +4,7 @@
 
 **Goal:** Make `AuthGate` require an explicit, locale-aware fallback so future callers cannot accidentally render the current hardcoded zh-CN default.
 
-**Architecture:** Narrow TypeScript-only polish change. Remove the optional fallback/default prompt from `apps/web/components/AuthGate.tsx` and encode the requirement in the component prop type. Keep existing loading/authed/unauthed behavior unchanged except that unauthed always renders the caller-provided fallback.
+**Architecture:** Narrow web polish change. Remove the optional fallback/default prompt from `apps/web/components/AuthGate.tsx`, encode the requirement in the TSX component prop type, add a runtime invariant for MDX/compiled callers, and add a targeted test that scans MDX `AuthGate` usage for explicit `fallback`. Keep existing loading/authed/unauthed behavior unchanged except that unauthed always renders the caller-provided fallback.
 
 **Tech Stack:** Next.js 15 app, React 19, TypeScript `tsc --noEmit`, Vitest for existing pure AuthGate state tests.
 
@@ -12,9 +12,9 @@
 
 ## Scope And Files
 
-- Modify `apps/web/components/AuthGate.tsx`: make `fallback: ReactNode` required, update prop comment, remove hardcoded default zh-CN fallback.
-- Verify `rg -n "<AuthGate" apps/web -g "*.tsx"` finds no existing call sites. If call sites appear in a rebased branch, each must pass a locale-aware `fallback`.
-- No i18n message changes are needed in this repo state because no call sites use `AuthGate` today.
+- Modify `apps/web/components/AuthGate.tsx`: make fallback exclude `undefined`, update prop comment, add a runtime invariant, remove hardcoded default zh-CN fallback.
+- Modify `apps/web/components/__tests__/AuthGate.test.ts`: add an MDX usage scan so future `.mdx` callers cannot omit `fallback` silently.
+- Verify current MDX call sites already pass locale-aware `fallback`; no i18n message changes are needed.
 
 ## Task 1: Require Fallback In AuthGate
 
@@ -28,9 +28,10 @@ Run:
 
 ```bash
 rg -n "<AuthGate" apps/web -g "*.tsx" || true
+rg -n "<AuthGate" apps/web -g "*.mdx"
 ```
 
-Expected: no output in the current repo state. If output appears, inspect each call and add an explicit localized fallback before changing the prop type.
+Expected: no TSX call sites in the current repo state; MDX call sites must all include `fallback`. If new call sites appear, inspect each and add an explicit localized fallback before changing the prop type.
 
 - [ ] **Step 2: Write the minimal component change**
 
@@ -56,8 +57,16 @@ export function AuthGate({
 }: {
   children: ReactNode
   /** Required locale-aware fallback shown when the user is not authenticated. */
-  fallback: ReactNode
+  fallback: RequiredFallback
 }) {
+```
+
+Define `RequiredFallback` as `Exclude<ReactNode, undefined>` and add a runtime invariant immediately after prop destructuring:
+
+```tsx
+  if (fallback === undefined) {
+    throw new Error("AuthGate requires an explicit locale-aware fallback prop")
+  }
 ```
 
 Then change the unauthed branch from:
@@ -94,12 +103,12 @@ pnpm --filter @getu/web exec vitest run components/__tests__/AuthGate.test.ts
 pnpm --filter @getu/web type-check
 ```
 
-Expected: PASS. The type-check is the acceptance gate: any future `<AuthGate>` caller without `fallback` will fail `tsc`.
+Expected: PASS. The TSX type-check is the acceptance gate for TypeScript callers, and the Vitest MDX scan is the acceptance gate for `.mdx` callers.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add apps/web/components/AuthGate.tsx
+git add apps/web/components/AuthGate.tsx apps/web/components/__tests__/AuthGate.test.ts
 git commit -m "fix(web): require authgate fallback"
 ```
 
@@ -113,6 +122,7 @@ git commit -m "fix(web): require authgate fallback"
 Ask a reviewer to check:
 
 - `fallback` is required at the TypeScript prop level.
+- MDX call sites are protected by an automated scan and runtime invariant.
 - The hardcoded zh-CN fallback is removed.
 - Existing gating behavior remains: loading placeholder while pending, fallback when unauthed, children when authed.
 - No existing call site omits fallback.
@@ -137,10 +147,11 @@ PR body:
 ## Summary
 - Make `AuthGate` require an explicit fallback prop.
 - Remove the hardcoded zh-CN default fallback from the shared component.
-- Verify there are no existing AuthGate call sites missing fallback.
+- Verify there are no existing TSX or MDX AuthGate call sites missing fallback.
 
 ## Tests
 - `rg -n "<AuthGate" apps/web -g "*.tsx" || true`
+- `rg -n "<AuthGate" apps/web -g "*.mdx"`
 - `pnpm --filter @getu/web exec vitest run components/__tests__/AuthGate.test.ts`
 - `pnpm --filter @getu/web type-check`
 - pre-push hook
@@ -163,6 +174,7 @@ gh pr view <pr-number> --json state,mergeCommit,url
 
 ## Acceptance Mapping
 
-- TS compile error if any future caller omits fallback: Task 1 makes `fallback` required.
+- TS compile error if any future TSX caller omits fallback: Task 1 makes `fallback` required.
+- MDX callers cannot omit fallback silently: Task 1 adds a runtime invariant plus a Vitest MDX usage scan.
 - Locale-aware fallback required: caller must now supply its own fallback, usually using page locale/messages.
 - Current hardcoded zh-CN default removed: Task 1 deletes the default prompt branch.
