@@ -5,17 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "next dev --port 3000",
-    "build": "next build && pnpm run clean:e2e-export",
-    "build:prod": "NEXT_PUBLIC_API_BASE_URL=https://api.getutranslate.com pnpm run build",
-    "clean:e2e-export": "rm -rf out/e2e",
+    "build": "next build",
+    "build:prod": "NEXT_PUBLIC_API_BASE_URL=https://api.getutranslate.com next build",
     "_comment_pages_deploy": "named pages:deploy (not 'deploy') so pnpm's builtin `pnpm deploy` doesn't shadow it",
     "pages:deploy": "pnpm run build:prod && wrangler pages deploy out --project-name=getu-web --branch=main",
     "start": "next start",
     "lint": "echo 'web lint-todo (migrate off deprecated next lint to direct eslint)'",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e": "node e2e/run-playwright.mjs",
+    "test:e2e:ui": "node e2e/run-playwright.mjs --ui"
   },
   "dependencies": {
     "@better-auth/passkey": "1.6.3",
