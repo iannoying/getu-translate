@@ -13,6 +13,7 @@ import type { WorkerEnv } from "../env"
 import { loadEntitlements } from "../billing/entitlements"
 import { consumeTranslateQuota } from "../orpc/translate/quota"
 import { requireModelAccess, type Plan } from "../orpc/translate/models"
+import { logger } from "../analytics/logger"
 
 /**
  * Hono routes for the M6.8 PDF upload pipeline.
@@ -140,6 +141,14 @@ export function tryBuildR2Signer(env: WorkerEnv): { client: AwsClient; endpoint:
   const client = new AwsClient({ accessKeyId, secretAccessKey, service: "s3", region: "auto" })
   const endpoint = `https://${accountId}.r2.cloudflarestorage.com`
   return { client, endpoint, bucket }
+}
+
+function getExecutionCtx(c: { executionCtx: ExecutionContext }): ExecutionContext | undefined {
+  try {
+    return c.executionCtx
+  } catch {
+    return undefined
+  }
 }
 
 /**
@@ -404,7 +413,11 @@ documentRoutes.post("/from-url", async (c) => {
       httpMetadata: { contentType: "application/pdf" },
     })
   } else {
-    console.warn("[document/from-url] BUCKET_PDFS missing — skipping R2 upload (dev)")
+    logger.warn(
+      "[document/from-url] BUCKET_PDFS missing — skipping R2 upload (dev)",
+      {},
+      { env: c.env, executionCtx: getExecutionCtx(c) },
+    )
   }
 
   const now = Date.now()
@@ -457,7 +470,11 @@ documentRoutes.post("/from-url", async (c) => {
         .where(and(eq(translationJobs.id, jobId), eq(translationJobs.userId, userId)))
         .run()
     } catch (delErr) {
-      console.warn("[document/from-url] failed to rollback job row after quota failure", delErr)
+      logger.warn(
+        "[document/from-url] failed to rollback job row after quota failure",
+        { err: delErr },
+        { env: c.env, executionCtx: getExecutionCtx(c) },
+      )
     }
     const data = (err as { data?: { code?: string } })?.data
     if (data?.code === "INSUFFICIENT_QUOTA") {
@@ -470,7 +487,11 @@ documentRoutes.post("/from-url", async (c) => {
   if (c.env.TRANSLATE_QUEUE) {
     await c.env.TRANSLATE_QUEUE.send({ jobId })
   } else {
-    console.warn("[document/from-url] TRANSLATE_QUEUE missing — job will not auto-start")
+    logger.warn(
+      "[document/from-url] TRANSLATE_QUEUE missing — job will not auto-start",
+      {},
+      { env: c.env, executionCtx: getExecutionCtx(c) },
+    )
   }
 
   return c.json({ jobId, sourcePages: pages })

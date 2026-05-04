@@ -23,6 +23,7 @@ import { authed } from "../context"
 import { requireModelAccess, type Plan } from "./models"
 import type { TranslateModelId } from "@getu/definitions"
 import { consumeTranslateQuota } from "./quota"
+import { logger } from "../../analytics/logger"
 
 const { translationJobs } = schema
 
@@ -137,7 +138,11 @@ export const documentCreate = authed
       }
     } else {
       // Dev fallback only — log so ops can spot it, never silently in prod.
-      console.warn("[documentCreate] BUCKET_PDFS missing — trusting client sourcePages (dev)")
+      logger.warn(
+        "[documentCreate] BUCKET_PDFS missing — trusting client sourcePages (dev)",
+        {},
+        { env: context.env, executionCtx: context.executionCtx },
+      )
     }
 
     const jobId = crypto.randomUUID()
@@ -194,7 +199,11 @@ export const documentCreate = authed
           .where(and(eq(translationJobs.id, jobId), eq(translationJobs.userId, userId)))
           .run()
       } catch (delErr) {
-        console.warn("[documentCreate] failed to rollback job row after quota failure", delErr)
+        logger.warn(
+          "[documentCreate] failed to rollback job row after quota failure",
+          { err: delErr },
+          { env: context.env, executionCtx: context.executionCtx },
+        )
       }
       throw err
     }
@@ -205,7 +214,11 @@ export const documentCreate = authed
     if (context.env.TRANSLATE_QUEUE) {
       await context.env.TRANSLATE_QUEUE.send({ jobId })
     } else {
-      console.warn("[documentCreate] TRANSLATE_QUEUE missing — job will not auto-start")
+      logger.warn(
+        "[documentCreate] TRANSLATE_QUEUE missing — job will not auto-start",
+        {},
+        { env: context.env, executionCtx: context.executionCtx },
+      )
     }
 
     return { jobId }

@@ -11,8 +11,17 @@ import { handlePaddleWebhook } from "./billing/webhook-handler"
 import { handleStripeWebhook } from "./billing/stripe-webhook-handler"
 import { documentRoutes } from "./translate/document"
 import { rateLimit } from "./middleware/rate-limit"
+import { logger } from "./analytics/logger"
 
 const app = new Hono<{ Bindings: WorkerEnv; Variables: AppVariables }>()
+
+function getExecutionCtx(c: { executionCtx: ExecutionContext }): ExecutionContext | undefined {
+  try {
+    return c.executionCtx
+  } catch {
+    return undefined
+  }
+}
 
 // Shared session-attaching middleware (used by both rate-limit and orpc/ai handlers)
 async function attachSession(c: Context<{ Bindings: WorkerEnv; Variables: AppVariables }>, next: Next) {
@@ -63,7 +72,7 @@ app.all("/api/identity/*", async (c) => {
     const auth = createAuth(c.env)
     return auth.handler(c.req.raw)
   } catch (err) {
-    console.error("[auth] handler threw", err)
+    logger.error("[auth] handler threw", { err }, { env: c.env, executionCtx: getExecutionCtx(c) })
     return c.json({ error: "internal_error" }, 500)
   }
 })
@@ -76,7 +85,7 @@ app.use("/orpc/*", rateLimit({ limitAuth: 60, limitAnon: 30 }))
 app.all("/orpc/*", async (c) => {
   const auth = c.get("auth")
   const session = c.get("session")
-  const ctx = { env: c.env, auth, session, executionCtx: c.executionCtx }
+  const ctx = { env: c.env, auth, session, executionCtx: getExecutionCtx(c) }
   const { response } = await rpcHandler.handle(c.req.raw, { prefix: "/orpc", context: ctx })
   return response ?? c.notFound()
 })
@@ -101,7 +110,7 @@ app.post("/ai/v1/token", async (c) => {
 })
 
 app.post("/ai/v1/chat/completions", async (c) => {
-  return handleChatCompletions(c.req.raw, c.env, c.executionCtx)
+  return handleChatCompletions(c.req.raw, c.env, getExecutionCtx(c))
 })
 
 app.post("/api/billing/webhook/paddle", handlePaddleWebhook)

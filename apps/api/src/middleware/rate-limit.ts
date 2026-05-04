@@ -1,6 +1,7 @@
 import type { Context, MiddlewareHandler } from "hono"
 import type { KVNamespace } from "@cloudflare/workers-types"
 import { checkAndIncrementRateLimit } from "./rate-limit-core"
+import { logger } from "../analytics/logger"
 
 export type RateLimitMiddlewareOptions = {
   /** Per-minute cap for authenticated requests (session.user.id present). */
@@ -46,9 +47,7 @@ export function rateLimit(opts: RateLimitMiddlewareOptions): MiddlewareHandler<{
     // because of a misconfigured rate limiter. Log loudly so ops sees it.
     const kv = c.env.RATE_LIMIT_KV
     if (!kv) {
-      console.warn(
-        "[rate-limit] RATE_LIMIT_KV binding missing — failing open. Configure wrangler.toml.",
-      )
+      logger.warn("[rate-limit] RATE_LIMIT_KV binding missing — failing open. Configure wrangler.toml.")
       return next()
     }
 

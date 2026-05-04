@@ -5,6 +5,15 @@ import { verifyPaddleSignature } from "./paddle/signature"
 import { normalizePaddleEvent } from "./paddle/events"
 import { applyBillingEvent } from "./paddle/apply"
 import type { WorkerEnv } from "../env"
+import { logger } from "../analytics/logger"
+
+function getExecutionCtx(c: { executionCtx: ExecutionContext }): ExecutionContext | undefined {
+  try {
+    return c.executionCtx
+  } catch {
+    return undefined
+  }
+}
 
 async function runWebhook(
   c: Context<{ Bindings: WorkerEnv }>,
@@ -34,7 +43,7 @@ async function runWebhook(
       status: "received",
     }).onConflictDoNothing().returning({ eventId: schema.billingWebhookEvents.eventId })
   } catch (err) {
-    console.error("[paddle-webhook] insert event failed", err)
+    logger.error("[paddle-webhook] insert event failed", { err }, { env: c.env, executionCtx: getExecutionCtx(c) })
     return c.json({ error: "insert_failed" }, 500)
   }
   if (!inserted || inserted.length === 0) {
@@ -53,7 +62,7 @@ async function runWebhook(
     await db.update(schema.billingWebhookEvents)
       .set({ status: "error", errorMessage: msg.slice(0, 500) })
       .where(eq(schema.billingWebhookEvents.eventId, eventId))
-    console.error("[paddle-webhook] apply failed", err)
+    logger.error("[paddle-webhook] apply failed", { err }, { env: c.env, executionCtx: getExecutionCtx(c) })
     return c.json({ error: "apply_failed" }, 500)
   }
 }
