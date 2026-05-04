@@ -181,14 +181,14 @@ Use these replacements:
 
 | Existing message | New call |
 |---|---|
-| `"[queue.translate-document] unexpected error"` | `logger.error("[queue.translate-document] unexpected error", { jobId: msg.body.jobId, err }, { env: opts.env })` |
-| `"[queue.translate-document] job not found"` | `logger.warn("[queue.translate-document] job not found", { jobId }, { env: opts.env })` |
-| `"[queue.translate-document] unexpected sourceKey shape"` | `logger.error("[queue.translate-document] unexpected sourceKey shape", { jobId, sourceKey: job.sourceKey }, { env: opts.env })` |
-| `"[queue.translate-document] source object missing"` | `logger.warn("[queue.translate-document] source object missing", { jobId, key: job.sourceKey }, { env: opts.env })` |
-| `"[queue.translate-document] R2 put failed"` | `logger.error("[queue.translate-document] R2 put failed", { jobId, err }, { env: opts.env })` |
-| `"[queue.translate-document] render/output failed"` | `logger.error("[queue.translate-document] render/output failed", { jobId, err }, { env: opts.env })` |
-| `"[queue.translate-document] refund: no original usage row found"` | `logger.warn("[queue.translate-document] refund: no original usage row found", { jobId: job.id }, { env: opts.env })` |
-| `"[queue.translate-document] refund failed"` | `logger.error("[queue.translate-document] refund failed", { jobId: job.id, err }, { env: opts.env })` |
+| `"[queue.translate-document] unexpected error"` | `logger.error("[queue.translate-document] unexpected error", { jobId: msg.body.jobId, err }, { env: opts.env, executionCtx: ctx })` |
+| `"[queue.translate-document] job not found"` | `logger.warn("[queue.translate-document] job not found", { jobId }, { env: opts.env, executionCtx: ctx })` |
+| `"[queue.translate-document] unexpected sourceKey shape"` | `logger.error("[queue.translate-document] unexpected sourceKey shape", { jobId, sourceKey: job.sourceKey }, { env: opts.env, executionCtx: ctx })` |
+| `"[queue.translate-document] source object missing"` | `logger.warn("[queue.translate-document] source object missing", { jobId, key: job.sourceKey }, { env: opts.env, executionCtx: ctx })` |
+| `"[queue.translate-document] R2 put failed"` | `logger.error("[queue.translate-document] R2 put failed", { jobId, err }, { env: opts.env, executionCtx: ctx })` |
+| `"[queue.translate-document] render/output failed"` | `logger.error("[queue.translate-document] render/output failed", { jobId, err }, { env: opts.env, executionCtx: ctx })` |
+| `"[queue.translate-document] refund: no original usage row found"` | `logger.warn("[queue.translate-document] refund: no original usage row found", { jobId: job.id }, { env: opts.env, executionCtx: ctx })` |
+| `"[queue.translate-document] refund failed"` | `logger.error("[queue.translate-document] refund failed", { jobId: job.id, err }, { env: opts.env, executionCtx: ctx })` |
 
 Leave `console.info` calls unchanged.
 
