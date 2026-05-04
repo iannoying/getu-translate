@@ -52,3 +52,9 @@ jobs:
 
       - name: Run tests
         run: pnpm --filter @getu/extension test --exclude="**/free-api.test.ts"
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @getu/web exec playwright install --with-deps chromium
+
+      - name: Web E2E
+        run: pnpm --filter @getu/web test:e2e --project=chromium
