@@ -3,14 +3,20 @@
 import type { ReactNode } from "react"
 import { authClient } from "@/lib/auth-client"
 
+type RequiredFallback = Exclude<ReactNode, undefined>
+
 export function AuthGate({
   children,
   fallback,
 }: {
   children: ReactNode
-  /** Optional custom fallback. Default: a small "Login to view" prompt. */
-  fallback?: ReactNode
+  /** Required locale-aware fallback shown when the user is not authenticated. */
+  fallback: RequiredFallback
 }) {
+  if (fallback === undefined) {
+    throw new Error("AuthGate requires an explicit locale-aware fallback prop")
+  }
+
   const session = authClient.useSession()
   const isLoading = session.isPending
   const isAuthed = !!session.data?.user
@@ -20,16 +26,7 @@ export function AuthGate({
   }
 
   if (!isAuthed) {
-    return (
-      <>
-        {fallback ?? (
-          <div className="auth-gate-prompt">
-            <p>登录后查看完整内容</p>
-            <a href="/log-in">登录</a>
-          </div>
-        )}
-      </>
-    )
+    return <>{fallback}</>
   }
 
   return <>{children}</>

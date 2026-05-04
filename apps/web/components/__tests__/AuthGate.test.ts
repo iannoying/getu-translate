@@ -4,6 +4,8 @@
  * The gating logic reduces to three cases: loading, unauthed, authed.
  * We extract and test the decision table directly.
  */
+import { readdirSync, readFileSync, statSync } from "node:fs"
+import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 
 type SessionState = { isPending: boolean; data: { user: object } | null }
@@ -33,3 +35,45 @@ describe("AuthGate state resolution", () => {
     expect(resolveGateState({ isPending: true, data: { user: { id: "u1" } } })).toBe("loading")
   })
 })
+
+describe("AuthGate MDX usage", () => {
+  it("requires every MDX AuthGate opening tag to pass fallback", () => {
+    const missingFallback: string[] = []
+
+    for (const file of listMdxFiles(join(process.cwd(), "app"))) {
+      const source = readFileSync(file, "utf8")
+      const matches = source.matchAll(/<AuthGate\b[^>]*>/g)
+
+      for (const match of matches) {
+        if (!match[0].includes("fallback=")) {
+          missingFallback.push(
+            `${file.replace(`${process.cwd()}/`, "")}:${lineNumber(source, match.index ?? 0)}`,
+          )
+        }
+      }
+    }
+
+    expect(missingFallback).toEqual([])
+  })
+})
+
+function listMdxFiles(dir: string): string[] {
+  const files: string[] = []
+
+  for (const entry of readdirSync(dir)) {
+    const path = join(dir, entry)
+    const stat = statSync(path)
+
+    if (stat.isDirectory()) {
+      files.push(...listMdxFiles(path))
+    } else if (path.endsWith(".mdx")) {
+      files.push(path)
+    }
+  }
+
+  return files
+}
+
+function lineNumber(source: string, index: number): number {
+  return source.slice(0, index).split("\n").length
+}
