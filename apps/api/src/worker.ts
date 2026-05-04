@@ -8,6 +8,7 @@ import { runTranslationRetry } from "./scheduled/translation-retry"
 import { runTranslationStuckSweep } from "./scheduled/translation-stuck-sweep"
 import { createQueueHandler } from "./queue/translate-document"
 import type { WorkerEnv } from "./env"
+import { logger } from "./analytics/logger"
 
 const handler = {
   fetch: app.fetch,
@@ -27,7 +28,7 @@ const handler = {
           if (r.status === "fulfilled") {
             console.info("[scheduled]", r.value)
           } else {
-            console.error("[scheduled] task failed", r.reason)
+            logger.error("[scheduled] task failed", { err: r.reason }, { env, executionCtx: ctx })
           }
         }
       }),
@@ -37,7 +38,11 @@ const handler = {
     const bucket = env.BUCKET_PDFS
     if (!bucket) {
       // Dev or misconfigured environment without R2 — ack to avoid retry loops.
-      console.warn("[worker.queue] BUCKET_PDFS not bound, acking all messages")
+      logger.warn(
+        "[worker.queue] BUCKET_PDFS not bound, acking all messages",
+        {},
+        { env, executionCtx: ctx },
+      )
       for (const m of batch.messages) m.ack()
       return
     }

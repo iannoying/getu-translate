@@ -8,6 +8,7 @@ import { makeTranslateChunkFn } from "../translate/document-translators"
 import { renderHtml, renderMarkdown } from "../translate/document-output"
 import { periodKey } from "../billing/period"
 import type { WorkerEnv } from "../env"
+import { logger } from "../analytics/logger"
 
 const FAILURE_MSG_SCANNED =
   "检测到扫描件 PDF，标准翻译暂不支持，敬请期待 v2 OCR 版本"
@@ -55,10 +56,10 @@ export function createQueueHandler(opts: CreateQueueHandlerOpts) {
           // processOne handles its own state transitions on known failures.
           // Only reach here on truly unexpected exceptions — log and ack to
           // avoid retry loops.
-          console.error("[queue.translate-document] unexpected error", {
+          logger.error("[queue.translate-document] unexpected error", {
             jobId: msg.body.jobId,
             err,
-          })
+          }, { env: opts.env })
         }
         msg.ack()
       }
@@ -81,7 +82,7 @@ async function processOne(
     .get()
 
   if (!job) {
-    console.warn("[queue.translate-document] job not found", { jobId })
+    logger.warn("[queue.translate-document] job not found", { jobId }, { env: opts.env })
     return
   }
 
@@ -117,12 +118,12 @@ async function processOne(
   }
 
   if (!job.sourceKey.endsWith("/source.pdf")) {
-    console.error("[queue.translate-document] unexpected sourceKey shape", {
+    logger.error("[queue.translate-document] unexpected sourceKey shape", {
       jobId,
       sourceKey: job.sourceKey,
-    })
+    }, { env: opts.env })
     await fail(db, job, FAILURE_MSG_GENERIC, ERROR_CODES.GENERIC)
-    await refundQuota(db, job)
+    await refundQuota(db, job, opts.env)
     return
   }
 
@@ -132,12 +133,12 @@ async function processOne(
     // 4. Fetch source PDF from R2
     const sourceObj = await bucket.get(job.sourceKey)
     if (!sourceObj) {
-      console.warn("[queue.translate-document] source object missing", {
+      logger.warn("[queue.translate-document] source object missing", {
         jobId,
         key: job.sourceKey,
-      })
+      }, { env: opts.env })
       await fail(db, job, FAILURE_MSG_GENERIC, ERROR_CODES.R2_TIMEOUT)
-      await refundQuota(db, job)
+      await refundQuota(db, job, opts.env)
       return
     }
     const sourceBuf = await sourceObj.arrayBuffer()
@@ -148,7 +149,7 @@ async function processOne(
     // 6. Scanned PDF guard
     if (extracted.scanned) {
       await fail(db, job, FAILURE_MSG_SCANNED, ERROR_CODES.SCANNED_PDF)
-      await refundQuota(db, job)
+      await refundQuota(db, job, opts.env)
       return
     }
 
@@ -195,9 +196,9 @@ async function processOne(
         httpMetadata: { contentType: "application/json" },
       })
     } catch (err) {
-      console.error("[queue.translate-document] R2 put failed", { jobId, err })
+      logger.error("[queue.translate-document] R2 put failed", { jobId, err }, { env: opts.env })
       await fail(db, job, FAILURE_MSG_OUTPUT, ERROR_CODES.OUTPUT_WRITE)
-      await refundQuota(db, job)
+      await refundQuota(db, job, opts.env)
       return
     }
 
@@ -225,9 +226,9 @@ async function processOne(
         .where(eq(schema.translationJobs.id, jobId))
       console.info("[queue.translate-document] job done", { jobId })
     } catch (err) {
-      console.error("[queue.translate-document] render/output failed", { jobId, err })
+      logger.error("[queue.translate-document] render/output failed", { jobId, err }, { env: opts.env })
       await fail(db, job, FAILURE_MSG_OUTPUT, ERROR_CODES.OUTPUT_WRITE)
-      await refundQuota(db, job)
+      await refundQuota(db, job, opts.env)
       return
     }
   } catch (err) {
@@ -235,7 +236,7 @@ async function processOne(
     const errMsg = pickErrorMessage(err)
     const errCode = pickErrorCode(err)
     await fail(db, job, errMsg, errCode)
-    await refundQuota(db, job)
+    await refundQuota(db, job, opts.env)
   }
 }
 
@@ -262,6 +263,7 @@ async function fail(
 async function refundQuota(
   db: Db,
   job: typeof schema.translationJobs.$inferSelect,
+  env: WorkerEnv,
 ): Promise<void> {
   const refundRequestId = `refund:${job.id}`
 
@@ -278,9 +280,9 @@ async function refundQuota(
     .get()
 
   if (!originalUsage) {
-    console.warn("[queue.translate-document] refund: no original usage row found", {
+    logger.warn("[queue.translate-document] refund: no original usage row found", {
       jobId: job.id,
-    })
+    }, { env })
     return
   }
 
@@ -328,10 +330,10 @@ async function refundQuota(
       })
       return
     }
-    console.error("[queue.translate-document] refund failed", {
+    logger.error("[queue.translate-document] refund failed", {
       jobId: job.id,
       err,
-    })
+    }, { env })
   }
 }
 

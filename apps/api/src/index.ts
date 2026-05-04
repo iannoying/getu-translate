@@ -11,6 +11,7 @@ import { handlePaddleWebhook } from "./billing/webhook-handler"
 import { handleStripeWebhook } from "./billing/stripe-webhook-handler"
 import { documentRoutes } from "./translate/document"
 import { rateLimit } from "./middleware/rate-limit"
+import { logger } from "./analytics/logger"
 
 const app = new Hono<{ Bindings: WorkerEnv; Variables: AppVariables }>()
 
@@ -63,7 +64,7 @@ app.all("/api/identity/*", async (c) => {
     const auth = createAuth(c.env)
     return auth.handler(c.req.raw)
   } catch (err) {
-    console.error("[auth] handler threw", err)
+    logger.error("[auth] handler threw", { err }, { env: c.env, executionCtx: c.executionCtx })
     return c.json({ error: "internal_error" }, 500)
   }
 })

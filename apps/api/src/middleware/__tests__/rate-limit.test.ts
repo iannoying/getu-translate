@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 import { Hono } from "hono"
 import type { KVNamespace } from "@cloudflare/workers-types"
 import { rateLimit, type RateLimitMiddlewareOptions } from "../rate-limit"
+import { logger } from "../../analytics/logger"
 
 function makeKv() {
   const store = new Map<string, { value: string; expiresAt: number }>()
@@ -149,9 +150,9 @@ describe("rateLimit middleware", () => {
     expect((await fetch(new Request("https://x/test", { headers }))).status).toBe(429)
   })
 
-  it("missing RATE_LIMIT_KV binding → fail-open with console.warn (don't 500 the whole worker)", async () => {
+  it("missing RATE_LIMIT_KV binding → fail-open with logger.warn (don't 500 the whole worker)", async () => {
     const fetch = makeApp({ limitAuth: 1, limitAnon: 1 }, {} as TestEnv) // no kv
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {})
     try {
       const r = await fetch(new Request("https://x/test", { headers: { "x-test-user": "u1" } }))
       expect(r.status).toBe(200) // fail-open
