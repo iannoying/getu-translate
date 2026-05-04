@@ -147,6 +147,94 @@ describe("queue translate-document handler", () => {
     expect(job?.progress).toBeNull()
     expect(job?.outputHtmlKey).toBe("pdfs/u1/j1/output.html")
     expect(job?.outputMdKey).toBe("pdfs/u1/j1/output.md")
+    expect(job?.progressUpdatedAt).toBeInstanceOf(Date)
+    expect(job?.progressUpdatedAt?.getTime()).toBeGreaterThan(0)
+  })
+
+  it("sets progressUpdatedAt when transitioning queued jobs to processing", async () => {
+    const { db } = makeTestDb()
+    await setupJob(db, { jobId: "j-processing", userId: "u-processing", sourcePages: 1 })
+    const pdfBuf = readFileSync(resolve(FIXTURE_DIR, "hello-world.pdf"))
+    const pdfAb = pdfBuf.buffer.slice(pdfBuf.byteOffset, pdfBuf.byteOffset + pdfBuf.byteLength)
+
+    const seen: number[] = []
+    const handler = createQueueHandler({
+      db: db as unknown as Db,
+      bucket: {
+        get: vi.fn(async () => {
+          const row = await db
+            .select()
+            .from(schema.translationJobs)
+            .where(eq(schema.translationJobs.id, "j-processing"))
+            .get()
+          seen.push(row?.progressUpdatedAt?.getTime() ?? 0)
+          return { arrayBuffer: async () => pdfAb }
+        }),
+        put: vi.fn(async () => undefined),
+      } as unknown as R2Bucket,
+      env: {} as any,
+      translateChunk: async () => "你好",
+    })
+
+    const { batch } = makeBatch("j-processing")
+    await handler.queue(batch as any, {} as any, {} as any)
+
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toBeGreaterThan(0)
+  })
+
+  it("updates progressUpdatedAt on every progress callback", async () => {
+    const { db } = makeTestDb()
+    await setupJob(db, { jobId: "j-progress", userId: "u-progress", sourcePages: 2 })
+    const pdfBuf = readFileSync(resolve(FIXTURE_DIR, "hello-world.pdf"))
+    const pdfAb = pdfBuf.buffer.slice(pdfBuf.byteOffset, pdfBuf.byteOffset + pdfBuf.byteLength)
+
+    let processingTimestamp = 0
+    let progressTimestamp = 0
+    let progressPayload: { stage?: string; pct?: number } | null = null
+    const handler = createQueueHandler({
+      db: db as unknown as Db,
+      bucket: {
+        get: vi.fn(async () => {
+          const row = await db
+            .select()
+            .from(schema.translationJobs)
+            .where(eq(schema.translationJobs.id, "j-progress"))
+            .get()
+          processingTimestamp = row?.progressUpdatedAt?.getTime() ?? 0
+          return { arrayBuffer: async () => pdfAb }
+        }),
+        put: vi.fn(async (key: string) => {
+          if (key.endsWith("segments.json")) {
+            const row = await db
+              .select()
+              .from(schema.translationJobs)
+              .where(eq(schema.translationJobs.id, "j-progress"))
+              .get()
+            progressTimestamp = row?.progressUpdatedAt?.getTime() ?? 0
+            progressPayload = row?.progress ? JSON.parse(row.progress) : null
+          }
+        }),
+      } as unknown as R2Bucket,
+      env: {} as any,
+      pipelineOpts: { concurrency: 1, maxRetries: 0, baseBackoffMs: 0 },
+      translateChunk: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 5))
+        return "你好"
+      },
+    })
+
+    const { batch } = makeBatch("j-progress")
+    await handler.queue(batch as any, {} as any, {} as any)
+
+    expect(processingTimestamp).toBeGreaterThan(0)
+    expect(progressPayload).toEqual({
+      stage: "translated",
+      pct: 100,
+      chunk: 1,
+      chunkTotal: 1,
+    })
+    expect(progressTimestamp).toBeGreaterThan(processingTimestamp)
   })
 
   it("scanned PDF: status=failed with canonical message + quota refunded", async () => {
@@ -179,6 +267,9 @@ describe("queue translate-document handler", () => {
     expect(job?.errorMessage).toMatch(/扫描件/)
     expect(job?.errorCode).toBe("scanned_pdf")
     expect(job?.failedAt).not.toBeNull()
+    expect(job?.progressUpdatedAt).toBeInstanceOf(Date)
+    expect(job?.progressUpdatedAt?.getTime()).toBeGreaterThan(0)
+    expect(job?.progressUpdatedAt?.getTime()).toBe(job?.failedAt?.getTime())
 
     // Refund row has negative amount
     const refunds = await db
@@ -217,6 +308,9 @@ describe("queue translate-document handler", () => {
     expect(job?.errorMessage).toBe("翻译失败，请重试")
     expect(job?.errorCode).toBe("r2_timeout")
     expect(job?.failedAt).not.toBeNull()
+    expect(job?.progressUpdatedAt).toBeInstanceOf(Date)
+    expect(job?.progressUpdatedAt?.getTime()).toBeGreaterThan(0)
+    expect(job?.progressUpdatedAt?.getTime()).toBe(job?.failedAt?.getTime())
   })
 
   it("translateChunk throws 503 after retries: status=failed + canonical LLM 5xx message + refunded", async () => {
@@ -253,6 +347,8 @@ describe("queue translate-document handler", () => {
     expect(job?.errorMessage).toBe("翻译模型暂时不可用，请稍后重试")
     expect(job?.errorCode).toBe("transient_llm")
     expect(job?.failedAt).not.toBeNull()
+    expect(job?.progressUpdatedAt).toBeInstanceOf(Date)
+    expect(job?.progressUpdatedAt?.getTime()).toBe(job?.failedAt?.getTime())
 
     // Refund row exists
     const refunds = await db
@@ -295,6 +391,8 @@ describe("queue translate-document handler", () => {
     expect(job.status).toBe("failed")
     expect(job.errorCode).toBe("generic")
     expect(job.failedAt).not.toBeNull()
+    expect(job.progressUpdatedAt).toBeInstanceOf(Date)
+    expect(job.progressUpdatedAt?.getTime()).toBe(job.failedAt?.getTime())
   })
 
   it("renderer/R2 output write failure -> failed + refund", async () => {
@@ -328,6 +426,8 @@ describe("queue translate-document handler", () => {
     expect(job.errorMessage).toMatch(/结果保存失败/)
     expect(job.errorCode).toBe("output_write")
     expect(job.failedAt).not.toBeNull()
+    expect(job.progressUpdatedAt).toBeInstanceOf(Date)
+    expect(job.progressUpdatedAt?.getTime()).toBe(job.failedAt?.getTime())
 
     // Verify put ordering: segments.json succeeded (call #1), output.html threw (call #2), md never reached
     const outPutKeys = r2Put.mock.calls.map((c) => (c as unknown[])[0] as string)

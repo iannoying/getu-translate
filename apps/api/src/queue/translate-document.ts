@@ -99,11 +99,13 @@ async function processOne(
   }
 
   // 3. Transition to processing
+  const now = new Date()
   await db
     .update(schema.translationJobs)
     .set({
       status: "processing",
       progress: JSON.stringify({ stage: "extracting", pct: 0 }),
+      progressUpdatedAt: now,
     })
     .where(eq(schema.translationJobs.id, jobId))
 
@@ -145,7 +147,10 @@ async function processOne(
     }) => {
       await db
         .update(schema.translationJobs)
-        .set({ progress: JSON.stringify(p) })
+        .set({
+          progress: JSON.stringify(p),
+          progressUpdatedAt: new Date(),
+        })
         .where(eq(schema.translationJobs.id, jobId))
     }
 
@@ -204,6 +209,7 @@ async function processOne(
           outputHtmlKey: htmlKey,
           outputMdKey: mdKey,
           progress: null,
+          progressUpdatedAt: new Date(),
         })
         .where(eq(schema.translationJobs.id, jobId))
       console.info("[queue.translate-document] job done", { jobId })
@@ -234,6 +240,7 @@ async function fail(
     .set({
       status: "failed",
       progress: null,
+      progressUpdatedAt: now,
       errorMessage,
       errorCode,
       failedAt: now,
