@@ -24,9 +24,9 @@
 Use these env vars and bucket mappings:
 
 - `SPEND_ALERT_AI_TRANSLATE_PER_DAY` -> `ai_translate_monthly`
-- `SPEND_ALERT_WEB_TEXT_TRANSLATE_PER_DAY` -> `web_text_translate_count_monthly`
+- `SPEND_ALERT_WEB_TEXT_TRANSLATE_PER_DAY` -> `web_text_translate_monthly`
 - `SPEND_ALERT_WEB_TEXT_TRANSLATE_TOKENS_PER_DAY` -> `web_text_translate_token_monthly`
-- `SPEND_ALERT_DOCUMENT_PAGES_PER_DAY` -> `document_translate_page_monthly`
+- `SPEND_ALERT_DOCUMENT_PAGES_PER_DAY` -> `web_pdf_translate_monthly`
 - `SPEND_ALERT_AI_RATE_LIMIT_WRITES_PER_DAY` -> `ai_rate_limit`
 
 Default values in `wrangler.toml`:
@@ -105,7 +105,7 @@ describe("runSpendMonitor", () => {
       {
         id: "recent-document",
         userId: null,
-        bucket: "document_translate_page_monthly",
+        bucket: "web_pdf_translate_monthly",
         amount: 199,
         requestId: "recent-document",
         createdAt: ONE_HOUR_AGO,
@@ -146,7 +146,7 @@ describe("runSpendMonitor", () => {
       {
         id: "below-document",
         userId: null,
-        bucket: "document_translate_page_monthly",
+        bucket: "web_pdf_translate_monthly",
         amount: 199,
         requestId: "below-document",
         createdAt: ONE_HOUR_AGO,
@@ -183,14 +183,17 @@ Create `apps/api/src/scheduled/spend-monitor.ts`:
 import { and, gte, lt, sql } from "drizzle-orm"
 import type { Db } from "@getu/db"
 import { schema } from "@getu/db"
+import type { QuotaBucket } from "@getu/contract"
 import type { WorkerEnv } from "../env"
 
 const DAY_MS = 24 * 60 * 60_000
 
 type ThresholdConfig = {
-  bucket: string
-  envVar: keyof WorkerEnv
+  bucket: SpendMonitorBucket
+  envVar: string
 }
+
+type SpendMonitorBucket = QuotaBucket | "ai_rate_limit"
 
 export type SpendBreach = {
   bucket: string
@@ -209,9 +212,9 @@ export type SpendMonitorResult = {
 
 const THRESHOLDS: ThresholdConfig[] = [
   { bucket: "ai_translate_monthly", envVar: "SPEND_ALERT_AI_TRANSLATE_PER_DAY" },
-  { bucket: "web_text_translate_count_monthly", envVar: "SPEND_ALERT_WEB_TEXT_TRANSLATE_PER_DAY" },
+  { bucket: "web_text_translate_monthly", envVar: "SPEND_ALERT_WEB_TEXT_TRANSLATE_PER_DAY" },
   { bucket: "web_text_translate_token_monthly", envVar: "SPEND_ALERT_WEB_TEXT_TRANSLATE_TOKENS_PER_DAY" },
-  { bucket: "document_translate_page_monthly", envVar: "SPEND_ALERT_DOCUMENT_PAGES_PER_DAY" },
+  { bucket: "web_pdf_translate_monthly", envVar: "SPEND_ALERT_DOCUMENT_PAGES_PER_DAY" },
   { bucket: "ai_rate_limit", envVar: "SPEND_ALERT_AI_RATE_LIMIT_WRITES_PER_DAY" },
 ]
 
@@ -234,14 +237,16 @@ export async function runSpendMonitor(
     .filter((entry) => entry.actual > entry.threshold)
 
   if (breaches.length === 0) return { checked: thresholds.length, alerted: 0, breaches: [] }
-  if (!env.SLACK_WEBHOOK_URL) {
+
+  const slackWebhookUrl = getEnvString(env, "SLACK_WEBHOOK_URL")
+  if (!slackWebhookUrl) {
     return { checked: thresholds.length, alerted: 0, breaches, skippedReason: "no_webhook" }
   }
 
   if (opts.dryRun) return { checked: thresholds.length, alerted: breaches.length, breaches }
 
   const fetchImpl = opts.fetch ?? fetch
-  const response = await fetchImpl(env.SLACK_WEBHOOK_URL, {
+  const response = await fetchImpl(slackWebhookUrl, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(buildSlackPayload(breaches, opts.now)),
@@ -261,10 +266,10 @@ export async function runSpendMonitor(
 
 function parseThresholds(env: WorkerEnv) {
   return THRESHOLDS.flatMap(({ bucket, envVar }) => {
-    const raw = env[envVar]
+    const raw = getEnvString(env, envVar)
     const threshold = typeof raw === "string" ? Number(raw) : NaN
     if (!Number.isFinite(threshold) || threshold <= 0) return []
-    return [{ bucket, envVar: String(envVar), threshold }]
+    return [{ bucket, envVar, threshold }]
   })
 }
 
@@ -299,6 +304,11 @@ function buildSlackPayload(breaches: SpendBreach[], now: number) {
       },
     ],
   }
+}
+
+function getEnvString(env: WorkerEnv, key: string): string | undefined {
+  const value = (env as unknown as Record<string, unknown>)[key]
+  return typeof value === "string" ? value : undefined
 }
 ```
 

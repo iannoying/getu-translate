@@ -51,7 +51,7 @@ describe("runSpendMonitor", () => {
       {
         id: "recent-document",
         userId: null,
-        bucket: "document_translate_page_monthly",
+        bucket: "web_pdf_translate_monthly",
         amount: 199,
         requestId: "recent-document",
         createdAt: ONE_HOUR_AGO,
@@ -92,7 +92,7 @@ describe("runSpendMonitor", () => {
       {
         id: "below-document",
         userId: null,
-        bucket: "document_translate_page_monthly",
+        bucket: "web_pdf_translate_monthly",
         amount: 199,
         requestId: "below-document",
         createdAt: ONE_HOUR_AGO,

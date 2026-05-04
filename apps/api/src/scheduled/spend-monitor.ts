@@ -1,14 +1,17 @@
 import { and, gte, lt, sql } from "drizzle-orm"
 import type { Db } from "@getu/db"
 import { schema } from "@getu/db"
+import type { QuotaBucket } from "@getu/contract"
 import type { WorkerEnv } from "../env"
 
 const DAY_MS = 24 * 60 * 60_000
 
 type ThresholdConfig = {
-  bucket: string
+  bucket: SpendMonitorBucket
   envVar: string
 }
+
+type SpendMonitorBucket = QuotaBucket | "ai_rate_limit"
 
 type ParsedThreshold = ThresholdConfig & {
   threshold: number
@@ -31,9 +34,9 @@ export type SpendMonitorResult = {
 
 const THRESHOLDS: ThresholdConfig[] = [
   { bucket: "ai_translate_monthly", envVar: "SPEND_ALERT_AI_TRANSLATE_PER_DAY" },
-  { bucket: "web_text_translate_count_monthly", envVar: "SPEND_ALERT_WEB_TEXT_TRANSLATE_PER_DAY" },
+  { bucket: "web_text_translate_monthly", envVar: "SPEND_ALERT_WEB_TEXT_TRANSLATE_PER_DAY" },
   { bucket: "web_text_translate_token_monthly", envVar: "SPEND_ALERT_WEB_TEXT_TRANSLATE_TOKENS_PER_DAY" },
-  { bucket: "document_translate_page_monthly", envVar: "SPEND_ALERT_DOCUMENT_PAGES_PER_DAY" },
+  { bucket: "web_pdf_translate_monthly", envVar: "SPEND_ALERT_DOCUMENT_PAGES_PER_DAY" },
   { bucket: "ai_rate_limit", envVar: "SPEND_ALERT_AI_RATE_LIMIT_WRITES_PER_DAY" },
 ]
 
@@ -126,6 +129,6 @@ function buildSlackPayload(breaches: SpendBreach[], now: number) {
 }
 
 function getEnvString(env: WorkerEnv, key: string): string | undefined {
-  const value = (env as Record<string, unknown>)[key]
+  const value = (env as unknown as Record<string, unknown>)[key]
   return typeof value === "string" ? value : undefined
 }
