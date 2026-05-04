@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "next dev --port 3000",
-    "build": "next build",
-    "build:prod": "NEXT_PUBLIC_API_BASE_URL=https://api.getutranslate.com next build",
+    "build": "next build && pnpm run clean:e2e-export",
+    "build:prod": "NEXT_PUBLIC_API_BASE_URL=https://api.getutranslate.com pnpm run build",
+    "clean:e2e-export": "rm -rf out/e2e",
     "_comment_pages_deploy": "named pages:deploy (not 'deploy') so pnpm's builtin `pnpm deploy` doesn't shadow it",
     "pages:deploy": "pnpm run build:prod && wrangler pages deploy out --project-name=getu-web --branch=main",
     "start": "next start",
