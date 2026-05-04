@@ -93,12 +93,58 @@ Operational guide for the 4 most common production incidents in the web translat
 
 ## Sentry alert routing
 
-Configure Sentry alerts for:
-- New issue with `level: error` and `event_type: "translate.providerFailed"` → engineer Slack
-- Issue spike (>10 events in 1h) → ops Slack
-- New issue in scheduled handler (cron path) → engineer email (rare events, missing them is bad)
+Status: **pending external Sentry dashboard configuration**.
 
-Wire via Sentry → Alerts → Create Alert.
+Sentry already receives Worker errors when the production `SENTRY_DSN` secret is set. The missing production step is routing those issues to humans.
+
+### Required rules
+
+| Rule id | Sentry rule type | Query / condition | Threshold | Action | Destination | Actual rule URL |
+|---|---|---|---|---|---|---|
+| `provider-failed-new-issue` | Issue alert | New issue where `level:error` and message or tag contains `translate.providerFailed` | First seen | Notify | Engineer Slack channel | Pending |
+| `error-spike-ops` | Metric alert | Events matching `level:error` | `> 10` events in `1h` | Notify | Ops Slack channel | Pending |
+| `scheduled-handler-new-issue` | Issue alert | New issue where message contains `[scheduled] task failed` or transaction/context is cron/scheduled | First seen | Notify | Engineer email | Pending |
+
+### Setup steps
+
+1. Open Sentry → GetU API project → Alerts.
+2. Create `provider-failed-new-issue`:
+   - Type: Issue Alert
+   - Condition: A new issue is created.
+   - Filter: `level:error` and `translate.providerFailed`.
+   - Action: send Slack notification to the engineer channel.
+   - Save the rule and paste its URL into the table above.
+3. Create `error-spike-ops`:
+   - Type: Metric Alert
+   - Dataset: Errors.
+   - Filter: `level:error`.
+   - Condition: event count greater than `10` over `1 hour`.
+   - Action: send Slack notification to the ops channel.
+   - Save the rule and paste its URL into the table above.
+4. Create `scheduled-handler-new-issue`:
+   - Type: Issue Alert
+   - Condition: A new issue is created.
+   - Filter: message contains `[scheduled] task failed` or the Sentry issue originates from the Worker `scheduled` handler.
+   - Action: send email to the engineering owner.
+   - Save the rule and paste its URL into the table above.
+
+### Verification
+
+After creating the rules, send one safe test event and confirm notification delivery within 5 minutes.
+
+Preferred verification path:
+
+1. In Sentry, use **Project Settings → Client Keys (DSN) → Test DSN** or Sentry's built-in alert test action for each rule.
+2. Confirm the destination receives the notification.
+3. Record the result here:
+
+| Date (UTC) | Rule id | Test issue/event URL | Destination observed | Latency | Operator |
+|---|---|---|---|---|---|
+| Pending | `provider-failed-new-issue` | Pending | Pending | Pending | Pending |
+| Pending | `error-spike-ops` | Pending | Pending | Pending | Pending |
+| Pending | `scheduled-handler-new-issue` | Pending | Pending | Pending | Pending |
+
+Do not mark issue #227 complete until all `Pending` entries above are replaced with actual URLs and observed delivery results.
 
 ## PostHog event integrity check
 
