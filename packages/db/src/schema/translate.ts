@@ -90,6 +90,8 @@ export const translationJobs = sqliteTable(
       .default("simple"),
     /** JSON-serialized `{ stage: string; pct: number }`. Null until first update. */
     progress: text("progress"),
+    /** Timestamp (ms) of the latest progress/status heartbeat. Null only for legacy rows. */
+    progressUpdatedAt: integer("progress_updated_at", { mode: "timestamp_ms" }),
     errorMessage: text("error_message"),
     /** M6.12: Categorical failure code for retry routing. See ERROR_CODES in translate-document.ts. */
     errorCode: text("error_code"),

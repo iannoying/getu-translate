@@ -49,6 +49,7 @@ describe("translation_jobs schema", () => {
         "status",
         "engine",
         "progress",
+        "progressUpdatedAt",
         "errorMessage",
         "createdAt",
         "expiresAt",
@@ -70,6 +71,12 @@ describe("translation_jobs schema", () => {
 
   it("expiresAt is required (every PDF has a retention deadline)", () => {
     expect(getTableColumns(translationJobs).expiresAt.notNull).toBe(true)
+  })
+
+  it("progressUpdatedAt is nullable (legacy rows may not have a progress heartbeat)", () => {
+    const col = getTableColumns(translationJobs).progressUpdatedAt
+    expect(col.dataType).toBe("date")
+    expect(col.notNull).toBe(false)
   })
 
   it("output keys are nullable (filled only after successful pipeline)", () => {
