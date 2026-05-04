@@ -12,11 +12,24 @@ export type LogContext = {
    * Default: error=true, warn=false, info=false.
    */
   forward?: boolean
+  /**
+   * Per-call sampling rate for PostHog forwarding.
+   * Must be between 0 and 1. Defaults to 1 when forwarding is enabled.
+   */
+  sampleRate?: number
 }
 
 function shouldForward(level: LogLevel, opts: LogContext): boolean {
   if (opts.forward !== undefined) return opts.forward
   return level === "error"
+}
+
+function passesSample(sampleRate: number | undefined): boolean {
+  if (sampleRate === undefined) return true
+  if (sampleRate < 0 || sampleRate > 1) return false
+  if (sampleRate === 0) return false
+  if (sampleRate === 1) return true
+  return Math.random() < sampleRate
 }
 
 function emit(
@@ -30,7 +43,12 @@ function emit(
   consoleFn(`[${level}]`, message, props)
 
   // Best-effort PostHog forward (only when env+ctx are present and key is configured).
-  if (shouldForward(level, opts) && opts.env?.POSTHOG_PROJECT_KEY && opts.executionCtx) {
+  if (
+    shouldForward(level, opts) &&
+    passesSample(opts.sampleRate) &&
+    opts.env?.POSTHOG_PROJECT_KEY &&
+    opts.executionCtx
+  ) {
     opts.executionCtx.waitUntil(
       captureEvent({
         apiKey: opts.env.POSTHOG_PROJECT_KEY,

@@ -129,3 +129,69 @@ describe("logger forwarding gate", () => {
     expect(captureEvent).not.toHaveBeenCalled()
   })
 })
+
+describe("logger sampling", () => {
+  it("does not forward when sampleRate is 0", () => {
+    const env = { POSTHOG_PROJECT_KEY: "phc_test" } as any
+    logger.error("sampled out", {}, { env, executionCtx: mockExecutionCtx, sampleRate: 0 })
+    expect(mockWaitUntil).not.toHaveBeenCalled()
+    expect(captureEvent).not.toHaveBeenCalled()
+  })
+
+  it("forwards when sampleRate is 1", async () => {
+    const env = { POSTHOG_PROJECT_KEY: "phc_test" } as any
+    logger.error("sampled in", { userId: "u-sample" }, {
+      env,
+      executionCtx: mockExecutionCtx,
+      sampleRate: 1,
+    })
+
+    expect(mockWaitUntil).toHaveBeenCalledOnce()
+    await (mockWaitUntil.mock.calls[0] as [Promise<unknown>])[0]
+    expect(captureEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        distinctId: "u-sample",
+        properties: expect.objectContaining({ message: "sampled in" }),
+      }),
+    )
+  })
+
+  it("treats out-of-range sampleRate values as disabled forwarding", () => {
+    const env = { POSTHOG_PROJECT_KEY: "phc_test" } as any
+    logger.error("bad sample", {}, { env, executionCtx: mockExecutionCtx, sampleRate: -1 })
+    logger.error("bad sample", {}, { env, executionCtx: mockExecutionCtx, sampleRate: 2 })
+    expect(mockWaitUntil).not.toHaveBeenCalled()
+    expect(captureEvent).not.toHaveBeenCalled()
+  })
+
+  it("uses Math.random for partial sampleRate values", async () => {
+    const randomSpy = vi.spyOn(Math, "random")
+    const env = { POSTHOG_PROJECT_KEY: "phc_test" } as any
+
+    randomSpy.mockReturnValueOnce(0.24)
+    logger.error("sampled in partial", { userId: "u-partial" }, {
+      env,
+      executionCtx: mockExecutionCtx,
+      sampleRate: 0.25,
+    })
+
+    randomSpy.mockReturnValueOnce(0.25)
+    logger.error("sampled out partial", {}, {
+      env,
+      executionCtx: mockExecutionCtx,
+      sampleRate: 0.25,
+    })
+
+    expect(randomSpy).toHaveBeenCalledTimes(2)
+    expect(mockWaitUntil).toHaveBeenCalledOnce()
+    await (mockWaitUntil.mock.calls[0] as [Promise<unknown>])[0]
+    expect(captureEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        distinctId: "u-partial",
+        properties: expect.objectContaining({ message: "sampled in partial" }),
+      }),
+    )
+
+    randomSpy.mockRestore()
+  })
+})
