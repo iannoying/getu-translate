@@ -6,6 +6,7 @@ const API_SRC = join(process.cwd(), "src")
 const ALLOWED = new Set([
   "analytics/logger.ts",
   "analytics/__tests__/logger.test.ts",
+  "analytics/__tests__/console-audit.test.ts",
 ])
 
 describe("api console logging audit", () => {

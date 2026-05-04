@@ -9,6 +9,7 @@ import { isAiProxyQuotaBucket, verifyAiJwt, type AiProxyQuotaBucket } from "./jw
 import { checkRateLimit, RATE_LIMIT_PER_MINUTE } from "./rate-limit"
 import { extractUsageFromSSE } from "./usage-parser"
 import type { WorkerEnv } from "../env"
+import { logger } from "../analytics/logger"
 
 const PRO_MODEL_TO_TRANSLATE_MODEL_ID = {
   "deepseek-v4-pro": "deepseek-v4-pro",
@@ -79,11 +80,11 @@ export async function handleChatCompletions(
   } catch (err) {
     const quotaError = quotaErrorResponse(err)
     if (quotaError) return quotaError
-    console.warn("[ai-proxy] quota preflight failed", {
+    logger.warn("[ai-proxy] quota preflight failed", {
       userId,
       quotaBucket,
       err: String(err),
-    })
+    }, { env, executionCtx: ctx })
     return json({ error: "quota preflight failed" }, 500)
   }
 
@@ -118,17 +119,17 @@ export async function handleChatCompletions(
       } catch (err) {
         const quotaError = quotaErrorResponse(err)
         if (quotaError) return quotaError
-        console.warn("[ai-proxy] charge failed", {
+        logger.warn("[ai-proxy] charge failed", {
           userId,
           model,
           requestId,
           quotaBucket,
           err: String(err),
-        })
+        }, { env, executionCtx: ctx })
         return json({ error: "quota charge failed" }, 500)
       }
     } else {
-      ctx.waitUntil(chargeAfterStream(db, userId, model, usageP, requestId, quotaBucket))
+      ctx.waitUntil(chargeAfterStream(db, userId, model, usageP, requestId, quotaBucket, env))
     }
     return new Response(forward, {
       status: 200,
@@ -154,17 +155,17 @@ export async function handleChatCompletions(
     } catch (err) {
       const quotaError = quotaErrorResponse(err)
       if (quotaError) return quotaError
-      console.warn("[ai-proxy] charge failed", {
+      logger.warn("[ai-proxy] charge failed", {
         userId,
         model,
         requestId,
         quotaBucket,
         err: String(err),
-      })
+      }, { env, executionCtx: ctx })
       return json({ error: "quota charge failed" }, 500)
     }
   } else {
-    ctx.waitUntil(chargeAfterStream(db, userId, model, Promise.resolve(usage), requestId, quotaBucket))
+    ctx.waitUntil(chargeAfterStream(db, userId, model, Promise.resolve(usage), requestId, quotaBucket, env))
   }
   return new Response(text, {
     status: 200,
@@ -179,17 +180,18 @@ async function chargeAfterStream(
   usageP: Promise<{ input: number; output: number } | null>,
   requestId: string,
   quotaBucket: AiProxyQuotaBucket,
+  env: WorkerEnv,
 ): Promise<void> {
   try {
     await chargeQuota(db, userId, model, usageP, requestId, quotaBucket)
   } catch (err) {
-    console.warn("[ai-proxy] charge failed", {
+    logger.warn("[ai-proxy] charge failed", {
       userId,
       model,
       requestId,
       quotaBucket,
       err: String(err),
-    })
+    }, { env })
   }
 }
 

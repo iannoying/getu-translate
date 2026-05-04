@@ -26,7 +26,7 @@ export interface WorkerEnv {
   // M6.8 — PDF translation: R2 bucket + queue producer.
   // Both optional so dev / vitest with no binding falls back gracefully
   // (presign endpoint returns 503; documentCreate keeps client page count
-  // and skips enqueue with a console.warn).
+  // and skips enqueue with a logger warning).
   BUCKET_PDFS?: R2Bucket
   TRANSLATE_QUEUE?: Queue<{ jobId: string }>
   // M6.8 — R2 S3-compatible credentials for browser presigned PUT.

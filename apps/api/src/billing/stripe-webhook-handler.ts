@@ -6,6 +6,15 @@ import { normalizeStripeEvent, type StripeNormalized } from "./stripe/events"
 import { applyBillingEvent } from "./paddle/apply"
 import type { BillingEvent } from "./paddle/events"
 import type { WorkerEnv } from "../env"
+import { logger } from "../analytics/logger"
+
+function getExecutionCtx(c: { executionCtx: ExecutionContext }): ExecutionContext | undefined {
+  try {
+    return c.executionCtx
+  } catch {
+    return undefined
+  }
+}
 
 async function resolveUserId(db: Db, subscriptionId: string): Promise<string | null> {
   const row = await db.select().from(schema.userEntitlements)
@@ -39,7 +48,7 @@ async function runStripeWebhook(
       status: "received",
     }).onConflictDoNothing().returning({ eventId: schema.billingWebhookEvents.eventId })
   } catch (err) {
-    console.error("[stripe-webhook] insert event failed", err)
+    logger.error("[stripe-webhook] insert event failed", { err }, { env: c.env, executionCtx: getExecutionCtx(c) })
     return c.json({ error: "insert_failed" }, 500)
   }
   if (!inserted || inserted.length === 0) {
@@ -67,7 +76,7 @@ async function runStripeWebhook(
     await db.update(schema.billingWebhookEvents)
       .set({ status: "error", errorMessage: msg.slice(0, 500) })
       .where(eq(schema.billingWebhookEvents.eventId, eventId))
-    console.error("[stripe-webhook] apply failed", err)
+    logger.error("[stripe-webhook] apply failed", { err }, { env: c.env, executionCtx: getExecutionCtx(c) })
     return c.json({ error: "apply_failed" }, 500)
   }
 }
