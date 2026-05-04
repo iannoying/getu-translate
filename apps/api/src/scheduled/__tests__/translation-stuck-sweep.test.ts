@@ -23,7 +23,13 @@ async function insertUser(db: ReturnType<typeof makeTestDb>["db"], id: string) {
 
 async function insertJob(
   db: ReturnType<typeof makeTestDb>["db"],
-  opts: { id: string; userId: string; status: string; createdAt: Date },
+  opts: {
+    id: string
+    userId: string
+    status: string
+    createdAt: Date
+    progressUpdatedAt?: Date | null
+  },
 ) {
   await db.insert(schema.translationJobs).values({
     id: opts.id,
@@ -37,6 +43,7 @@ async function insertJob(
     status: opts.status as "queued" | "processing" | "done" | "failed",
     expiresAt: new Date(NOW_MS + 30 * 86400_000),
     createdAt: opts.createdAt,
+    progressUpdatedAt: opts.progressUpdatedAt,
   })
 }
 
@@ -68,6 +75,69 @@ describe("runTranslationStuckSweep", () => {
 
     const job = await db.select().from(schema.translationJobs).where(eq(schema.translationJobs.id, "j-recent")).get()
     expect(job?.status).toBe("processing")
+  })
+
+  it("does NOT mark an old processing job as stuck when progress was updated recently", async () => {
+    const { db } = makeTestDb()
+    await insertUser(db, "u-progress-recent")
+    await insertJob(db, {
+      id: "j-progress-recent",
+      userId: "u-progress-recent",
+      status: "processing",
+      createdAt: new Date(STUCK_MS),
+      progressUpdatedAt: new Date(RECENT_MS),
+    })
+
+    const result = await runTranslationStuckSweep(db as any, { now: NOW_MS })
+
+    expect(result.stuckMarkedFailed).toBe(0)
+    const job = await db
+      .select()
+      .from(schema.translationJobs)
+      .where(eq(schema.translationJobs.id, "j-progress-recent"))
+      .get()
+    expect(job?.status).toBe("processing")
+  })
+
+  it("marks a processing job as stuck when progressUpdatedAt is older than threshold", async () => {
+    const { db } = makeTestDb()
+    await insertUser(db, "u-progress-stale")
+    await insertJob(db, {
+      id: "j-progress-stale",
+      userId: "u-progress-stale",
+      status: "processing",
+      createdAt: new Date(RECENT_MS),
+      progressUpdatedAt: new Date(STUCK_MS),
+    })
+
+    const result = await runTranslationStuckSweep(db as any, { now: NOW_MS })
+
+    expect(result.stuckMarkedFailed).toBe(1)
+    const job = await db
+      .select()
+      .from(schema.translationJobs)
+      .where(eq(schema.translationJobs.id, "j-progress-stale"))
+      .get()
+    expect(job?.status).toBe("failed")
+    expect(job?.failedAt).not.toBeNull()
+  })
+
+  it("falls back to createdAt for legacy processing rows with NULL progressUpdatedAt", async () => {
+    const { db } = makeTestDb()
+    await insertUser(db, "u-legacy")
+    await insertJob(db, {
+      id: "j-legacy",
+      userId: "u-legacy",
+      status: "processing",
+      createdAt: new Date(STUCK_MS),
+      progressUpdatedAt: null,
+    })
+
+    const result = await runTranslationStuckSweep(db as any, { now: NOW_MS })
+
+    expect(result.stuckMarkedFailed).toBe(1)
+    const job = await db.select().from(schema.translationJobs).where(eq(schema.translationJobs.id, "j-legacy")).get()
+    expect(job?.status).toBe("failed")
   })
 
   it("does NOT affect done or queued jobs regardless of age", async () => {

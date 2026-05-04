@@ -1,4 +1,4 @@
-import { and, eq, lt } from "drizzle-orm"
+import { and, eq, lt, sql } from "drizzle-orm"
 import type { Db } from "@getu/db"
 import { schema } from "@getu/db"
 
@@ -8,23 +8,29 @@ export type StuckSweepResult = {
   stuckMarkedFailed: number
 }
 
+function stuckHeartbeatCutoff(cutoff: Date) {
+  return lt(
+    sql`COALESCE(${schema.translationJobs.progressUpdatedAt}, ${schema.translationJobs.createdAt})`,
+    cutoff.getTime(),
+  )
+}
+
 export async function runTranslationStuckSweep(
   db: Db,
   opts: { now: number; dryRun?: boolean },
 ): Promise<StuckSweepResult> {
   const cutoff = new Date(opts.now - STUCK_THRESHOLD_MS)
 
-  // Heuristic: status='processing' AND created_at older than threshold.
-  // We don't track last-progress-update timestamp explicitly; in practice a
-  // job that's been processing > 30min has either D1-stuck (M6.10 risk) or
-  // worker-stuck. Mark as failed/transient so retry can pick up.
+  // Heuristic: status='processing' and last heartbeat older than threshold.
+  // progress_updated_at is set on queue progress/final/failure transitions.
+  // Legacy rows with NULL progress_updated_at fall back to created_at.
   const stuck = await db
     .select({ id: schema.translationJobs.id })
     .from(schema.translationJobs)
     .where(
       and(
         eq(schema.translationJobs.status, "processing"),
-        lt(schema.translationJobs.createdAt, cutoff),
+        stuckHeartbeatCutoff(cutoff),
       ),
     )
 
@@ -40,7 +46,7 @@ export async function runTranslationStuckSweep(
       .where(
         and(
           eq(schema.translationJobs.status, "processing"),
-          lt(schema.translationJobs.createdAt, cutoff),
+          stuckHeartbeatCutoff(cutoff),
         ),
       )
   }
