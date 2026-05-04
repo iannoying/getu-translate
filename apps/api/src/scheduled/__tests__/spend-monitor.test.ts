@@ -194,4 +194,29 @@ describe("runSpendMonitor", () => {
     expect(result.alerted).toBe(0)
     expect(result.error).toBe("slack webhook returned 500")
   })
+
+  it("reports Slack fetch rejections without throwing", async () => {
+    const { db } = makeTestDb()
+    const fetchMock = vi.fn(async () => {
+      throw new Error("dns lookup failed")
+    })
+
+    await db.insert(schema.usageLog).values({
+      id: "token-slack-reject",
+      userId: null,
+      bucket: "web_text_translate_token_monthly",
+      amount: 501,
+      requestId: "token-slack-reject",
+      createdAt: ONE_HOUR_AGO,
+    })
+
+    const result = await runSpendMonitor(db as any, env({ SLACK_WEBHOOK_URL: "https://hooks.slack.test/getu" }), {
+      now: NOW_MS,
+      fetch: fetchMock,
+    })
+
+    expect(result.alerted).toBe(0)
+    expect(result.breaches).toHaveLength(1)
+    expect(result.error).toBe("slack webhook failed: dns lookup failed")
+  })
 })

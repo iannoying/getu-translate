@@ -68,11 +68,21 @@ export async function runSpendMonitor(
   if (opts.dryRun) return { checked: thresholds.length, alerted: breaches.length, breaches }
 
   const fetchImpl = opts.fetch ?? fetch
-  const response = await fetchImpl(slackWebhookUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(buildSlackPayload(breaches, opts.now)),
-  })
+  let response: Response
+  try {
+    response = await fetchImpl(slackWebhookUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(buildSlackPayload(breaches, opts.now)),
+    })
+  } catch (err) {
+    return {
+      checked: thresholds.length,
+      alerted: 0,
+      breaches,
+      error: `slack webhook failed: ${err instanceof Error ? err.message : String(err)}`,
+    }
+  }
 
   if (!response.ok) {
     return {
