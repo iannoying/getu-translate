@@ -43,6 +43,7 @@ const API_SRC = join(process.cwd(), "src")
 const ALLOWED = new Set([
   "analytics/logger.ts",
   "analytics/__tests__/logger.test.ts",
+  "analytics/__tests__/console-audit.test.ts",
 ])
 
 describe("api console logging audit", () => {
@@ -491,7 +492,7 @@ Run:
 ```bash
 pnpm --filter @getu/api exec vitest run src/analytics/__tests__/console-audit.test.ts src/analytics/__tests__/logger.test.ts src/middleware/__tests__/rate-limit.test.ts src/ai/__tests__/proxy.test.ts src/billing/__tests__/webhook-handler.test.ts src/billing/__tests__/stripe-webhook-handler.test.ts src/queue/__tests__/translate-document.test.ts src/translate/__tests__/from-url-route.test.ts src/orpc/__tests__/document-extras.test.ts
 pnpm --filter @getu/api type-check
-rg -n "console\\.(warn|error)" apps/api/src -g '!analytics/logger.ts' -g '!analytics/__tests__/logger.test.ts' -g '!analytics/__tests__/console-audit.test.ts'
+rg -n "console\\.(warn|error)" apps/api/src -g '!**/analytics/logger.ts' -g '!**/analytics/__tests__/logger.test.ts' -g '!**/analytics/__tests__/console-audit.test.ts'
 ```
 
 Expected: Vitest PASS, type-check PASS, `rg` produces no output.
@@ -549,7 +550,7 @@ PR body:
 ## Tests
 - `pnpm --filter @getu/api exec vitest run src/analytics/__tests__/console-audit.test.ts src/analytics/__tests__/logger.test.ts src/middleware/__tests__/rate-limit.test.ts src/ai/__tests__/proxy.test.ts src/billing/__tests__/webhook-handler.test.ts src/billing/__tests__/stripe-webhook-handler.test.ts src/queue/__tests__/translate-document.test.ts src/translate/__tests__/from-url-route.test.ts src/orpc/__tests__/document-extras.test.ts`
 - `pnpm --filter @getu/api type-check`
-- `rg -n "console\\.(warn|error)" apps/api/src -g '!analytics/logger.ts' -g '!analytics/__tests__/logger.test.ts' -g '!analytics/__tests__/console-audit.test.ts'`
+- `rg -n "console\\.(warn|error)" apps/api/src -g '!**/analytics/logger.ts' -g '!**/analytics/__tests__/logger.test.ts' -g '!**/analytics/__tests__/console-audit.test.ts'`
 - pre-push hook
 
 Closes #233

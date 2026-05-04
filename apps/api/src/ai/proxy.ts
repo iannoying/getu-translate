@@ -35,7 +35,7 @@ function resolveAiProxyQuotaBucket(req: Request): AiProxyQuotaBucket {
 export async function handleChatCompletions(
   req: Request,
   env: WorkerEnv,
-  ctx: ExecutionContext,
+  ctx?: ExecutionContext,
 ): Promise<Response> {
   // 1. Auth
   const authHeader = req.headers.get("authorization") ?? ""
@@ -129,7 +129,7 @@ export async function handleChatCompletions(
         return json({ error: "quota charge failed" }, 500)
       }
     } else {
-      ctx.waitUntil(chargeAfterStream(db, userId, model, usageP, requestId, quotaBucket, env))
+      waitUntilOrRun(ctx, chargeAfterStream(db, userId, model, usageP, requestId, quotaBucket, env))
     }
     return new Response(forward, {
       status: 200,
@@ -165,12 +165,20 @@ export async function handleChatCompletions(
       return json({ error: "quota charge failed" }, 500)
     }
   } else {
-    ctx.waitUntil(chargeAfterStream(db, userId, model, Promise.resolve(usage), requestId, quotaBucket, env))
+    waitUntilOrRun(ctx, chargeAfterStream(db, userId, model, Promise.resolve(usage), requestId, quotaBucket, env))
   }
   return new Response(text, {
     status: 200,
     headers: filterResponseHeaders(upstream.headers),
   })
+}
+
+function waitUntilOrRun(ctx: ExecutionContext | undefined, promise: Promise<void>): void {
+  if (ctx) {
+    ctx.waitUntil(promise)
+    return
+  }
+  void promise
 }
 
 async function chargeAfterStream(

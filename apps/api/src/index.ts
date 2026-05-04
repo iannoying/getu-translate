@@ -110,7 +110,7 @@ app.post("/ai/v1/token", async (c) => {
 })
 
 app.post("/ai/v1/chat/completions", async (c) => {
-  return handleChatCompletions(c.req.raw, c.env, c.executionCtx)
+  return handleChatCompletions(c.req.raw, c.env, getExecutionCtx(c))
 })
 
 app.post("/api/billing/webhook/paddle", handlePaddleWebhook)
