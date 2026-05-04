@@ -8,8 +8,8 @@ export function AuthGate({
   fallback,
 }: {
   children: ReactNode
-  /** Optional custom fallback. Default: a small "Login to view" prompt. */
-  fallback?: ReactNode
+  /** Required locale-aware fallback shown when the user is not authenticated. */
+  fallback: ReactNode
 }) {
   const session = authClient.useSession()
   const isLoading = session.isPending
@@ -20,16 +20,7 @@ export function AuthGate({
   }
 
   if (!isAuthed) {
-    return (
-      <>
-        {fallback ?? (
-          <div className="auth-gate-prompt">
-            <p>登录后查看完整内容</p>
-            <a href="/log-in">登录</a>
-          </div>
-        )}
-      </>
-    )
+    return <>{fallback}</>
   }
 
   return <>{children}</>
