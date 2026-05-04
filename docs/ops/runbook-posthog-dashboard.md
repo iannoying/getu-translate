@@ -24,7 +24,7 @@ Do not mark issue #230 complete until the dashboard URL is filled and the first 
 | `pdf_uploaded` | Web `/document` client via API analytics route | `sizeMb`, `modelId` | Used as PDF funnel start. The from-URL path sets `sizeMb: 0` because the client does not know the remote file size. |
 | `pdf_completed` | Web document preview client via API analytics route | `jobId`, `durationMs` | Used for PDF success rate and duration. |
 | `pro_upgrade_triggered` | Web translate/document upgrade prompts via API analytics route | `source` or plan/provider fields depending call site | Used as upgrade-intent signal. |
-| `internal_log` | API logger PostHog fan-out | `level`, `message`, plus caller props such as `errorCode` | B2 makes info/warn console-only by default; error forwards by default. |
+| `internal_log` | API logger PostHog fan-out | `level`, `message`, plus caller props such as `provider` and `statusCode` | B2 makes info/warn console-only by default; error forwards by default. No stable `errorCode` property is emitted yet. |
 
 Current instrumentation limitations:
 
