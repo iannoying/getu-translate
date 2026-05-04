@@ -69,6 +69,13 @@ export interface WorkerEnv {
   RATE_LIMIT_KV?: KVNamespace
   /** When set, requests with header X-Internal-Smoke: <value> bypass the rate limit. */
   RATE_LIMIT_SMOKE_SECRET?: string
+  // M7-B3 — daily spend monitor Slack alerting. Thresholds are [vars]; webhook is a secret.
+  SLACK_WEBHOOK_URL?: string
+  SPEND_ALERT_AI_TRANSLATE_PER_DAY?: string
+  SPEND_ALERT_WEB_TEXT_TRANSLATE_PER_DAY?: string
+  SPEND_ALERT_WEB_TEXT_TRANSLATE_TOKENS_PER_DAY?: string
+  SPEND_ALERT_DOCUMENT_PAGES_PER_DAY?: string
+  SPEND_ALERT_AI_RATE_LIMIT_WRITES_PER_DAY?: string
 }
 
 export const SecretsSchema = z.object({

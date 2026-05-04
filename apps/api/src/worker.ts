@@ -2,6 +2,7 @@ import { withSentry } from "@sentry/cloudflare"
 import app from "./index"
 import { createDb } from "@getu/db"
 import { runRetention } from "./scheduled/retention"
+import { runSpendMonitor } from "./scheduled/spend-monitor"
 import { runTranslationCleanup } from "./scheduled/translation-cleanup"
 import { runTranslationRetry } from "./scheduled/translation-retry"
 import { runTranslationStuckSweep } from "./scheduled/translation-stuck-sweep"
@@ -20,6 +21,7 @@ const handler = {
         runTranslationCleanup(db, env.BUCKET_PDFS, { now }).then((r) => ({ task: "translation-cleanup" as const, ok: true as const, ...r })),
         runTranslationStuckSweep(db, { now }).then((r) => ({ task: "translation-stuck-sweep" as const, ok: true as const, ...r })),
         runTranslationRetry(db, env.TRANSLATE_QUEUE, { now }).then((r) => ({ task: "translation-retry" as const, ok: true as const, ...r })),
+        runSpendMonitor(db, env, { now }).then((r) => ({ task: "spend-monitor" as const, ok: true as const, ...r })),
       ]).then((results) => {
         for (const r of results) {
           if (r.status === "fulfilled") {
