@@ -108,4 +108,90 @@ describe("runSpendMonitor", () => {
     expect(result.breaches).toEqual([])
     expect(fetchMock).not.toHaveBeenCalled()
   })
+
+  it("renders a clean Slack message with bucket name, threshold, and actual value", async () => {
+    const { db } = makeTestDb()
+    const fetchMock = vi.fn(async () => new Response("ok"))
+
+    await db.insert(schema.usageLog).values({
+      id: "token-breach",
+      userId: null,
+      bucket: "web_text_translate_token_monthly",
+      amount: 1_234_567,
+      requestId: "token-breach",
+      createdAt: ONE_HOUR_AGO,
+    })
+
+    await runSpendMonitor(db as any, env({ SLACK_WEBHOOK_URL: "https://hooks.slack.test/getu" }), {
+      now: NOW_MS,
+      fetch: fetchMock,
+    })
+
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    const body = JSON.parse(String(init?.body))
+
+    expect(body.text).toContain("GetU spend alert")
+    expect(body.blocks[0].text.text).toContain("web_text_translate_token_monthly")
+    expect(body.blocks[0].text.text).toContain("1,234,567")
+    expect(body.blocks[0].text.text).toContain("500")
+    expect(body.blocks[0].text.text).toContain("SPEND_ALERT_WEB_TEXT_TRANSLATE_TOKENS_PER_DAY")
+  })
+
+  it("returns breaches without posting when Slack webhook is not configured", async () => {
+    const { db } = makeTestDb()
+    const fetchMock = vi.fn(async () => new Response("ok"))
+
+    await db.insert(schema.usageLog).values({
+      id: "token-no-webhook",
+      userId: null,
+      bucket: "web_text_translate_token_monthly",
+      amount: 501,
+      requestId: "token-no-webhook",
+      createdAt: ONE_HOUR_AGO,
+    })
+
+    const result = await runSpendMonitor(db as any, env(), { now: NOW_MS, fetch: fetchMock })
+
+    expect(result.skippedReason).toBe("no_webhook")
+    expect(result.alerted).toBe(0)
+    expect(result.breaches).toHaveLength(1)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("disables invalid thresholds and reports no_thresholds when none remain", async () => {
+    const { db } = makeTestDb()
+
+    const result = await runSpendMonitor(
+      db as any,
+      env({
+        SPEND_ALERT_WEB_TEXT_TRANSLATE_TOKENS_PER_DAY: "not-a-number",
+        SPEND_ALERT_DOCUMENT_PAGES_PER_DAY: "0",
+      }),
+      { now: NOW_MS },
+    )
+
+    expect(result).toEqual({ checked: 0, alerted: 0, breaches: [], skippedReason: "no_thresholds" })
+  })
+
+  it("reports Slack webhook failures without throwing", async () => {
+    const { db } = makeTestDb()
+    const fetchMock = vi.fn(async () => new Response("bad", { status: 500 }))
+
+    await db.insert(schema.usageLog).values({
+      id: "token-slack-fail",
+      userId: null,
+      bucket: "web_text_translate_token_monthly",
+      amount: 501,
+      requestId: "token-slack-fail",
+      createdAt: ONE_HOUR_AGO,
+    })
+
+    const result = await runSpendMonitor(db as any, env({ SLACK_WEBHOOK_URL: "https://hooks.slack.test/getu" }), {
+      now: NOW_MS,
+      fetch: fetchMock,
+    })
+
+    expect(result.alerted).toBe(0)
+    expect(result.error).toBe("slack webhook returned 500")
+  })
 })
