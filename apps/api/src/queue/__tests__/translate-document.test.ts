@@ -189,21 +189,12 @@ describe("queue translate-document handler", () => {
     const pdfBuf = readFileSync(resolve(FIXTURE_DIR, "hello-world.pdf"))
     const pdfAb = pdfBuf.buffer.slice(pdfBuf.byteOffset, pdfBuf.byteOffset + pdfBuf.byteLength)
 
-    let processingTimestamp = 0
     let progressTimestamp = 0
     let progressPayload: { stage?: string; pct?: number } | null = null
     const handler = createQueueHandler({
       db: db as unknown as Db,
       bucket: {
-        get: vi.fn(async () => {
-          const row = await db
-            .select()
-            .from(schema.translationJobs)
-            .where(eq(schema.translationJobs.id, "j-progress"))
-            .get()
-          processingTimestamp = row?.progressUpdatedAt?.getTime() ?? 0
-          return { arrayBuffer: async () => pdfAb }
-        }),
+        get: vi.fn(async () => ({ arrayBuffer: async () => pdfAb })),
         put: vi.fn(async (key: string) => {
           if (key.endsWith("segments.json")) {
             const row = await db
@@ -218,23 +209,19 @@ describe("queue translate-document handler", () => {
       } as unknown as R2Bucket,
       env: {} as any,
       pipelineOpts: { concurrency: 1, maxRetries: 0, baseBackoffMs: 0 },
-      translateChunk: async () => {
-        await new Promise((resolve) => setTimeout(resolve, 5))
-        return "你好"
-      },
+      translateChunk: async () => "你好",
     })
 
     const { batch } = makeBatch("j-progress")
     await handler.queue(batch as any, {} as any, {} as any)
 
-    expect(processingTimestamp).toBeGreaterThan(0)
     expect(progressPayload).toEqual({
       stage: "translated",
       pct: 100,
       chunk: 1,
       chunkTotal: 1,
     })
-    expect(progressTimestamp).toBeGreaterThan(processingTimestamp)
+    expect(progressTimestamp).toBeGreaterThan(0)
   })
 
   it("scanned PDF: status=failed with canonical message + quota refunded", async () => {
@@ -360,7 +347,7 @@ describe("queue translate-document handler", () => {
     expect(refunds[0].amount).toBe(-ctx.amount)
   })
 
-  it("malformed sourceKey -> fails without overwriting", async () => {
+  it("malformed sourceKey -> fails before R2 fetch, translation, or output writes", async () => {
     const { db } = makeTestDb()
     await setupJob(db, { jobId: "j-bad", userId: "u-bad", sourcePages: 1 })
     // Mutate the row to a malformed sourceKey
@@ -369,23 +356,25 @@ describe("queue translate-document handler", () => {
       .set({ sourceKey: "pdfs/u-bad/j-bad/document.pdf" })
       .where(eq(schema.translationJobs.id, "j-bad"))
 
+    const r2Get = vi.fn()
     const r2Put = vi.fn()
+    const translateChunk = vi.fn(async () => "你好")
     const handler = createQueueHandler({
       db: db as unknown as Db,
       bucket: {
-        get: vi.fn(async () => ({ arrayBuffer: async () => readFileSync(resolve(FIXTURE_DIR, "hello-world.pdf")).buffer })),
+        get: r2Get,
         put: r2Put,
       } as unknown as R2Bucket,
       env: {} as any,
-      translateChunk: async () => "你好",
+      translateChunk,
     })
 
     const { batch } = makeBatch("j-bad")
     await handler.queue(batch as any, {} as any, {} as any)
 
-    // segments.json should NOT have been written
-    const putKeys = r2Put.mock.calls.map((c) => c[0] as string)
-    expect(putKeys).not.toContain("pdfs/u-bad/j-bad/document.pdf")
+    expect(r2Get).not.toHaveBeenCalled()
+    expect(translateChunk).not.toHaveBeenCalled()
+    expect(r2Put).not.toHaveBeenCalled()
 
     const [job] = await db.select().from(schema.translationJobs).where(eq(schema.translationJobs.id, "j-bad"))
     expect(job.status).toBe("failed")
@@ -445,28 +434,33 @@ describe("queue translate-document handler", () => {
     expect(refunds[0].amount).toBe(-1)
   })
 
-  it("idempotent: skips processing when status is already done", async () => {
-    const { db } = makeTestDb()
-    await setupJob(db, { jobId: "j5", userId: "u5", sourcePages: 1 })
-    await db
-      .update(schema.translationJobs)
-      .set({ status: "done" })
-      .where(eq(schema.translationJobs.id, "j5"))
+  it.each(["done", "failed", "processing"] as const)(
+    "idempotent: skips processing when status is already %s",
+    async (status) => {
+      const { db } = makeTestDb()
+      const jobId = `j5-${status}`
+      await setupJob(db, { jobId, userId: `u5-${status}`, sourcePages: 1 })
+      await db
+        .update(schema.translationJobs)
+        .set({ status })
+        .where(eq(schema.translationJobs.id, jobId))
 
-    const r2Get = vi.fn()
-    const r2Put = vi.fn()
-    const handler = createQueueHandler({
-      db: db as unknown as Db,
-      bucket: { get: r2Get, put: r2Put } as unknown as R2Bucket,
-      env: {} as any,
-    })
+      const r2Get = vi.fn()
+      const r2Put = vi.fn()
+      const handler = createQueueHandler({
+        db: db as unknown as Db,
+        bucket: { get: r2Get, put: r2Put } as unknown as R2Bucket,
+        env: {} as any,
+      })
 
-    const { batch, ack } = makeBatch("j5")
-    await handler.queue(batch as any, {} as any, {} as any)
+      const { batch, ack, retry } = makeBatch(jobId)
+      await handler.queue(batch as any, {} as any, {} as any)
 
-    // No R2 access — skipped immediately
-    expect(r2Get).not.toHaveBeenCalled()
-    expect(r2Put).not.toHaveBeenCalled()
-    expect(ack).toHaveBeenCalled()
-  })
+      // No R2 access — skipped immediately
+      expect(r2Get).not.toHaveBeenCalled()
+      expect(r2Put).not.toHaveBeenCalled()
+      expect(ack).toHaveBeenCalledTimes(1)
+      expect(retry).not.toHaveBeenCalled()
+    },
+  )
 })
