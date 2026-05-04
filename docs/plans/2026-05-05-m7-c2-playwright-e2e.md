@@ -122,7 +122,7 @@ Note: `UpgradeModal` renders an em dash in `pro_model_clicked`; the test intenti
 Run:
 
 ```bash
-pnpm --filter @getu/web test:e2e -- --project=chromium
+pnpm --filter @getu/web test:e2e --project=chromium
 ```
 
 Expected: FAIL because `/e2e/upgrade-modal/` does not exist yet, or because the pro-model title assertion does not match. Do not proceed unless the test fails for one of those reasons.
@@ -212,7 +212,7 @@ Update the `pro_model_clicked` title in `apps/web/e2e/upgrade-modal.spec.ts`:
 Run:
 
 ```bash
-pnpm --filter @getu/web test:e2e -- --project=chromium
+pnpm --filter @getu/web test:e2e --project=chromium
 pnpm --filter @getu/web type-check
 ```
 
@@ -241,7 +241,7 @@ Modify `.github/workflows/pr-test.yml` after the existing `Run tests` step:
         run: pnpm --filter @getu/web exec playwright install --with-deps chromium
 
       - name: Web E2E
-        run: pnpm --filter @getu/web test:e2e -- --project=chromium
+        run: pnpm --filter @getu/web test:e2e --project=chromium
 ```
 
 - [ ] **Step 2: Verify workflow syntax and local commands**
@@ -249,7 +249,7 @@ Modify `.github/workflows/pr-test.yml` after the existing `Run tests` step:
 Run:
 
 ```bash
-pnpm --filter @getu/web test:e2e -- --project=chromium
+pnpm --filter @getu/web test:e2e --project=chromium
 pnpm --filter @getu/web type-check
 ```
 
@@ -307,7 +307,7 @@ PR body:
 - Run web Playwright E2E in PR CI.
 
 ## Tests
-- `pnpm --filter @getu/web test:e2e -- --project=chromium`
+- `pnpm --filter @getu/web test:e2e --project=chromium`
 - `pnpm --filter @getu/web type-check`
 - pre-push hook
 
