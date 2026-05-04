@@ -9,17 +9,17 @@ Chrome native Side Panel entrypoint. Renders the full translation workbench (`Si
 
 ## Key Files
 
-| File         | Description                                                                                                                                                          |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.html` | HTML shell for the side panel page. Loaded by Chrome when the side panel opens.                                                                                      |
-| `main.tsx`   | React root bootstrap — mounts `<App />` into `#app` with `JotaiProvider` / `QueryClientProvider` / `ThemeProvider`.                                                  |
+| File         | Description                                                                                                                                                             |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.html` | HTML shell for the side panel page. Loaded by Chrome when the side panel opens.                                                                                         |
+| `main.tsx`   | React root bootstrap — mounts `<App />` into `#app` with `JotaiProvider` / `QueryClientProvider` / `ThemeProvider`.                                                     |
 | `app.tsx`    | `<App />` component — renders `<SidebarShell>` full-height, wires `onClose` to `sendMessage("closeNativeSidePanel")` so the background service worker closes the panel. |
 
 ## Subdirectories
 
-| Directory    | Purpose                              |
-| ------------ | ------------------------------------ |
-| `__tests__/` | Vitest tests for the App component   |
+| Directory    | Purpose                            |
+| ------------ | ---------------------------------- |
+| `__tests__/` | Vitest tests for the App component |
 
 ## For AI Agents
 

@@ -9,26 +9,26 @@ Source root of the `@getu/api` Cloudflare Worker. Wires the Hono app (`index.ts`
 
 ## Key Files
 
-| File          | Description                                                                                                             |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`    | Hono app: CORS, `/health`, `/api/identity/*` (better-auth), `/orpc/*`, `/ai/v1/*`, webhook routes. Default-exports `app`. |
-| `worker.ts`   | Worker `ExportedHandler`: `fetch` → `app.fetch`, `scheduled` → runs retention + translation-cleanup + translation-retry + translation-stuck-sweep. |
-| `auth.ts`     | `createAuth(env)` — better-auth instance configured with email/password, email OTP, passkey, Google/GitHub OAuth.        |
-| `email.ts`    | Email sender (Resend) for OTP + transactional mail. Test double lives under `__tests__/`.                               |
-| `env.ts`      | `WorkerEnv` type — D1, KV, secrets, env vars. Add new bindings here AND in `wrangler.toml`.                              |
+| File        | Description                                                                                                                                        |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`  | Hono app: CORS, `/health`, `/api/identity/*` (better-auth), `/orpc/*`, `/ai/v1/*`, webhook routes. Default-exports `app`.                          |
+| `worker.ts` | Worker `ExportedHandler`: `fetch` → `app.fetch`, `scheduled` → runs retention + translation-cleanup + translation-retry + translation-stuck-sweep. |
+| `auth.ts`   | `createAuth(env)` — better-auth instance configured with email/password, email OTP, passkey, Google/GitHub OAuth.                                  |
+| `email.ts`  | Email sender (Resend) for OTP + transactional mail. Test double lives under `__tests__/`.                                                          |
+| `env.ts`    | `WorkerEnv` type — D1, KV, secrets, env vars. Add new bindings here AND in `wrangler.toml`.                                                        |
 
 ## Subdirectories
 
-| Directory       | Purpose                                                                                                              |
-| --------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `__tests__/`    | Cross-module tests (`email.test.ts`, `providers.test.ts`) + shared `utils/test-db.ts` harness.                       |
-| `ai/`           | AI proxy: JWT minting, rate limit, OpenAI-compatible chat-completions proxy, usage parsing (see `ai/AGENTS.md`).     |
-| `analytics/`    | PostHog integration: typed event helpers, structured logger, low-level capture primitive (see `analytics/AGENTS.md`). |
-| `billing/`      | Entitlement/quota engine + Paddle/Stripe clients, webhooks, checkout (see `billing/AGENTS.md`).                       |
-| `middleware/`   | Hono middleware: KV-backed fixed-window rate limiter applied to `/orpc/*` and `/ai/v1/*` (see `middleware/AGENTS.md`). |
-| `orpc/`         | oRPC router + context + per-domain routers: `billing`, `translate`, `analytics` (see `orpc/AGENTS.md`).              |
-| `scheduled/`    | Cron-triggered jobs: retention + translation lifecycle (cleanup, retry, stuck-sweep) (see `scheduled/AGENTS.md`).     |
-| `translate/`    | Provider dispatch + LLM integration: `dispatchTranslate`, bianxie.ai adapter, document pipeline helpers (see `translate/AGENTS.md`). |
+| Directory     | Purpose                                                                                                                              |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `__tests__/`  | Cross-module tests (`email.test.ts`, `providers.test.ts`) + shared `utils/test-db.ts` harness.                                       |
+| `ai/`         | AI proxy: JWT minting, rate limit, OpenAI-compatible chat-completions proxy, usage parsing (see `ai/AGENTS.md`).                     |
+| `analytics/`  | PostHog integration: typed event helpers, structured logger, low-level capture primitive (see `analytics/AGENTS.md`).                |
+| `billing/`    | Entitlement/quota engine + Paddle/Stripe clients, webhooks, checkout (see `billing/AGENTS.md`).                                      |
+| `middleware/` | Hono middleware: KV-backed fixed-window rate limiter applied to `/orpc/*` and `/ai/v1/*` (see `middleware/AGENTS.md`).               |
+| `orpc/`       | oRPC router + context + per-domain routers: `billing`, `translate`, `analytics` (see `orpc/AGENTS.md`).                              |
+| `scheduled/`  | Cron-triggered jobs: retention + translation lifecycle (cleanup, retry, stuck-sweep) (see `scheduled/AGENTS.md`).                    |
+| `translate/`  | Provider dispatch + LLM integration: `dispatchTranslate`, bianxie.ai adapter, document pipeline helpers (see `translate/AGENTS.md`). |
 
 ## For AI Agents
 

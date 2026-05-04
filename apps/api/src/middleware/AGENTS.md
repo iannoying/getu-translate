@@ -9,9 +9,9 @@ Hono middleware for the `@getu/api` Cloudflare Worker. Currently contains the KV
 
 ## Key Files
 
-| File                 | Description                                                                                                                                                                                                                         |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rate-limit-core.ts` | `checkAndIncrementRateLimit(kv, key, cfg)` — pure KV implementation of a fixed-window counter. Key format: `rl:<key>:<minuteEpoch>`. Fail-fuzzy by design (eventually-consistent KV means ~limit not hard limit). Returns `{allowed, remaining, retryAfterSeconds}`. |
+| File                 | Description                                                                                                                                                                                                                                                                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `rate-limit-core.ts` | `checkAndIncrementRateLimit(kv, key, cfg)` — pure KV implementation of a fixed-window counter. Key format: `rl:<key>:<minuteEpoch>`. Fail-fuzzy by design (eventually-consistent KV means ~limit not hard limit). Returns `{allowed, remaining, retryAfterSeconds}`.                                                                                                           |
 | `rate-limit.ts`      | `rateLimit(opts)` — Hono `MiddlewareHandler` that resolves the rate-limit key (authed = `user:<id>`, anon = `ip:<CF-Connecting-IP>`), calls `checkAndIncrementRateLimit`, and returns 429 with `retry-after` on breach. Smoke-test bypass via `x-internal-smoke` header (only active when `RATE_LIMIT_SMOKE_SECRET` is set). Fails open if `RATE_LIMIT_KV` binding is missing. |
 
 ## Subdirectories

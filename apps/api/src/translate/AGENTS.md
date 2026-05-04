@@ -9,22 +9,22 @@ Provider dispatch and LLM integration layer for the `@getu/api` Worker's transla
 
 ## Key Files
 
-| File                      | Description                                                                                                                                                                                                                                                   |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File                      | Description                                                                                                                                                                                                                                                                 |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `dispatch.ts`             | `dispatchTranslate(modelId, text, source, target, env)` — top-level router: google/microsoft → free providers; LLM kind → `bianxieLlmTranslate`. Used by both `orpc/translate/text.ts` and the queue consumer. Returns `{text, tokens}` (`tokens` null for free providers). |
-| `llm-providers.ts`        | `bianxieLlmTranslate` — OpenAI-compatible chat-completion call to bianxie.ai. Maps `TranslateModelId` → bianxie model name via `TRANSLATE_MODEL_TO_BIANXIE`. Throws `TranslateProviderError` on network/HTTP/parse failures. Non-streaming (per-chunk pipeline). |
-| `document-translators.ts` | `makeTranslateChunkFn(env)` — factory that returns a `TranslateChunkFn` wiring `dispatchTranslate` into the document-translation pipeline's chunk callback interface.                                                                                          |
-| `free-providers.ts`       | `googleTranslate` / `microsoftTranslate` — adapters for free translation APIs. Source of `TranslateProviderError` class used across the module.                                                                                                               |
-| `document-pipeline.ts`    | Orchestrates chunked document translation: splits, translates in parallel (bounded concurrency), and reassembles. Defines the `TranslateChunkFn` type.                                                                                                        |
-| `document-chunker.ts`     | Splits translated documents into chunks that fit provider limits. Defines the `Chunk` type.                                                                                                                                                                   |
-| `document-output.ts`      | Reassembles translated chunks back into the output document format.                                                                                                                                                                                           |
-| `document.ts`             | Entry point for document translation jobs — called by the queue consumer in `queue/translate-document.ts`.                                                                                                                                                    |
-| `pdf-extract.ts`          | Extracts plain text from PDF binary for pre-processing before translation.                                                                                                                                                                                    |
+| `llm-providers.ts`        | `bianxieLlmTranslate` — OpenAI-compatible chat-completion call to bianxie.ai. Maps `TranslateModelId` → bianxie model name via `TRANSLATE_MODEL_TO_BIANXIE`. Throws `TranslateProviderError` on network/HTTP/parse failures. Non-streaming (per-chunk pipeline).            |
+| `document-translators.ts` | `makeTranslateChunkFn(env)` — factory that returns a `TranslateChunkFn` wiring `dispatchTranslate` into the document-translation pipeline's chunk callback interface.                                                                                                       |
+| `free-providers.ts`       | `googleTranslate` / `microsoftTranslate` — adapters for free translation APIs. Source of `TranslateProviderError` class used across the module.                                                                                                                             |
+| `document-pipeline.ts`    | Orchestrates chunked document translation: splits, translates in parallel (bounded concurrency), and reassembles. Defines the `TranslateChunkFn` type.                                                                                                                      |
+| `document-chunker.ts`     | Splits translated documents into chunks that fit provider limits. Defines the `Chunk` type.                                                                                                                                                                                 |
+| `document-output.ts`      | Reassembles translated chunks back into the output document format.                                                                                                                                                                                                         |
+| `document.ts`             | Entry point for document translation jobs — called by the queue consumer in `queue/translate-document.ts`.                                                                                                                                                                  |
+| `pdf-extract.ts`          | Extracts plain text from PDF binary for pre-processing before translation.                                                                                                                                                                                                  |
 
 ## Subdirectories
 
-| Directory    | Purpose                                           |
-| ------------ | ------------------------------------------------- |
+| Directory    | Purpose                                                          |
+| ------------ | ---------------------------------------------------------------- |
 | `__tests__/` | Vitest unit tests for dispatch, providers, and document pipeline |
 
 ## For AI Agents
