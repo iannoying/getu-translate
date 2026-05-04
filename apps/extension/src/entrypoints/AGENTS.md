@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-05-04 -->
 
 # entrypoints
 
@@ -24,6 +24,7 @@ This directory has no top-level files — only subdirectories.
 | `popup/`               | Toolbar popup (React app for quick toggles and status)                                                                                   |
 | `selection.content/`   | Selection-toolbar content script (translate selected text, custom actions)                                                               |
 | `side.content/`        | Side-panel content script with the in-page React UI (Shadow DOM)                                                                         |
+| `sidepanel/`           | Chrome native Side Panel page — renders `SidebarShell` inside Chrome's built-in side panel, persists across page navigations (see `sidepanel/AGENTS.md`) |
 | `subtitles.content/`   | Video subtitle overlay/translation content script (YouTube, Bilibili, TED, X)                                                            |
 | `translation-hub/`     | Standalone HTML page running multi-provider translation cards + wordbook review/export (see `translation-hub/AGENTS.md`)                 |
 | `upgrade-success/`     | Standalone HTML page shown after a successful Paddle/Stripe checkout returns the user to the extension.                                  |

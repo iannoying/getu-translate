@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-05-04 -->
 
 # background
 
@@ -28,6 +28,7 @@ Implements the MV3 service worker exported by `index.ts` via `defineBackground({
 | `tts-playback.ts`           | Manages the Chrome offscreen document lifecycle (`createDocument`, `getContexts`) and forwards `ttsPlaybackStart`/`ttsPlaybackStop` to it; retries once on missing-receiver errors.                                                                          |
 | `analytics.ts`              | PostHog client factory bound to `WXT_POSTHOG_*` env, persists install ID in `local:` storage, filters captured properties to a strict allowlist, exposes `trackFeatureUsedEvent` message handler.                                                            |
 | `new-user-guide.ts`         | Polls `browser.action.getUserSettings()` (or listens to `onUserSettingsChanged`) and broadcasts `pinStateChanged` to tabs on `OFFICIAL_SITE_URL_PATTERNS`.                                                                                                   |
+| `native-side-panel.ts`      | Chrome native Side Panel integration: `setupNativeSidePanelHandlers()` configures `openPanelOnActionClick`, and wires `getNativeSidePanelSupport` / `openNativeSidePanel` / `closeNativeSidePanel` message handlers. Exports `hasNativeSidePanelSupport()` for feature detection. |
 | `mock-data.ts`              | Dev-only seeding (gated by `import.meta.env.DEV && WXT_MOCK_DATA === "true"`) populating `batchRequestRecord`.                                                                                                                                               |
 
 ## Subdirectories

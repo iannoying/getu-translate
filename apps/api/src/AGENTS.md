@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-24 | Updated: 2026-04-27 -->
+<!-- Generated: 2026-04-24 | Updated: 2026-05-04 -->
 
 # src
 
@@ -25,8 +25,10 @@ Source root of the `@getu/api` Cloudflare Worker. Wires the Hono app (`index.ts`
 | `ai/`           | AI proxy: JWT minting, rate limit, OpenAI-compatible chat-completions proxy, usage parsing (see `ai/AGENTS.md`).     |
 | `analytics/`    | PostHog integration: typed event helpers, structured logger, low-level capture primitive (see `analytics/AGENTS.md`). |
 | `billing/`      | Entitlement/quota engine + Paddle/Stripe clients, webhooks, checkout (see `billing/AGENTS.md`).                       |
+| `middleware/`   | Hono middleware: KV-backed fixed-window rate limiter applied to `/orpc/*` and `/ai/v1/*` (see `middleware/AGENTS.md`). |
 | `orpc/`         | oRPC router + context + per-domain routers: `billing`, `translate`, `analytics` (see `orpc/AGENTS.md`).              |
 | `scheduled/`    | Cron-triggered jobs: retention + translation lifecycle (cleanup, retry, stuck-sweep) (see `scheduled/AGENTS.md`).     |
+| `translate/`    | Provider dispatch + LLM integration: `dispatchTranslate`, bianxie.ai adapter, document pipeline helpers (see `translate/AGENTS.md`). |
 
 ## For AI Agents
 
