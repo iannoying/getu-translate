@@ -7,6 +7,16 @@ export type LogContext = {
   env?: WorkerEnv
   /** Cloudflare ExecutionContext for fire-and-forget PostHog fan-out. */
   executionCtx?: ExecutionContext
+  /**
+   * Override PostHog forwarding for this call.
+   * Default: error=true, warn=false, info=false.
+   */
+  forward?: boolean
+}
+
+function shouldForward(level: LogLevel, opts: LogContext): boolean {
+  if (opts.forward !== undefined) return opts.forward
+  return level === "error"
 }
 
 function emit(
@@ -20,7 +30,7 @@ function emit(
   consoleFn(`[${level}]`, message, props)
 
   // Best-effort PostHog forward (only when env+ctx are present and key is configured).
-  if (opts.env?.POSTHOG_PROJECT_KEY && opts.executionCtx) {
+  if (shouldForward(level, opts) && opts.env?.POSTHOG_PROJECT_KEY && opts.executionCtx) {
     opts.executionCtx.waitUntil(
       captureEvent({
         apiKey: opts.env.POSTHOG_PROJECT_KEY,

@@ -5,6 +5,8 @@ vi.mock("../posthog", () => ({
   captureEvent: vi.fn().mockResolvedValue(undefined),
 }))
 
+import { captureEvent } from "../posthog"
+
 const mockWaitUntil = vi.fn()
 const mockExecutionCtx = { waitUntil: mockWaitUntil } as unknown as ExecutionContext
 
@@ -78,5 +80,52 @@ describe("logger.error", () => {
     const env = {} as any
     logger.error("err", {}, { env, executionCtx: mockExecutionCtx })
     expect(mockWaitUntil).not.toHaveBeenCalled()
+  })
+})
+
+describe("logger forwarding gate", () => {
+  it("does not forward info to PostHog by default even when env+ctx are present", () => {
+    const env = { POSTHOG_PROJECT_KEY: "phc_test" } as any
+    logger.info("info msg", { userId: "u-info" }, { env, executionCtx: mockExecutionCtx })
+    expect(mockWaitUntil).not.toHaveBeenCalled()
+    expect(captureEvent).not.toHaveBeenCalled()
+  })
+
+  it("does not forward warn to PostHog by default even when env+ctx are present", () => {
+    const env = { POSTHOG_PROJECT_KEY: "phc_test" } as any
+    logger.warn("warn msg", { userId: "u-warn" }, { env, executionCtx: mockExecutionCtx })
+    expect(mockWaitUntil).not.toHaveBeenCalled()
+    expect(captureEvent).not.toHaveBeenCalled()
+  })
+
+  it("forwards warn when explicitly opted in", async () => {
+    const env = { POSTHOG_PROJECT_KEY: "phc_test" } as any
+    logger.warn(
+      "warn msg",
+      { userId: "u-warn" },
+      { env, executionCtx: mockExecutionCtx, forward: true },
+    )
+
+    expect(mockWaitUntil).toHaveBeenCalledOnce()
+    await (mockWaitUntil.mock.calls[0] as [Promise<unknown>])[0]
+    expect(captureEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiKey: "phc_test",
+        distinctId: "u-warn",
+        event: "internal_log",
+        properties: expect.objectContaining({ level: "warn", message: "warn msg" }),
+      }),
+    )
+  })
+
+  it("does not forward error when explicitly disabled", () => {
+    const env = { POSTHOG_PROJECT_KEY: "phc_test" } as any
+    logger.error("err", { userId: "u-error" }, {
+      env,
+      executionCtx: mockExecutionCtx,
+      forward: false,
+    })
+    expect(mockWaitUntil).not.toHaveBeenCalled()
+    expect(captureEvent).not.toHaveBeenCalled()
   })
 })
