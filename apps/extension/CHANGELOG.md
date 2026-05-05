@@ -1,5 +1,29 @@
 # @getu/extension
 
+## 1.34.0
+
+### Minor Changes
+
+- [#212](https://github.com/iannoying/getu-translate/pull/212) [`9476331`](https://github.com/iannoying/getu-translate/commit/9476331aac6b3709ceb95c673eb3962c0be5b12f) Thanks [@iannoying](https://github.com/iannoying)! - Add the extension translation sidebar with text and document tabs, multi-model text translation, auth/pro gating, and web-aligned token quota handling.
+
+### Patch Changes
+
+- [#165](https://github.com/iannoying/getu-translate/pull/165) [`9129d5d`](https://github.com/iannoying/getu-translate/commit/9129d5d0561c7bcc1362549a24b3c9a275d96110) Thanks [@iannoying](https://github.com/iannoying)! - Stop surfacing `'wxt/storage' must be loaded in a web extension environment` and `Could not establish connection. Receiving end does not exist.` as uncaught content-script rejections after the extension is reloaded mid-session. Both are the same lifecycle scenario the previous fix targeted, just with different browser/WXT messages, and now flow through a unified `extension-lifecycle` matcher (`isExtensionContextInvalidatedError`, `isMessagingDisconnectError`, `isExtensionLifecycleError`). All fire-and-forget `sendMessage` and storage call sites in atom `onMount`, visibility handlers, content scripts, options pages, popup, and background→tab broadcasts now silently swallow these expected lifecycle errors while still logging real failures.
+
+- [#167](https://github.com/iannoying/getu-translate/pull/167) [`5691df7`](https://github.com/iannoying/getu-translate/commit/5691df7cb51197da73a8bc30a5089e3187601078) Thanks [@iannoying](https://github.com/iannoying)! - Cover the third WXT 0.20 storage-guard message (`"You must add the 'storage' permission to your manifest to use 'wxt/storage'"`) emitted post-reload when Chromium nulls `chrome.storage` while leaving `chrome.runtime` in a stale state — the manifest _does_ declare `storage`, the message is misleading. Add a defense-in-depth `installContentScriptLifecycleGuard` that registers a per-context `unhandledrejection` listener silently swallowing lifecycle rejections; wire it into all five content scripts (host / side / selection / subtitles / guide) so any future fire-and-forget path that escapes our explicit `.catch(swallow…)` wrappers still gets caught at the boundary. Real failures continue to surface through the shared logger.
+
+- [#193](https://github.com/iannoying/getu-translate/pull/193) [`d55335e`](https://github.com/iannoying/getu-translate/commit/d55335e13b9f6968d10055021d1c8136d8504936) Thanks [@iannoying](https://github.com/iannoying)! - 修复网页双语翻译中译文链接丢失的问题。翻译请求会用链接占位符保留链接位置，译文插入时只从原文复制安全链接属性，并避免隐藏或忽略区域的链接参与映射。
+
+- [#237](https://github.com/iannoying/getu-translate/pull/237) [`05c1a0a`](https://github.com/iannoying/getu-translate/commit/05c1a0a80f3ac130d5a3fad6f43937511c587b4b) Thanks [@iannoying](https://github.com/iannoying)! - fix(extension): use Chrome native side panel for persistent sidebar across tab switches
+
+- [#187](https://github.com/iannoying/getu-translate/pull/187) [`8bc4373`](https://github.com/iannoying/getu-translate/commit/8bc437304f66b214669d7f53c3e15239b25816fb) Thanks [@iannoying](https://github.com/iannoying)! - Remove DeepLX and LibreTranslate from the free translation provider defaults.
+
+- [#185](https://github.com/iannoying/getu-translate/pull/185) [`0d6b133`](https://github.com/iannoying/getu-translate/commit/0d6b133ed3325496e84db7b94e4a934377093e8f) Thanks [@iannoying](https://github.com/iannoying)! - fix(extension): keep the floating button fully visible by default
+
+- [#222](https://github.com/iannoying/getu-translate/pull/222) [`617fec6`](https://github.com/iannoying/getu-translate/commit/617fec6e8a54f7b506a5babedf23a5203830d94c) Thanks [@iannoying](https://github.com/iannoying)! - fix(extension): keep sidebar open across tab switches and use target-language speech voices
+
+- [#183](https://github.com/iannoying/getu-translate/pull/183) [`79774c6`](https://github.com/iannoying/getu-translate/commit/79774c61eab960dbca831edef16fbac3ff3111c2) Thanks [@iannoying](https://github.com/iannoying)! - 更新 GetU Pro 内置 AI 翻译模型列表，隐藏 popup 中的第三方 LLM provider，并修复 GetU Pro 模型被误要求配置用户 API key 的问题。
+
 ## 1.33.1
 
 ### Patch Changes
