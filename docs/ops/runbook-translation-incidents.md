@@ -148,7 +148,7 @@ Do not mark issue #227 complete until all `Pending` entries above are replaced w
 
 ## PostHog event integrity check
 
-Dashboard specification and weekly check log: [PostHog Operations Dashboard Runbook](runbook-posthog-dashboard.md).
+Dashboard URL, insight links, and weekly check log: [PostHog Operations Dashboard Runbook](runbook-posthog-dashboard.md).
 
 Quick sanity query in PostHog SQL:
 
