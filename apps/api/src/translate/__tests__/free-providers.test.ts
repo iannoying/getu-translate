@@ -106,6 +106,19 @@ describe("microsoftTranslate", () => {
     expect((init.headers as Record<string, string>)["Authorization"]).toBe("Bearer fake-token-abc")
   })
 
+  it("requests the Edge auth token with browser-compatible headers", async () => {
+    const fetchMock = authedFetch("你好")
+
+    await microsoftTranslate("hello", "en", "zh-CN", fetchMock as any)
+
+    const authInit = fetchMock.mock.calls[0][1] as RequestInit
+    const headers = authInit.headers as Record<string, string>
+    expect(authInit.method).toBe("GET")
+    expect(headers["User-Agent"]).toContain("Edg/")
+    expect(headers["Accept"]).toBe("text/plain, */*")
+    expect(headers["Referer"]).toBe("https://www.microsoft.com/")
+  })
+
   it("omits 'from' param for auto-detect (Microsoft v3 semantics)", async () => {
     const fetchMock = authedFetch("hi")
     await microsoftTranslate("你好", "auto", "en", fetchMock as any)

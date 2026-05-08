@@ -15,6 +15,14 @@
 const GOOGLE_BASE = "https://translate.googleapis.com/translate_a/single"
 const MICROSOFT_AUTH_URL = "https://edge.microsoft.com/translate/auth"
 const MICROSOFT_TRANSLATE_BASE = "https://api-edge.cognitive.microsofttranslator.com/translate"
+const MICROSOFT_AUTH_HEADERS = {
+  "Accept": "text/plain, */*",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Referer": "https://www.microsoft.com/",
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+} as const
 
 // Microsoft edge auth tokens are JWTs valid ~1 hour. Cache them module-locally
 // so a single 11-column /translate burst fires one auth fetch, not eleven.
@@ -148,7 +156,10 @@ async function refreshMicrosoftToken(fetchImpl: typeof fetch): Promise<string> {
 
   _msTokenInflight = (async () => {
     try {
-      const resp = await fetchImpl(MICROSOFT_AUTH_URL).catch((cause) => {
+      const resp = await fetchImpl(MICROSOFT_AUTH_URL, {
+        method: "GET",
+        headers: MICROSOFT_AUTH_HEADERS,
+      }).catch((cause) => {
         throw new TranslateProviderError(
           "microsoft",
           `auth network error: ${(cause as Error).message}`,

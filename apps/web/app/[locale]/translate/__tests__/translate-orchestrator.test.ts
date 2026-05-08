@@ -2,6 +2,38 @@ import { describe, it, expect } from "vitest"
 import { runColumnTranslations } from "../translate-orchestrator"
 
 describe("runColumnTranslations", () => {
+  it("reports each column as soon as it settles", async () => {
+    const settled: string[] = []
+    let releaseSlow!: () => void
+    const tasks = [
+      {
+        modelId: "google",
+        run: async () => ({ text: "你好" }),
+      },
+      {
+        modelId: "microsoft",
+        run: () =>
+          new Promise<{ text: string }>((resolve) => {
+            releaseSlow = () => resolve({ text: "您好" })
+          }),
+      },
+    ]
+    const ac = new AbortController()
+    const promise = runColumnTranslations(tasks, ac.signal, result => settled.push(result.modelId))
+
+    await Promise.resolve()
+
+    expect(settled).toEqual(["google"])
+
+    releaseSlow()
+    const results = await promise
+    expect(settled).toEqual(["google", "microsoft"])
+    expect(results).toEqual([
+      { modelId: "google", text: "你好" },
+      { modelId: "microsoft", text: "您好" },
+    ])
+  })
+
   it("aborts in-flight calls when AbortSignal fires", async () => {
     const aborted: string[] = []
     const tasks = [
