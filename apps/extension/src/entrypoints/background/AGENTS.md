@@ -1,11 +1,13 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-19 | Updated: 2026-05-04 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-05-08 -->
 
 # background
 
 ## Purpose
 
-Implements the MV3 service worker exported by `index.ts` via `defineBackground({ type: "module" })`. The `main()` function wires up every cross-cutting feature the extension needs at the privileged level: config bootstrap, periodic alarms (cache cleanup + config backup), the two translation queues (web page + subtitles), AI streaming over long-lived `runtime.Port`s, context-menu lifecycle, proxy `fetch` for content scripts, Edge TTS synthesis, offscreen TTS playback orchestration, programmatic content-script injection into missed iframes, analytics relay (PostHog), and the install/update flow (open tutorial, clear blog cache).
+Implements the MV3 service worker exported by `index.ts` via `defineBackground({ type: "module" })`. The `main()` function wires up every cross-cutting feature the extension needs at the privileged level: config bootstrap, periodic alarms (cache cleanup + config backup), the two translation queues (web page + subtitles), AI streaming over long-lived `runtime.Port`s, context-menu lifecycle, proxy `fetch` for content scripts, Edge TTS synthesis, offscreen TTS playback orchestration, programmatic content-script injection into missed iframes, analytics relay (PostHog), the install/update flow (open tutorial, clear blog cache), persistent native side-panel state, and PDF tab detection for the redirect-to-getutranslate flow.
+
+The uninstall-survey redirect (chrome.runtime.setUninstallURL) was **removed** in PR #beeeba71 — the post-uninstall survey link no longer ships, and there is intentionally no `uninstall-survey.ts` module here.
 
 ## Key Files
 
@@ -29,6 +31,8 @@ Implements the MV3 service worker exported by `index.ts` via `defineBackground({
 | `analytics.ts`              | PostHog client factory bound to `WXT_POSTHOG_*` env, persists install ID in `local:` storage, filters captured properties to a strict allowlist, exposes `trackFeatureUsedEvent` message handler.                                                                                 |
 | `new-user-guide.ts`         | Polls `browser.action.getUserSettings()` (or listens to `onUserSettingsChanged`) and broadcasts `pinStateChanged` to tabs on `OFFICIAL_SITE_URL_PATTERNS`.                                                                                                                        |
 | `native-side-panel.ts`      | Chrome native Side Panel integration: `setupNativeSidePanelHandlers()` configures `openPanelOnActionClick`, and wires `getNativeSidePanelSupport` / `openNativeSidePanel` / `closeNativeSidePanel` message handlers. Exports `hasNativeSidePanelSupport()` for feature detection. |
+| `sidebar-open-sync.ts`      | `setupSidebarOpenSync()` — listens to `tabs.onActivated` + `tabs.onUpdated` (status `complete`, active tab) and, when the persisted flag at `SIDEBAR_OPEN_STORAGE_KEY` is `true`, sends `setSidebarOpenOnContentScript {open: true}` to the new tab so the in-page sidebar restores across navigations. Errors funneled through `swallowExtensionLifecycleError`. Drives the M6.13 "persistent sidebar" UX. |
+| `pdf-tab-detect.ts`         | Passive `tabId → isPdf` set used by the PDF redirect logic. Two signals add tabs: (a) `webRequest.onHeadersReceived` checking `Content-Type: application/pdf` (catches arxiv-style URLs without a `.pdf` suffix); (b) `webNavigation.onCommitted` for top-frames whose URL pathname ends with `.pdf` (covers `file://` that bypasses webRequest). Headers are the authoritative clear signal; navigation only adds. Tab close clears the entry. Exports `isPdfTab()` and a test-only `_resetPdfTabsForTest()`. State is in-memory by design — cheap to recompute, can't lie after SW eviction. |
 | `mock-data.ts`              | Dev-only seeding (gated by `import.meta.env.DEV && WXT_MOCK_DATA === "true"`) populating `batchRequestRecord`.                                                                                                                                                                    |
 
 ## Subdirectories

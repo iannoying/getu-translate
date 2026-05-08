@@ -1,4 +1,4 @@
-<!-- Generated: 2026-04-19 | Updated: 2026-04-24 -->
+<!-- Generated: 2026-04-19 | Updated: 2026-05-08 -->
 
 # getu-translate
 
@@ -112,7 +112,7 @@ These files travel with the repo; keep them updated as you discover new durable 
 
 ## Milestone Execution Workflow
 
-Roadmap milestones M0–M6 live in `docs/plans/2026-04-20-roadmap-vs-immersive-translate.md`. M0 and M1 shipped directly from that file; **M2 and later use a per-milestone plan file** (see `docs/plans/2026-04-21-m2-input-translate.md` as the reference shape).
+Roadmap milestones M0–M6 live in `docs/plans/2026-04-20-roadmap-vs-immersive-translate.md`; the post-launch hardening track M7 is in `docs/plans/2026-04-27-m7-roadmap.md` with per-task plans `2026-04-28-m7-{a1-real-llm,a2-rate-limit,a3-auto-rollback}.md` and `2026-05-{04,05}-m7-{b1..b5,c1..c4}-*.md` (real LLMs, KV rate limit, auto-rollback, PDF heartbeat, logger sampling, spend monitor, PostHog/Sentry runbooks, AuthGate fallback, Playwright e2e, console-to-logger refactor, Node 24 cache). M0 and M1 shipped directly from the roadmap file; **M2 and later use a per-milestone plan file** (see `docs/plans/2026-04-21-m2-input-translate.md` as the reference shape).
 
 When the user asks to start a new milestone (e.g. "开始 M3", "做 PDF 翻译"), follow this loop — or invoke `/milestone-run` which encodes it verbatim:
 
