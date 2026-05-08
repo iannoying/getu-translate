@@ -1,11 +1,11 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-24 | Updated: 2026-04-27 -->
+<!-- Generated: 2026-04-24 | Updated: 2026-05-08 -->
 
 # app
 
 ## Purpose
 
-Next.js 15 App Router root. Top-level `layout.tsx` + `page.tsx` handle the site shell and root redirect; `[locale]/` holds the main localized routes; `log-in/` and `guide/step-1/` are un-localized **back-compat redirectors** so older extension builds (without locale prefix) don't 404.
+Next.js 15 App Router root. Top-level `layout.tsx` + `page.tsx` handle the site shell and root redirect; `[locale]/` holds the main localized routes (marketing + `/translate` + `/document` + guides); `log-in/` and `guide/step-1/` are un-localized **back-compat redirectors** so older extension builds (without locale prefix) don't 404. Cross-route React components live in the sibling `components/` directory (notably `AuthGate`).
 
 ## Key Files
 

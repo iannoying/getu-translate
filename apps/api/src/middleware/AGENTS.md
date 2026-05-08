@@ -1,11 +1,11 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-05-04 | Updated: 2026-05-04 -->
+<!-- Generated: 2026-05-04 | Updated: 2026-05-08 -->
 
 # middleware
 
 ## Purpose
 
-Hono middleware for the `@getu/api` Cloudflare Worker. Currently contains the KV-backed fixed-window rate limiter applied to `/orpc/*` and `/ai/v1/*` routes.
+Hono middleware for the `@getu/api` Cloudflare Worker. Currently contains the KV-backed fixed-window rate limiter applied to `/orpc/*` and `/ai/v1/*` routes (M7-A2). Anonymous callers are keyed by `cf-connecting-ip`; authenticated callers by `user:<id>`. The limiter is fuzzy (eventually-consistent KV) — not a hard cap. Hard quota enforcement lives in `billing/quota.ts` against D1.
 
 ## Key Files
 
