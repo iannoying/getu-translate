@@ -38,7 +38,7 @@ coverage/
 .claude/worktrees/
 .claude/scheduled_tasks.lock
 .omc/
-
+.codex
 tsconfig.local.json
 
 /repos
