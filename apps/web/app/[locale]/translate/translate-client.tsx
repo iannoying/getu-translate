@@ -9,7 +9,6 @@ import { orpcClient } from "@/lib/orpc-client"
 import { track } from "@/lib/analytics"
 import {
   TRANSLATE_MODELS,
-  isFreeTranslateModel,
   type TranslateModelId,
 } from "@getu/definitions"
 import type { Entitlements } from "@getu/contract"
@@ -22,6 +21,12 @@ import { QuotaBadge } from "./components/QuotaBadge"
 import { TranslateShell } from "./components/TranslateShell"
 import { UpgradeModal, type UpgradeModalSource } from "./components/UpgradeModal"
 import { DEMO_INPUT, DEMO_RESULTS } from "./demo-data"
+import {
+  getInvokableModels,
+  resolveTranslatePlan,
+  shouldDisableTranslate,
+  type TranslatePlan,
+} from "./translate-state"
 import { runColumnTranslations, type ColumnTask } from "./translate-orchestrator"
 
 /**
@@ -43,27 +48,16 @@ function formatTemplate(template: string, vars: Record<string, string | number>)
 const FREE_CHAR_LIMIT = 2000
 const PRO_CHAR_LIMIT = 20000
 
-type Plan = "anonymous" | "free" | "pro" | "enterprise"
-
-/**
- * Derives the plan tier from entitlements. Returns "anonymous" when the user
- * is not signed in — entitlements are only fetched for authed users.
- */
-function planFromEntitlements(e: Entitlements | null): Plan {
-  if (!e) return "anonymous"
-  return e.tier
-}
-
 function trackUpgradeTriggered(source: UpgradeModalSource): void {
   track("pro_upgrade_triggered", { source })
 }
 
-function buildInitialResults(plan: Plan): Partial<Record<TranslateModelId, ModelCardState>> {
+function buildInitialResults(plan: TranslatePlan): Partial<Record<TranslateModelId, ModelCardState>> {
   const out: Partial<Record<TranslateModelId, ModelCardState>> = {}
   for (const model of TRANSLATE_MODELS) {
     if (plan === "anonymous") {
       out[model.id] = { status: "done", text: DEMO_RESULTS[model.id] }
-    } else if (plan === "free" && !model.freeAvailable) {
+    } else if ((plan === "free" || plan === "loading") && !model.freeAvailable) {
       // Locked state — body will render upgrade CTA, no text needed.
       out[model.id] = { status: "idle" }
     } else {
@@ -71,17 +65,6 @@ function buildInitialResults(plan: Plan): Partial<Record<TranslateModelId, Model
     }
   }
   return out
-}
-
-/** Models the user can actually invoke with their current plan. */
-function visibleModelsForPlan(plan: Plan): TranslateModelId[] {
-  if (plan === "free") {
-    return TRANSLATE_MODELS.filter(m => isFreeTranslateModel(m.id)).map(m => m.id)
-  }
-  if (plan === "pro" || plan === "enterprise") {
-    return TRANSLATE_MODELS.map(m => m.id)
-  }
-  return []
 }
 
 export function TranslateClient({
@@ -99,6 +82,7 @@ export function TranslateClient({
   // M6.7: real entitlements from billing.getEntitlements. Fetched once after
   // auth resolves; null while loading or when anonymous.
   const [entitlements, setEntitlements] = useState<Entitlements | null>(null)
+  const [entitlementsLoaded, setEntitlementsLoaded] = useState(false)
 
   // Reusable callback for post-translate refresh. No cancel guard needed —
   // handleTranslate already short-circuits via the abort signal, so by the
@@ -106,25 +90,33 @@ export function TranslateClient({
   const refreshEntitlements = useCallback(async () => {
     if (!isAuthed) {
       setEntitlements(null)
+      setEntitlementsLoaded(false)
       return
     }
     try {
       const e = await orpcClient.billing.getEntitlements({})
       setEntitlements(e)
+      setEntitlementsLoaded(true)
     } catch (err) {
       // eslint-disable-next-line no-console -- helps M6.7 ops trace entitlement fetch failures
       console.warn("[translate] getEntitlements failed", err)
+      setEntitlements(null)
+      setEntitlementsLoaded(true)
     }
   }, [isAuthed])
 
   useEffect(() => {
     if (!isAuthed) {
       setEntitlements(null)
+      setEntitlementsLoaded(false)
       return
     }
     let cancelled = false
+    setEntitlementsLoaded(false)
     orpcClient.billing.getEntitlements({}).then((e) => {
-      if (!cancelled) setEntitlements(e)
+      if (cancelled) return
+      setEntitlements(e)
+      setEntitlementsLoaded(true)
     }).catch((err) => {
       // Non-fatal — fall back to "free" tier so the page remains usable.
       // Mirror the cancel guard from the success branch / history fetch:
@@ -132,11 +124,13 @@ export function TranslateClient({
       if (cancelled) return
       // eslint-disable-next-line no-console -- helps M6.7 ops trace entitlement fetch failures
       console.warn("[translate] getEntitlements failed", err)
+      setEntitlements(null)
+      setEntitlementsLoaded(true)
     })
     return () => { cancelled = true }
   }, [isAuthed])
 
-  const plan: Plan = isAuthed ? planFromEntitlements(entitlements) : "anonymous"
+  const plan = resolveTranslatePlan({ isAuthed, entitlements, entitlementsLoaded })
   const charLimit = plan === "pro" || plan === "enterprise" ? PRO_CHAR_LIMIT : FREE_CHAR_LIMIT
 
   // Upgrade modal state
@@ -227,7 +221,7 @@ export function TranslateClient({
     if (trimmed.length === 0 || overLimit || isTranslating) return
     const startedAt = Date.now()
 
-    const modelsToFire = visibleModelsForPlan(plan)
+    const modelsToFire = getInvokableModels(plan)
     if (modelsToFire.length === 0) return
 
     // Abort any previous in-flight batch before starting a new one.
@@ -426,9 +420,10 @@ export function TranslateClient({
 
   const translateLabel = !isAuthed
     ? messages.page.translateLoginButton
-    : isLoadingSession || isTranslating
+    : isLoadingSession || isTranslating || plan === "loading"
       ? messages.page.translateLoadingButton
       : messages.page.translateButton
+  const gridPlan = plan === "loading" ? "free" : plan
 
   return (
     <TranslateShell locale={locale} labels={messages.shell}>
@@ -504,7 +499,13 @@ export function TranslateClient({
                   type="button"
                   className="button primary"
                   onClick={handleTranslate}
-                  disabled={overLimit || isTranslating || (isAuthed && text.trim().length === 0)}
+                  disabled={shouldDisableTranslate({
+                    isAuthed,
+                    plan,
+                    text,
+                    overLimit,
+                    isTranslating,
+                  })}
                 >
                   {translateLabel}
                 </button>
@@ -514,7 +515,7 @@ export function TranslateClient({
 
           <section className="translate-output-pane" aria-label="Translations">
             <ModelGrid
-              plan={plan}
+              plan={gridPlan}
               results={results}
               upgradeMessage={messages.page.upgradePromptShort}
               cardLabels={{
