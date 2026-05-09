@@ -34,6 +34,8 @@ let insertedJobs: Record<string, unknown>[] = []
 let usageLogRows: Record<string, unknown>[] = []
 let deletedIds: string[] = []
 let updatedQuotaPeriods: Record<string, unknown>[] = []
+let updatedQuotaWhereArgs: unknown[][] = []
+let batchQueryKinds: string[][] = []
 
 function tableName(table: unknown): string {
   const direct = (table as any)?._?.name ?? (table as any)?.[Symbol.for("drizzle:Name")]
@@ -41,6 +43,14 @@ function tableName(table: unknown): string {
   const symbol = Object.getOwnPropertySymbols(table as object)
     .find(sym => sym.description === "drizzle:Name")
   return symbol ? String((table as any)[symbol]) : ""
+}
+
+function containsValue(obj: unknown, needle: string, visited = new Set<object>()): boolean {
+  if (obj === needle) return true
+  if (obj === null || typeof obj !== "object") return false
+  if (visited.has(obj)) return false
+  visited.add(obj)
+  return Object.values(obj as Record<string, unknown>).some(value => containsValue(value, needle, visited))
 }
 
 const fakeDb = {
@@ -57,7 +67,11 @@ const fakeDb = {
     from: vi.fn((table?: unknown) => ({
       where: vi.fn((..._args: unknown[]) => ({
         get: async () => {
-          if (tableName(table) === "usage_log") return usageLogRows[0] ?? undefined
+          if (tableName(table) === "usage_log") {
+            return usageLogRows.find(row => (
+              typeof row.requestId === "string" && containsValue(_args, row.requestId)
+            )) ?? undefined
+          }
           return pendingJobRow ?? undefined
         },
         limit: vi.fn(() => ({
@@ -71,21 +85,37 @@ const fakeDb = {
     })),
   })),
   delete: vi.fn(() => ({
-    where: vi.fn((_arg: unknown) => ({
-      run: async () => {
-        const ids = insertedJobs.map(job => job.id).filter((id): id is string => typeof id === "string")
+    where: vi.fn((...args: unknown[]) => {
+      const runDelete = async () => {
+        const ids = insertedJobs
+          .map(job => job.id)
+          .filter((id): id is string => typeof id === "string" && containsValue(args, id))
         deletedIds.push(...ids)
-        insertedJobs = []
-      },
-    })),
+        insertedJobs = insertedJobs.filter(job => typeof job.id !== "string" || !containsValue(args, job.id))
+      }
+      return { kind: "delete", run: runDelete }
+    }),
   })),
   update: vi.fn(() => ({
     set: vi.fn((values: Record<string, unknown>) => ({
-      where: vi.fn(async (_arg: unknown) => {
+      where: vi.fn(async (...args: unknown[]) => {
         updatedQuotaPeriods.push(values)
+        updatedQuotaWhereArgs.push(args)
       }),
     })),
   })),
+  batch: vi.fn(async (queries: Array<Promise<unknown> | { kind?: string; run?: () => Promise<unknown> }>) => {
+    batchQueryKinds.push(queries.map(query => (
+      query && typeof query === "object" && "kind" in query && typeof query.kind === "string"
+        ? query.kind
+        : "promise"
+    )))
+    await Promise.all(queries.map(query => (
+      query && typeof query === "object" && "run" in query && typeof query.run === "function"
+        ? query.run()
+        : query
+    )))
+  }),
 }
 
 function ctx(session: Ctx["session"], envOverrides: Partial<Ctx["env"]> = {}): Ctx {
@@ -142,6 +172,9 @@ beforeEach(() => {
   usageLogRows = []
   deletedIds = []
   updatedQuotaPeriods = []
+  updatedQuotaWhereArgs = []
+  batchQueryKinds = []
+  fakeDb.batch.mockClear()
 })
 
 // ---- documentDownloadUrl ----
@@ -299,6 +332,59 @@ describe("translate.document.preview", () => {
   })
 })
 
+describe("translate.document.create enqueue rollback", () => {
+  it("rolls back the inserted job row and refunds quota when enqueue fails", async () => {
+    pendingActiveJobs = []
+    const translateQuota = await import("../translate/quota")
+    ;(translateQuota.consumeTranslateQuota as any).mockImplementationOnce(
+      async (_db: unknown, userId: string, bucket: string, amount: number, requestId: string) => {
+        usageLogRows.push({
+          id: "usage-unrelated",
+          userId,
+          bucket,
+          amount: 99,
+          requestId: "web-pdf:u-free:unrelated-job",
+          createdAt: new Date("2026-05-09T00:00:00.000Z"),
+        })
+        usageLogRows.push({
+          id: "usage-original",
+          userId,
+          bucket,
+          amount,
+          requestId,
+          createdAt: new Date("2026-04-30T23:59:59.000Z"),
+        })
+      },
+    )
+    const queue = { send: vi.fn(async () => { throw new Error("queue unavailable") }) }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { TRANSLATE_QUEUE: queue as any }),
+    })
+
+    await expect(client.translate.document.create({
+      sourceKey: "pdfs/u-free/create-source/source.pdf",
+      sourcePages: 4,
+      sourceBytes: 100_000,
+      modelId: "google",
+      sourceLang: "en",
+      targetLang: "zh-CN",
+    })).rejects.toThrow("queue unavailable")
+
+    expect(insertedJobs).toHaveLength(0)
+    expect(deletedIds).toHaveLength(1)
+    expect(usageLogRows).toContainEqual(expect.objectContaining({
+      userId: "u-free",
+      bucket: "web_pdf_translate_monthly",
+      amount: -4,
+      requestId: `refund:${deletedIds[0]}`,
+    }))
+    expect(fakeDb.batch).toHaveBeenCalledTimes(1)
+    expect(batchQueryKinds[0]).toContain("delete")
+    expect(updatedQuotaPeriods).toHaveLength(1)
+    expect(containsValue(updatedQuotaWhereArgs, "2026-04")).toBe(true)
+  })
+})
+
 // ---- documentRetry ----
 
 describe("translate.document.retry", () => {
@@ -367,6 +453,52 @@ describe("translate.document.retry", () => {
     const out = await client.translate.document.retry({ jobId: "job-failed" })
     expect(queue.send).toHaveBeenCalledTimes(1)
     expect(queue.send).toHaveBeenCalledWith({ jobId: out.jobId })
+  })
+
+  it("rolls back the inserted job row and refunds quota when enqueue fails", async () => {
+    pendingJobRow = failedJob
+    pendingActiveJobs = []
+    const translateQuota = await import("../translate/quota")
+    ;(translateQuota.consumeTranslateQuota as any).mockImplementationOnce(
+      async (_db: unknown, userId: string, bucket: string, amount: number, requestId: string) => {
+        usageLogRows.push({
+          id: "usage-unrelated",
+          userId,
+          bucket,
+          amount: 99,
+          requestId: "web-pdf:u-free:unrelated-job",
+          createdAt: new Date("2026-05-09T00:00:00.000Z"),
+        })
+        usageLogRows.push({
+          id: "usage-original",
+          userId,
+          bucket,
+          amount,
+          requestId,
+          createdAt: new Date("2026-04-30T23:59:59.000Z"),
+        })
+      },
+    )
+    const queue = { send: vi.fn(async () => { throw new Error("queue unavailable") }) }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { TRANSLATE_QUEUE: queue as any }),
+    })
+
+    await expect(client.translate.document.retry({ jobId: "job-failed" }))
+      .rejects.toThrow("queue unavailable")
+
+    expect(insertedJobs).toHaveLength(0)
+    expect(deletedIds).toHaveLength(1)
+    expect(usageLogRows).toContainEqual(expect.objectContaining({
+      userId: "u-free",
+      bucket: "web_pdf_translate_monthly",
+      amount: -failedJob.sourcePages,
+      requestId: `refund:${deletedIds[0]}`,
+    }))
+    expect(fakeDb.batch).toHaveBeenCalledTimes(1)
+    expect(batchQueryKinds[0]).toContain("delete")
+    expect(updatedQuotaPeriods).toHaveLength(1)
+    expect(containsValue(updatedQuotaWhereArgs, "2026-04")).toBe(true)
   })
 
   it("consumes quota with new web-pdf:{userId}:{newJobId} requestId", async () => {
@@ -509,12 +641,20 @@ describe("translate.document.retranslate", () => {
     ;(translateQuota.consumeTranslateQuota as any).mockImplementationOnce(
       async (_db: unknown, userId: string, bucket: string, amount: number, requestId: string) => {
         usageLogRows.push({
+          id: "usage-unrelated",
+          userId,
+          bucket,
+          amount: 99,
+          requestId: "web-pdf:u-free:unrelated-job",
+          createdAt: new Date("2026-05-09T00:00:00.000Z"),
+        })
+        usageLogRows.push({
           id: "usage-original",
           userId,
           bucket,
           amount,
           requestId,
-          createdAt: new Date(),
+          createdAt: new Date("2026-04-30T23:59:59.000Z"),
         })
       },
     )
@@ -538,6 +678,9 @@ describe("translate.document.retranslate", () => {
       amount: -doneJob.sourcePages,
       requestId: `refund:${deletedIds[0]}`,
     }))
+    expect(fakeDb.batch).toHaveBeenCalledTimes(1)
+    expect(batchQueryKinds[0]).toContain("delete")
     expect(updatedQuotaPeriods).toHaveLength(1)
+    expect(containsValue(updatedQuotaWhereArgs, "2026-04")).toBe(true)
   })
 })

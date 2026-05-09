@@ -67,7 +67,7 @@ function buildPdfQuotaRequestId(userId: string, jobId: string): string {
   return `web-pdf:${userId}:${jobId}`
 }
 
-async function rollbackRetranslateJob(
+async function rollbackQueuedPdfJob(
   db: ReturnType<typeof createDb>,
   jobId: string,
   userId: string,
@@ -77,7 +77,7 @@ async function rollbackRetranslateJob(
     .run()
 }
 
-async function refundRetranslateQuota(
+async function cleanupQueuedPdfJobAfterEnqueueFailure(
   db: ReturnType<typeof createDb>,
   userId: string,
   jobId: string,
@@ -96,47 +96,73 @@ async function refundRetranslateQuota(
     .get()
 
   if (!originalUsage) {
-    logger.warn(
-      "[documentRetranslate] refund skipped: original usage row not found",
-      { jobId },
-      { env, executionCtx },
-    )
-    return
+    throw new Error(`Cannot clean up PDF job ${jobId}: original quota usage row not found`)
   }
 
   const now = new Date()
   const refundRequestId = `refund:${jobId}`
-  const pk = periodKey(originalUsage.bucket as Parameters<typeof periodKey>[0], now)
+  const chargedAt = originalUsage.createdAt instanceof Date
+    ? originalUsage.createdAt
+    : new Date(originalUsage.createdAt as string | number)
+  const pk = periodKey(originalUsage.bucket as Parameters<typeof periodKey>[0], chargedAt)
 
   try {
-    await db.insert(schema.usageLog).values({
-      id: crypto.randomUUID(),
-      userId,
-      bucket: originalUsage.bucket,
-      amount: -originalUsage.amount,
-      requestId: refundRequestId,
-      createdAt: now,
-    })
-    await db
-      .update(schema.quotaPeriod)
-      .set({
-        used: sql`MAX(${schema.quotaPeriod.used} - ${originalUsage.amount}, 0)`,
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(schema.quotaPeriod.userId, userId),
-          eq(schema.quotaPeriod.bucket, originalUsage.bucket),
-          eq(schema.quotaPeriod.periodKey, pk),
+    await db.batch([
+      db.insert(schema.usageLog).values({
+        id: crypto.randomUUID(),
+        userId,
+        bucket: originalUsage.bucket,
+        amount: -originalUsage.amount,
+        requestId: refundRequestId,
+        createdAt: now,
+      }),
+      db
+        .update(schema.quotaPeriod)
+        .set({
+          used: sql`MAX(${schema.quotaPeriod.used} - ${originalUsage.amount}, 0)`,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(schema.quotaPeriod.userId, userId),
+            eq(schema.quotaPeriod.bucket, originalUsage.bucket),
+            eq(schema.quotaPeriod.periodKey, pk),
+          ),
         ),
-      )
+      db.delete(translationJobs)
+        .where(and(eq(translationJobs.id, jobId), eq(translationJobs.userId, userId))),
+    ])
   } catch (err) {
     if (err instanceof Error && /UNIQUE/i.test(err.message)) return
     logger.error(
-      "[documentRetranslate] quota refund failed",
+      "[document] enqueue failure cleanup failed",
       { jobId, err },
       { env, executionCtx },
     )
+    throw err
+  }
+}
+
+async function enqueuePdfJobOrRollback(
+  db: ReturnType<typeof createDb>,
+  context: Ctx,
+  userId: string,
+  jobId: string,
+): Promise<void> {
+  if (!context.env.TRANSLATE_QUEUE) {
+    logger.warn(
+      "[document] TRANSLATE_QUEUE missing — job will not auto-start",
+      {},
+      { env: context.env, executionCtx: context.executionCtx },
+    )
+    return
+  }
+
+  try {
+    await context.env.TRANSLATE_QUEUE.send({ jobId })
+  } catch (err) {
+    await cleanupQueuedPdfJobAfterEnqueueFailure(db, userId, jobId, context.env, context.executionCtx)
+    throw err
   }
 }
 
@@ -318,18 +344,10 @@ export const documentCreate = authed
       throw err
     }
 
-    // Cloudflare Queue dispatch — consumer worker (M6.9) drains this and
-    // flips status queued → processing → done. Optional binding so dev
-    // without queues set up degrades to "row stays in queued forever".
-    if (context.env.TRANSLATE_QUEUE) {
-      await context.env.TRANSLATE_QUEUE.send({ jobId })
-    } else {
-      logger.warn(
-        "[documentCreate] TRANSLATE_QUEUE missing — job will not auto-start",
-        {},
-        { env: context.env, executionCtx: context.executionCtx },
-      )
-    }
+    // Cloudflare Queue dispatch — consumer worker drains this and flips status
+    // queued → processing → done. If queue send fails after quota is consumed,
+    // roll back the in-flight row and refund the matching quota audit row.
+    await enqueuePdfJobOrRollback(db, context, userId, jobId)
 
     return { jobId }
   })
@@ -585,13 +603,11 @@ export const documentRetry = authed
         buildPdfQuotaRequestId(userId, newJobId),
       )
     } catch (err) {
-      await rollbackRetranslateJob(db, newJobId, userId)
+      await rollbackQueuedPdfJob(db, newJobId, userId)
       throw err
     }
 
-    if (context.env.TRANSLATE_QUEUE) {
-      await context.env.TRANSLATE_QUEUE.send({ jobId: newJobId })
-    }
+    await enqueuePdfJobOrRollback(db, context, userId, newJobId)
 
     return { jobId: newJobId }
   })
@@ -680,19 +696,11 @@ export const documentRetranslate = authed
         buildPdfQuotaRequestId(userId, newJobId),
       )
     } catch (err) {
-      await rollbackRetranslateJob(db, newJobId, userId)
+      await rollbackQueuedPdfJob(db, newJobId, userId)
       throw err
     }
 
-    if (context.env.TRANSLATE_QUEUE) {
-      try {
-        await context.env.TRANSLATE_QUEUE.send({ jobId: newJobId })
-      } catch (err) {
-        await rollbackRetranslateJob(db, newJobId, userId)
-        await refundRetranslateQuota(db, userId, newJobId, context.env, context.executionCtx)
-        throw err
-      }
-    }
+    await enqueuePdfJobOrRollback(db, context, userId, newJobId)
 
     return { jobId: newJobId }
   })
