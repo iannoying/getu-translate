@@ -15,6 +15,7 @@
 const GOOGLE_BASE = "https://translate.googleapis.com/translate_a/single"
 const MICROSOFT_AUTH_URL = "https://edge.microsoft.com/translate/auth"
 const MICROSOFT_TRANSLATE_BASE = "https://api-edge.cognitive.microsofttranslator.com/translate"
+const FREE_PROVIDER_TIMEOUT_MS = 10_000
 
 // Microsoft edge auth tokens are JWTs valid ~1 hour. Cache them module-locally
 // so a single 11-column /translate burst fires one auth fetch, not eleven.
@@ -29,6 +30,44 @@ export class TranslateProviderError extends Error {
     this.name = "TranslateProviderError"
     this.providerId = providerId
     this.statusCode = statusCode
+  }
+}
+
+async function fetchWithProviderTimeout(
+  providerId: string,
+  label: string,
+  fetchImpl: typeof fetch,
+  input: string,
+  init?: RequestInit,
+): Promise<Response> {
+  const ac = new AbortController()
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      ac.abort()
+      reject(new TranslateProviderError(
+        providerId,
+        `${label} timed out after ${FREE_PROVIDER_TIMEOUT_MS}ms`,
+      ))
+    }, FREE_PROVIDER_TIMEOUT_MS)
+  })
+
+  try {
+    return await Promise.race([
+      fetchImpl(input, { ...init, signal: ac.signal }),
+      timeout,
+    ])
+  } catch (cause) {
+    if (cause instanceof TranslateProviderError) throw cause
+    if ((cause as Error).name === "AbortError" && ac.signal.aborted) {
+      throw new TranslateProviderError(
+        providerId,
+        `${label} timed out after ${FREE_PROVIDER_TIMEOUT_MS}ms`,
+      )
+    }
+    throw new TranslateProviderError(providerId, `network error: ${(cause as Error).message}`)
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId)
   }
 }
 
@@ -49,10 +88,13 @@ export async function googleTranslate(
     q: sourceText,
   })
 
-  const resp = await fetchImpl(`${GOOGLE_BASE}?${params.toString()}`, { method: "GET" })
-    .catch((cause) => {
-      throw new TranslateProviderError("google", `network error: ${(cause as Error).message}`)
-    })
+  const resp = await fetchWithProviderTimeout(
+    "google",
+    "request",
+    fetchImpl,
+    `${GOOGLE_BASE}?${params.toString()}`,
+    { method: "GET" },
+  )
 
   if (!resp.ok) {
     const errBody = await resp.text().catch(() => "")
@@ -103,7 +145,7 @@ export async function microsoftTranslate(
     queryParams.set("from", fromLang)
   }
   const url = `${MICROSOFT_TRANSLATE_BASE}?${queryParams.toString()}`
-  const resp = await fetchImpl(url, {
+  const resp = await fetchWithProviderTimeout("microsoft", "request", fetchImpl, url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -111,8 +153,6 @@ export async function microsoftTranslate(
       "Authorization": `Bearer ${token}`,
     },
     body: JSON.stringify([{ Text: sourceText }]),
-  }).catch((cause) => {
-    throw new TranslateProviderError("microsoft", `network error: ${(cause as Error).message}`)
   })
 
   if (!resp.ok) {
@@ -148,12 +188,12 @@ async function refreshMicrosoftToken(fetchImpl: typeof fetch): Promise<string> {
 
   _msTokenInflight = (async () => {
     try {
-      const resp = await fetchImpl(MICROSOFT_AUTH_URL).catch((cause) => {
-        throw new TranslateProviderError(
-          "microsoft",
-          `auth network error: ${(cause as Error).message}`,
-        )
-      })
+      const resp = await fetchWithProviderTimeout(
+        "microsoft",
+        "auth request",
+        fetchImpl,
+        MICROSOFT_AUTH_URL,
+      )
       if (!resp.ok) {
         throw new TranslateProviderError(
           "microsoft",

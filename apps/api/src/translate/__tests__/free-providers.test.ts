@@ -64,6 +64,33 @@ describe("googleTranslate", () => {
     })
   })
 
+  it("fails instead of hanging when the upstream request times out", async () => {
+    vi.useFakeTimers()
+    try {
+      const fetchMock = vi.fn((_url: string | URL, init?: RequestInit) =>
+        new Promise<Response>((_, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(new DOMException("aborted", "AbortError"))
+          })
+        }),
+      )
+      const pending = googleTranslate("hi", "en", "zh-CN", fetchMock as any)
+        .then(value => value)
+        .catch(error => error)
+
+      await vi.advanceTimersByTimeAsync(10_001)
+      const result = await Promise.race([pending, Promise.resolve("still-pending")])
+
+      expect(result).toBeInstanceOf(TranslateProviderError)
+      expect(result).toMatchObject({
+        providerId: "google",
+        message: expect.stringContaining("timed out"),
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it("Google translate handles null translatedText chunks gracefully", async () => {
     // Google returns shape: [[[<translation>, <source>, ...], ...], ...]
     // Some chunks can have null translation
