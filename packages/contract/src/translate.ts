@@ -240,6 +240,48 @@ export const documentDownloadUrlOutputSchema = z
   .strict()
 export type DocumentDownloadUrlOutput = z.infer<typeof documentDownloadUrlOutputSchema>
 
+export const documentPreviewInputSchema = z.object({ jobId: z.string().min(1) }).strict()
+export type DocumentPreviewInput = z.infer<typeof documentPreviewInputSchema>
+
+export const documentPreviewOutputSchema = z
+  .object({
+    job: z
+      .object({
+        id: z.string().min(1),
+        sourceFilename: z.string().nullable(),
+        sourcePages: z.number().int().min(1),
+        sourceBytes: z.number().int().nullable(),
+        modelId: modelIdSchema,
+        sourceLang: langCodeSchema,
+        targetLang: langCodeSchema,
+        status: z.literal("done"),
+        engine: translationJobEngineSchema,
+        createdAt: z.string().datetime(),
+        expiresAt: z.string().datetime(),
+      })
+      .strict(),
+    sourcePdfUrl: z.string().url(),
+    segmentsJsonUrl: z.string().url(),
+    htmlUrl: z.string().url().nullable(),
+    mdUrl: z.string().url().nullable(),
+    expiresAt: z.string().datetime(),
+  })
+  .strict()
+export type DocumentPreviewOutput = z.infer<typeof documentPreviewOutputSchema>
+
+export const documentRetranslateInputSchema = z
+  .object({
+    jobId: z.string().min(1),
+    modelId: modelIdSchema,
+    sourceLang: langCodeSchema,
+    targetLang: langCodeSchema,
+  })
+  .strict()
+export type DocumentRetranslateInput = z.infer<typeof documentRetranslateInputSchema>
+
+export const documentRetranslateOutputSchema = z.object({ jobId: z.string().min(1) }).strict()
+export type DocumentRetranslateOutput = z.infer<typeof documentRetranslateOutputSchema>
+
 export const documentRetryInputSchema = z.object({ jobId: z.string().min(1) }).strict()
 export type DocumentRetryInput = z.infer<typeof documentRetryInputSchema>
 
@@ -264,6 +306,8 @@ export const translateContract = oc.router({
     status: oc.input(documentStatusInputSchema).output(documentStatusOutputSchema),
     list: oc.input(documentListInputSchema).output(documentListOutputSchema),
     downloadUrl: oc.input(documentDownloadUrlInputSchema).output(documentDownloadUrlOutputSchema),
+    preview: oc.input(documentPreviewInputSchema).output(documentPreviewOutputSchema),
     retry: oc.input(documentRetryInputSchema).output(documentRetryOutputSchema),
+    retranslate: oc.input(documentRetranslateInputSchema).output(documentRetranslateOutputSchema),
   }),
 })
