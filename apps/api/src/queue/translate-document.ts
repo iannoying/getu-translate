@@ -6,6 +6,7 @@ import { chunkParagraphs } from "../translate/document-chunker"
 import { runTranslationPipeline, type TranslateChunkFn } from "../translate/document-pipeline"
 import { makeTranslateChunkFn } from "../translate/document-translators"
 import { renderHtml, renderMarkdown } from "../translate/document-output"
+import { buildDocumentOutputKeys } from "../translate/document-keys"
 import { periodKey } from "../billing/period"
 import type { WorkerEnv } from "../env"
 import { logger } from "../analytics/logger"
@@ -190,8 +191,9 @@ async function processOne(
       ac.signal,
     )
 
+    const { segmentsKey, htmlKey, mdKey } = buildDocumentOutputKeys(job.userId, job.id)
+
     // 10. Write segments.json to R2
-    const segmentsKey = job.sourceKey.replace(/source\.pdf$/, "segments.json")
     try {
       await bucket.put(segmentsKey, JSON.stringify(segmentsFile), {
         httpMetadata: { contentType: "application/json" },
@@ -205,8 +207,6 @@ async function processOne(
 
     // 11. M6.10: render bilingual HTML + Markdown, transition to 'done'
     try {
-      const htmlKey = job.sourceKey.replace(/source\.pdf$/, "output.html")
-      const mdKey = job.sourceKey.replace(/source\.pdf$/, "output.md")
       const html = renderHtml(segmentsFile)
       const md = renderMarkdown(segmentsFile)
       await bucket.put(htmlKey, html, {

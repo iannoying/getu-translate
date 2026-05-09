@@ -26,6 +26,7 @@ async function setupJob(
     sourcePages: number
     bucket?: string
     amount?: number
+    sourceKey?: string
   },
 ) {
   const { jobId, userId, sourcePages } = opts
@@ -46,7 +47,7 @@ async function setupJob(
   await db.insert(schema.translationJobs).values({
     id: jobId,
     userId,
-    sourceKey: `pdfs/${userId}/${jobId}/source.pdf`,
+    sourceKey: opts.sourceKey ?? `pdfs/${userId}/${jobId}/source.pdf`,
     sourcePages,
     modelId: "google",
     sourceLang: "auto",
@@ -149,6 +150,42 @@ describe("queue translate-document handler", () => {
     expect(job?.outputMdKey).toBe("pdfs/u1/j1/output.md")
     expect(job?.progressUpdatedAt).toBeInstanceOf(Date)
     expect(job?.progressUpdatedAt?.getTime()).toBeGreaterThan(0)
+  })
+
+  it("writes outputs under the processing job id when source belongs to an older job", async () => {
+    const { db } = makeTestDb()
+    const sourceKey = "pdfs/u1/original-job/source.pdf"
+    await setupJob(db, {
+      jobId: "retranslated-job",
+      userId: "u1",
+      sourcePages: 1,
+      sourceKey,
+    })
+    const pdfBuf = readFileSync(resolve(FIXTURE_DIR, "hello-world.pdf"))
+    const pdfAb = pdfBuf.buffer.slice(pdfBuf.byteOffset, pdfBuf.byteOffset + pdfBuf.byteLength)
+
+    const r2Get = vi.fn(async (key: string) =>
+      key.endsWith("source.pdf")
+        ? { arrayBuffer: async () => pdfAb }
+        : null,
+    )
+    const r2Put = vi.fn(async () => undefined)
+
+    const handler = createQueueHandler({
+      db: db as unknown as Db,
+      bucket: { get: r2Get, put: r2Put } as unknown as R2Bucket,
+      env: {} as any,
+      translateChunk: async () => "你好",
+    })
+
+    const { batch } = makeBatch("retranslated-job")
+    await handler.queue(batch as any, {} as any, {} as any)
+
+    const putKeys = r2Put.mock.calls.map((c) => (c as unknown[])[0] as string)
+    expect(putKeys).toContain("pdfs/u1/retranslated-job/segments.json")
+    expect(putKeys).toContain("pdfs/u1/retranslated-job/output.html")
+    expect(putKeys).toContain("pdfs/u1/retranslated-job/output.md")
+    expect(putKeys).not.toContain("pdfs/u1/original-job/output.html")
   })
 
   it("sets progressUpdatedAt when transitioning queued jobs to processing", async () => {
