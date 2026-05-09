@@ -199,7 +199,7 @@ describe("document key helpers", () => {
 Run:
 
 ```bash
-pnpm --filter @getu/api test -- src/translate/__tests__/document-keys.test.ts
+pnpm --filter @getu/api test src/translate/__tests__/document-keys.test.ts
 ```
 
 Expected: FAIL because `../document-keys` does not exist.
@@ -236,7 +236,7 @@ export function buildDocumentOutputKeys(userId: string, jobId: string): {
 Run:
 
 ```bash
-pnpm --filter @getu/api test -- src/translate/__tests__/document-keys.test.ts
+pnpm --filter @getu/api test src/translate/__tests__/document-keys.test.ts
 ```
 
 Expected: PASS.
@@ -319,7 +319,7 @@ it("writes outputs under the processing job id when source belongs to an older j
 Run:
 
 ```bash
-pnpm --filter @getu/api test -- src/queue/__tests__/translate-document.test.ts
+pnpm --filter @getu/api test src/queue/__tests__/translate-document.test.ts
 ```
 
 Expected: FAIL because output keys are still derived from `sourceKey`.
@@ -362,7 +362,7 @@ Keep the DB update storing `outputHtmlKey: htmlKey` and `outputMdKey: mdKey`.
 Run:
 
 ```bash
-pnpm --filter @getu/api test -- src/queue/__tests__/translate-document.test.ts
+pnpm --filter @getu/api test src/queue/__tests__/translate-document.test.ts
 ```
 
 Expected: PASS.
@@ -517,7 +517,7 @@ describe("translate.document.retranslate", () => {
 Run:
 
 ```bash
-pnpm --filter @getu/api test -- src/orpc/__tests__/document-extras.test.ts
+pnpm --filter @getu/api test src/orpc/__tests__/document-extras.test.ts
 ```
 
 Expected: FAIL because `preview` and `retranslate` handlers are not exported.
@@ -754,7 +754,7 @@ export const documentRouter = {
 Run:
 
 ```bash
-pnpm --filter @getu/api test -- src/orpc/__tests__/document-extras.test.ts
+pnpm --filter @getu/api test src/orpc/__tests__/document-extras.test.ts
 ```
 
 Expected: PASS.
@@ -825,7 +825,7 @@ it("deletes per-job outputs without assuming they share the source prefix", asyn
 Run:
 
 ```bash
-pnpm --filter @getu/api test -- src/scheduled/__tests__/translation-cleanup.test.ts
+pnpm --filter @getu/api test src/scheduled/__tests__/translation-cleanup.test.ts
 ```
 
 Expected: FAIL if cleanup derives `segments.json` from `sourceKey`.
@@ -856,7 +856,7 @@ Use `keys` for bucket deletion and keep existing DB deletion behavior.
 Run:
 
 ```bash
-pnpm --filter @getu/api test -- src/scheduled/__tests__/translation-cleanup.test.ts
+pnpm --filter @getu/api test src/scheduled/__tests__/translation-cleanup.test.ts
 ```
 
 Expected: PASS.
@@ -923,7 +923,7 @@ describe("groupSegmentsByPage", () => {
 Run:
 
 ```bash
-pnpm --filter @getu/web test -- 'app/[locale]/document/preview/__tests__/segments.test.ts'
+pnpm --filter @getu/web test 'app/[locale]/document/preview/__tests__/segments.test.ts'
 ```
 
 Expected: FAIL because `../segments` does not exist.
@@ -1005,7 +1005,7 @@ export function groupSegmentsByPage(file: PdfSegmentsFile, pageCount: number): P
 Run:
 
 ```bash
-pnpm --filter @getu/web test -- 'app/[locale]/document/preview/__tests__/segments.test.ts'
+pnpm --filter @getu/web test 'app/[locale]/document/preview/__tests__/segments.test.ts'
 ```
 
 Expected: PASS.
@@ -1971,7 +1971,7 @@ Then update `apps/web/app/[locale]/document/preview/page.tsx` so the wrapper rec
 Run:
 
 ```bash
-pnpm --filter @getu/web test -- 'app/[locale]/document/preview/__tests__/preview-state.test.ts' 'app/[locale]/document/preview/__tests__/segments.test.ts'
+pnpm --filter @getu/web test 'app/[locale]/document/preview/__tests__/preview-state.test.ts' 'app/[locale]/document/preview/__tests__/segments.test.ts'
 pnpm --filter @getu/web type-check
 ```
 
@@ -1995,7 +1995,7 @@ git commit -m "feat(web): render pdf reader in document preview"
 Run:
 
 ```bash
-pnpm --filter @getu/api test -- src/translate/__tests__/document-keys.test.ts src/orpc/__tests__/document-extras.test.ts src/queue/__tests__/translate-document.test.ts src/scheduled/__tests__/translation-cleanup.test.ts
+pnpm --filter @getu/api test src/translate/__tests__/document-keys.test.ts src/orpc/__tests__/document-extras.test.ts src/queue/__tests__/translate-document.test.ts src/scheduled/__tests__/translation-cleanup.test.ts
 ```
 
 Expected: PASS.
@@ -2005,7 +2005,7 @@ Expected: PASS.
 Run:
 
 ```bash
-pnpm --filter @getu/web test -- 'app/[locale]/document/preview/__tests__/preview-state.test.ts' 'app/[locale]/document/preview/__tests__/segments.test.ts'
+pnpm --filter @getu/web test 'app/[locale]/document/preview/__tests__/preview-state.test.ts' 'app/[locale]/document/preview/__tests__/segments.test.ts'
 ```
 
 Expected: PASS.
