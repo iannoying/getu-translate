@@ -12,6 +12,7 @@ import { PdfHistoryDrawer } from "../components/PdfHistoryDrawer"
 import {
   applyStatusPayload,
   isTerminal,
+  statusErrorToPreviewState,
   type PreviewState,
 } from "./preview-state"
 
@@ -66,9 +67,14 @@ export function PreviewClient({
           // Check terminal after applying.
           const fresh = applyStatusPayload({ kind: "loading" }, payload)
           if (isTerminal(fresh)) return
-        } catch {
+        } catch (err) {
           // Transient errors: keep polling.
           if (ac.signal.aborted) return
+          const terminalState = statusErrorToPreviewState(err, messages.errors)
+          if (terminalState) {
+            setState(terminalState)
+            return
+          }
         }
 
         if (Date.now() - startedAt >= POLL_TIMEOUT_MS) {

@@ -29,6 +29,12 @@ export type StatusPayload = {
   errorMessage: string | null
 }
 
+export type PreviewErrorLabels = {
+  authRequired: string
+  notFound: string
+  forbidden: string
+}
+
 /**
  * Compute the next PreviewState given the current state and a freshly-fetched
  * status payload.  Pure function — no side-effects.
@@ -72,4 +78,34 @@ export function isTerminal(state: PreviewState): boolean {
     state.kind === "failed" ||
     state.kind === "timeout"
   )
+}
+
+function readErrorField(err: unknown, key: "code" | "status"): unknown {
+  if (!err || typeof err !== "object") return undefined
+  const obj = err as Record<string, unknown>
+  return obj[key]
+    ?? (obj.data && typeof obj.data === "object"
+      ? (obj.data as Record<string, unknown>)[key]
+      : undefined)
+    ?? (obj.error && typeof obj.error === "object"
+      ? (obj.error as Record<string, unknown>)[key]
+      : undefined)
+}
+
+export function statusErrorToPreviewState(
+  err: unknown,
+  labels: PreviewErrorLabels,
+): PreviewState | null {
+  const status = readErrorField(err, "status")
+  const code = readErrorField(err, "code")
+  if (status === 401 || code === "UNAUTHORIZED") {
+    return { kind: "failed", errorMessage: labels.authRequired }
+  }
+  if (status === 403 || code === "FORBIDDEN") {
+    return { kind: "failed", errorMessage: labels.forbidden }
+  }
+  if (status === 404 || code === "NOT_FOUND") {
+    return { kind: "failed", errorMessage: labels.notFound }
+  }
+  return null
 }
