@@ -17,6 +17,16 @@ This is the canonical list of Cloudflare resources that must exist before deploy
 |---|---|---|---|
 | `BUCKET_PDFS` | `getu-pdfs` | PDF source + output blobs | `wrangler r2 bucket create getu-pdfs` |
 
+Direct browser uploads to presigned R2 URLs require bucket-level CORS in
+addition to the API Worker's `/api/translate/document/presign` CORS. Apply the
+checked-in policy after bucket creation:
+
+```bash
+cd apps/api
+pnpm exec wrangler r2 bucket cors set getu-pdfs --file r2-cors.json
+pnpm exec wrangler r2 bucket cors list getu-pdfs
+```
+
 ## KV Namespaces
 
 | Binding | Purpose | Created via |
@@ -122,6 +132,7 @@ cd apps/api && pnpm exec wrangler d1 migrations apply DB --remote
 
 # 2. R2 bucket
 pnpm exec wrangler r2 bucket create getu-pdfs
+pnpm exec wrangler r2 bucket cors set getu-pdfs --file r2-cors.json
 
 # 3. Queue
 pnpm exec wrangler queues create getu-translate-jobs
