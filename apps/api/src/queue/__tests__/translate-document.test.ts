@@ -165,7 +165,7 @@ describe("queue translate-document handler", () => {
     const pdfAb = pdfBuf.buffer.slice(pdfBuf.byteOffset, pdfBuf.byteOffset + pdfBuf.byteLength)
 
     const r2Get = vi.fn(async (key: string) =>
-      key.endsWith("source.pdf")
+      key === sourceKey
         ? { arrayBuffer: async () => pdfAb }
         : null,
     )
@@ -182,10 +182,19 @@ describe("queue translate-document handler", () => {
     await handler.queue(batch as any, {} as any, {} as any)
 
     const putKeys = r2Put.mock.calls.map((c) => (c as unknown[])[0] as string)
+    expect(r2Get).toHaveBeenCalledWith(sourceKey)
     expect(putKeys).toContain("pdfs/u1/retranslated-job/segments.json")
     expect(putKeys).toContain("pdfs/u1/retranslated-job/output.html")
     expect(putKeys).toContain("pdfs/u1/retranslated-job/output.md")
     expect(putKeys).not.toContain("pdfs/u1/original-job/output.html")
+
+    const job = await db
+      .select()
+      .from(schema.translationJobs)
+      .where(eq(schema.translationJobs.id, "retranslated-job"))
+      .get()
+    expect(job?.outputHtmlKey).toBe("pdfs/u1/retranslated-job/output.html")
+    expect(job?.outputMdKey).toBe("pdfs/u1/retranslated-job/output.md")
   })
 
   it("sets progressUpdatedAt when transitioning queued jobs to processing", async () => {
