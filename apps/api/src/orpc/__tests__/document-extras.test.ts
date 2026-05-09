@@ -95,6 +95,8 @@ const doneJob = {
   engine: "simple",
   errorMessage: null,
   progress: null,
+  createdAt: new Date("2026-05-09T00:00:00.000Z"),
+  expiresAt: new Date("2026-06-08T00:00:00.000Z"),
 }
 
 const failedJob = {
@@ -204,6 +206,51 @@ describe("translate.document.downloadUrl", () => {
   })
 })
 
+describe("translate.document.preview", () => {
+  it("returns signed source, segments, html, and md URLs for a done job", async () => {
+    pendingJobRow = doneJob
+    const bucket = { head: vi.fn(async () => ({ size: 1 })) }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { ...R2_ENV, BUCKET_PDFS: bucket as any }),
+    })
+    const out = await client.translate.document.preview({ jobId: "job-done" })
+    expect(out.job).toMatchObject({
+      id: "job-done",
+      sourceFilename: "test.pdf",
+      sourcePages: 5,
+      modelId: "google",
+      sourceLang: "en",
+      targetLang: "zh-CN",
+      status: "done",
+      engine: "simple",
+    })
+    expect(out.sourcePdfUrl).toContain("source.pdf")
+    expect(out.segmentsJsonUrl).toContain("segments.json")
+    expect(out.htmlUrl).toContain("output.html")
+    expect(out.mdUrl).toContain("output.md")
+    expect(out.sourcePdfUrl).toContain("X-Amz-Signature")
+    expect(bucket.head).toHaveBeenCalledWith("pdfs/u-free/job-done/source.pdf")
+    expect(bucket.head).toHaveBeenCalledWith("pdfs/u-free/job-done/segments.json")
+  })
+
+  it("rejects BAD_REQUEST when preview job is not done", async () => {
+    pendingJobRow = { ...doneJob, status: "processing" }
+    const client = createRouterClient(router, { context: ctx(freeSession, R2_ENV) })
+    await expect(client.translate.document.preview({ jobId: "job-done" }))
+      .rejects.toMatchObject({ code: "BAD_REQUEST" })
+  })
+
+  it("rejects NOT_FOUND when source or segments asset is missing", async () => {
+    pendingJobRow = doneJob
+    const bucket = { head: vi.fn(async (key: string) => key.endsWith("source.pdf") ? { size: 1 } : null) }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { ...R2_ENV, BUCKET_PDFS: bucket as any }),
+    })
+    await expect(client.translate.document.preview({ jobId: "job-done" }))
+      .rejects.toMatchObject({ code: "NOT_FOUND" })
+  })
+})
+
 // ---- documentRetry ----
 
 describe("translate.document.retry", () => {
@@ -299,5 +346,72 @@ describe("translate.document.retry", () => {
       client.translate.document.retry({ jobId: "job-failed" }),
     ).rejects.toMatchObject({ code: "NOT_FOUND", message: expect.stringContaining("源文件") })
     expect(bucket.head).toHaveBeenCalledWith(failedJob.sourceKey)
+  })
+})
+
+describe("translate.document.retranslate", () => {
+  it("creates a new queued job from a done source job with new settings", async () => {
+    pendingJobRow = doneJob
+    pendingActiveJobs = []
+    const bucket = { head: vi.fn(async () => ({ size: 1 })) }
+    const queue = { send: vi.fn(async () => undefined) }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { BUCKET_PDFS: bucket as any, TRANSLATE_QUEUE: queue as any }),
+    })
+
+    const out = await client.translate.document.retranslate({
+      jobId: "job-done",
+      modelId: "microsoft",
+      sourceLang: "en",
+      targetLang: "zh-TW",
+    })
+
+    expect(out.jobId).toBeTruthy()
+    expect(out.jobId).not.toBe("job-done")
+    expect(insertedJobs[0]).toMatchObject({
+      userId: "u-free",
+      sourceKey: doneJob.sourceKey,
+      sourcePages: doneJob.sourcePages,
+      sourceFilename: doneJob.sourceFilename,
+      sourceBytes: doneJob.sourceBytes,
+      modelId: "microsoft",
+      sourceLang: "en",
+      targetLang: "zh-TW",
+      status: "queued",
+      engine: "simple",
+    })
+    expect(queue.send).toHaveBeenCalledWith({ jobId: out.jobId })
+    expect(bucket.head).toHaveBeenCalledWith(doneJob.sourceKey)
+  })
+
+  it("consumes quota for retranslation using the new job id", async () => {
+    pendingJobRow = doneJob
+    pendingActiveJobs = []
+    const translateQuota = await import("../translate/quota")
+    const client = createRouterClient(router, { context: ctx(freeSession) })
+    const out = await client.translate.document.retranslate({
+      jobId: "job-done",
+      modelId: "google",
+      sourceLang: "en",
+      targetLang: "zh-CN",
+    })
+    const [, calledUserId, calledBucket, calledPages, calledRequestId] =
+      (translateQuota.consumeTranslateQuota as any).mock.calls[0]
+    expect(calledUserId).toBe("u-free")
+    expect(calledBucket).toBe("web_pdf_translate_monthly")
+    expect(calledPages).toBe(doneJob.sourcePages)
+    expect(calledRequestId).toBe(`web-pdf:u-free:${out.jobId}`)
+  })
+
+  it("rejects CONFLICT when another PDF job is active", async () => {
+    pendingJobRow = doneJob
+    pendingActiveJobs = [{ id: "active-job" }]
+    const client = createRouterClient(router, { context: ctx(freeSession) })
+    await expect(client.translate.document.retranslate({
+      jobId: "job-done",
+      modelId: "google",
+      sourceLang: "en",
+      targetLang: "zh-CN",
+    })).rejects.toMatchObject({ code: "CONFLICT" })
   })
 })

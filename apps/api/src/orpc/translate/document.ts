@@ -10,6 +10,10 @@ import {
   documentDownloadUrlOutputSchema,
   documentListInputSchema,
   documentListOutputSchema,
+  documentPreviewInputSchema,
+  documentPreviewOutputSchema,
+  documentRetranslateInputSchema,
+  documentRetranslateOutputSchema,
   documentRetryInputSchema,
   documentRetryOutputSchema,
   documentStatusInputSchema,
@@ -19,7 +23,8 @@ import {
 } from "@getu/contract"
 import { loadEntitlements } from "../../billing/entitlements"
 import { readPdfPageCount } from "../../translate/document"
-import { authed } from "../context"
+import { buildDocumentOutputKeys } from "../../translate/document-keys"
+import { authed, type Ctx } from "../context"
 import { requireModelAccess, type Plan } from "./models"
 import type { TranslateModelId } from "@getu/definitions"
 import { consumeTranslateQuota } from "./quota"
@@ -29,6 +34,33 @@ const { translationJobs } = schema
 
 const FREE_PDF_RETENTION_MS = 30 * 24 * 60 * 60 * 1000
 const PRO_PDF_RETENTION_MS = 90 * 24 * 60 * 60 * 1000
+const SIGNED_GET_EXPIRES_SEC = 3600
+
+function toIso(value: Date | number | string): string {
+  return (value instanceof Date ? value : new Date(value)).toISOString()
+}
+
+function requireR2Signer(env: Ctx["env"]): AwsClient {
+  if (!env.R2_ACCOUNT_ID || !env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY || !env.R2_BUCKET_PDFS_NAME) {
+    throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "R2 credentials not configured" })
+  }
+  return new AwsClient({
+    accessKeyId: env.R2_ACCESS_KEY_ID,
+    secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+    service: "s3",
+    region: "auto",
+  })
+}
+
+async function signR2GetUrl(env: Ctx["env"], key: string): Promise<string> {
+  const aws = requireR2Signer(env)
+  const objectUrl = `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${env.R2_BUCKET_PDFS_NAME}/${key}`
+  const signed = await aws.sign(
+    new Request(`${objectUrl}?X-Amz-Expires=${SIGNED_GET_EXPIRES_SEC}`, { method: "GET" }),
+    { aws: { signQuery: true } },
+  )
+  return signed.url
+}
 
 function resolvePlan(tier: string | undefined): Plan {
   if (tier === "pro" || tier === "enterprise") return tier
@@ -327,27 +359,62 @@ export const documentDownloadUrl = authed
     const key = input.format === "html" ? job.outputHtmlKey : job.outputMdKey
     if (!key) throw new ORPCError("NOT_FOUND", { message: "Output not available" })
 
-    const env = context.env
-    if (!env.R2_ACCOUNT_ID || !env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY || !env.R2_BUCKET_PDFS_NAME) {
-      throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "R2 credentials not configured" })
+    return {
+      url: await signR2GetUrl(context.env, key),
+      expiresAt: new Date(Date.now() + SIGNED_GET_EXPIRES_SEC * 1000).toISOString(),
+    }
+  })
+
+export const documentPreview = authed
+  .input(documentPreviewInputSchema)
+  .output(documentPreviewOutputSchema)
+  .handler(async ({ context, input }) => {
+    const db = createDb(context.env.DB)
+    const userId = context.session.user.id
+    const job = await db
+      .select()
+      .from(translationJobs)
+      .where(and(eq(translationJobs.id, input.jobId), eq(translationJobs.userId, userId)))
+      .get()
+    if (!job) throw new ORPCError("NOT_FOUND", { message: "Job not found" })
+    if (job.status !== "done") throw new ORPCError("BAD_REQUEST", { message: "Job not yet complete" })
+
+    const { segmentsKey } = buildDocumentOutputKeys(job.userId, job.id)
+    const bucket = context.env.BUCKET_PDFS
+    if (bucket) {
+      const [sourceHead, segmentsHead] = await Promise.all([
+        bucket.head(job.sourceKey),
+        bucket.head(segmentsKey),
+      ])
+      if (!sourceHead || !segmentsHead) {
+        throw new ORPCError("NOT_FOUND", { message: "Preview assets not available" })
+      }
     }
 
-    const expiresInSec = 3600
-    const aws = new AwsClient({
-      accessKeyId: env.R2_ACCESS_KEY_ID,
-      secretAccessKey: env.R2_SECRET_ACCESS_KEY,
-      service: "s3",
-      region: "auto",
-    })
-    const objectUrl = `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${env.R2_BUCKET_PDFS_NAME}/${key}`
-    const signed = await aws.sign(
-      new Request(`${objectUrl}?X-Amz-Expires=${expiresInSec}`, { method: "GET" }),
-      { aws: { signQuery: true } },
-    )
+    const sourcePdfUrl = await signR2GetUrl(context.env, job.sourceKey)
+    const segmentsJsonUrl = await signR2GetUrl(context.env, segmentsKey)
+    const htmlUrl = job.outputHtmlKey ? await signR2GetUrl(context.env, job.outputHtmlKey) : null
+    const mdUrl = job.outputMdKey ? await signR2GetUrl(context.env, job.outputMdKey) : null
 
     return {
-      url: signed.url,
-      expiresAt: new Date(Date.now() + expiresInSec * 1000).toISOString(),
+      job: {
+        id: job.id,
+        sourceFilename: job.sourceFilename ?? null,
+        sourcePages: job.sourcePages,
+        sourceBytes: job.sourceBytes ?? null,
+        modelId: job.modelId,
+        sourceLang: job.sourceLang,
+        targetLang: job.targetLang,
+        status: "done",
+        engine: job.engine,
+        createdAt: toIso(job.createdAt),
+        expiresAt: toIso(job.expiresAt),
+      },
+      sourcePdfUrl,
+      segmentsJsonUrl,
+      htmlUrl,
+      mdUrl,
+      expiresAt: new Date(Date.now() + SIGNED_GET_EXPIRES_SEC * 1000).toISOString(),
     }
   })
 
@@ -445,10 +512,107 @@ export const documentRetry = authed
     return { jobId: newJobId }
   })
 
+export const documentRetranslate = authed
+  .input(documentRetranslateInputSchema)
+  .output(documentRetranslateOutputSchema)
+  .handler(async ({ context, input }) => {
+    const db = createDb(context.env.DB)
+    const userId = context.session.user.id
+    const origJob = await db
+      .select()
+      .from(translationJobs)
+      .where(and(eq(translationJobs.id, input.jobId), eq(translationJobs.userId, userId)))
+      .get()
+    if (!origJob) throw new ORPCError("NOT_FOUND", { message: "Job not found" })
+    if (origJob.status !== "done" && origJob.status !== "failed") {
+      throw new ORPCError("BAD_REQUEST", { message: "Only finished jobs can be retranslated" })
+    }
+
+    const ent = await loadEntitlements(db, userId, context.env.BILLING_ENABLED === "true")
+    const plan = resolvePlan(ent.tier)
+    const modelId = requireModelAccess(plan, input.modelId as TranslateModelId)
+
+    const activeRows = await db
+      .select({ id: translationJobs.id })
+      .from(translationJobs)
+      .where(
+        and(
+          eq(translationJobs.userId, userId),
+          inArray(translationJobs.status, ["queued", "processing"]),
+        ),
+      )
+      .limit(1)
+      .all()
+    if (activeRows.length > 0) {
+      throw new ORPCError("CONFLICT", {
+        message: "Another translation is already in progress",
+        data: { code: "PDF_JOB_INFLIGHT", existingJobId: activeRows[0].id },
+      })
+    }
+
+    const bucket = context.env.BUCKET_PDFS
+    if (bucket) {
+      const sourceObj = await bucket.head(origJob.sourceKey)
+      if (!sourceObj) {
+        throw new ORPCError("NOT_FOUND", { message: "源文件已过期，请重新上传 PDF" })
+      }
+    }
+
+    const newJobId = crypto.randomUUID()
+    const expiresAt = new Date(Date.now() + (plan === "free" ? FREE_PDF_RETENTION_MS : PRO_PDF_RETENTION_MS))
+
+    try {
+      await db.insert(translationJobs).values({
+        id: newJobId,
+        userId,
+        sourceKey: origJob.sourceKey,
+        sourcePages: origJob.sourcePages,
+        sourceFilename: origJob.sourceFilename,
+        sourceBytes: origJob.sourceBytes,
+        modelId,
+        sourceLang: input.sourceLang,
+        targetLang: input.targetLang,
+        engine: "simple",
+        status: "queued",
+        expiresAt,
+        createdAt: new Date(),
+      })
+    } catch (err) {
+      if (err instanceof Error && /UNIQUE/i.test(err.message)) {
+        throw new ORPCError("CONFLICT", {
+          message: "Another translation is already in progress",
+          data: { code: "PDF_JOB_INFLIGHT" },
+        })
+      }
+      throw err
+    }
+
+    try {
+      await consumeTranslateQuota(
+        db,
+        userId,
+        "web_pdf_translate_monthly",
+        origJob.sourcePages,
+        `web-pdf:${userId}:${newJobId}`,
+      )
+    } catch (err) {
+      await db.delete(translationJobs).where(eq(translationJobs.id, newJobId)).run()
+      throw err
+    }
+
+    if (context.env.TRANSLATE_QUEUE) {
+      await context.env.TRANSLATE_QUEUE.send({ jobId: newJobId })
+    }
+
+    return { jobId: newJobId }
+  })
+
 export const documentRouter = {
   create: documentCreate,
   status: documentStatus,
   list: documentList,
   downloadUrl: documentDownloadUrl,
+  preview: documentPreview,
   retry: documentRetry,
+  retranslate: documentRetranslate,
 }
