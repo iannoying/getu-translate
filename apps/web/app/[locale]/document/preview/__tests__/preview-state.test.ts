@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest"
 import {
   applyStatusPayload,
   isTerminal,
+  statusErrorToPreviewState,
   type PreviewState,
   type StatusPayload,
 } from "../preview-state"
@@ -36,6 +37,12 @@ const failed: StatusPayload = {
   outputHtmlKey: null,
   outputMdKey: null,
   errorMessage: "Worker crashed",
+}
+
+const errorLabels = {
+  authRequired: "Please sign in again.",
+  notFound: "Translation job not found.",
+  forbidden: "You do not have access to this translation.",
 }
 
 describe("preview state transitions", () => {
@@ -160,5 +167,25 @@ describe("preview state transitions", () => {
     if (next.kind === "failed") {
       expect(next.errorMessage).toBe("Translation failed")
     }
+  })
+
+  it("turns unauthorized polling errors into a terminal failed state", () => {
+    const next = statusErrorToPreviewState({ status: 401 }, errorLabels)
+    expect(next).toEqual({
+      kind: "failed",
+      errorMessage: "Please sign in again.",
+    })
+  })
+
+  it("turns not-found polling errors into a terminal failed state", () => {
+    const next = statusErrorToPreviewState({ code: "NOT_FOUND" }, errorLabels)
+    expect(next).toEqual({
+      kind: "failed",
+      errorMessage: "Translation job not found.",
+    })
+  })
+
+  it("keeps transient polling errors retryable", () => {
+    expect(statusErrorToPreviewState(new TypeError("Failed to fetch"), errorLabels)).toBeNull()
   })
 })

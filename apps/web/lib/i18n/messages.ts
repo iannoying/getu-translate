@@ -180,6 +180,9 @@ export type Messages = {
       iframeTitle: string
       errors: {
         heading: string
+        authRequired: string
+        notFound: string
+        forbidden: string
       }
       historyDrawer: {
         toggleOpen: string
@@ -669,6 +672,9 @@ export const messages: Record<Locale, Messages> = {
         iframeTitle: "Translated document preview",
         errors: {
           heading: "Something went wrong",
+          authRequired: "Your session expired. Please sign in again and reopen the document.",
+          notFound: "Translation job not found. Please upload the PDF again.",
+          forbidden: "You do not have access to this translation.",
         },
         historyDrawer: {
           toggleOpen: "PDF history",
@@ -1154,6 +1160,9 @@ export const messages: Record<Locale, Messages> = {
         iframeTitle: "文档翻译预览",
         errors: {
           heading: "出错了",
+          authRequired: "登录状态已过期，请重新登录后再打开文档。",
+          notFound: "找不到这个翻译任务，请重新上传 PDF。",
+          forbidden: "你无权访问这个翻译任务。",
         },
         historyDrawer: {
           toggleOpen: "PDF 历史",
@@ -1639,6 +1648,9 @@ export const messages: Record<Locale, Messages> = {
         iframeTitle: "文件翻譯預覽",
         errors: {
           heading: "發生錯誤",
+          authRequired: "登入狀態已過期，請重新登入後再開啟文件。",
+          notFound: "找不到這個翻譯任務，請重新上傳 PDF。",
+          forbidden: "你無權存取這個翻譯任務。",
         },
         historyDrawer: {
           toggleOpen: "PDF 歷史",
