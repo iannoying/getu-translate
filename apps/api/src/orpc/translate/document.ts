@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/server"
-import { and, desc, eq, inArray, lt } from "drizzle-orm"
+import { and, desc, eq, inArray, lt, sql } from "drizzle-orm"
 import { AwsClient } from "aws4fetch"
 import { createDb } from "@getu/db"
 import { schema } from "@getu/db"
@@ -22,6 +22,7 @@ import {
   TRANSLATE_DOCUMENT_MAX_PAGES,
 } from "@getu/contract"
 import { loadEntitlements } from "../../billing/entitlements"
+import { periodKey } from "../../billing/period"
 import { readPdfPageCount } from "../../translate/document"
 import { buildDocumentOutputKeys } from "../../translate/document-keys"
 import { authed, type Ctx } from "../context"
@@ -60,6 +61,83 @@ async function signR2GetUrl(env: Ctx["env"], key: string): Promise<string> {
     { aws: { signQuery: true } },
   )
   return signed.url
+}
+
+function buildPdfQuotaRequestId(userId: string, jobId: string): string {
+  return `web-pdf:${userId}:${jobId}`
+}
+
+async function rollbackRetranslateJob(
+  db: ReturnType<typeof createDb>,
+  jobId: string,
+  userId: string,
+): Promise<void> {
+  await db.delete(translationJobs)
+    .where(and(eq(translationJobs.id, jobId), eq(translationJobs.userId, userId)))
+    .run()
+}
+
+async function refundRetranslateQuota(
+  db: ReturnType<typeof createDb>,
+  userId: string,
+  jobId: string,
+  env: Ctx["env"],
+  executionCtx: ExecutionContext | undefined,
+): Promise<void> {
+  const originalUsage = await db
+    .select()
+    .from(schema.usageLog)
+    .where(
+      and(
+        eq(schema.usageLog.userId, userId),
+        eq(schema.usageLog.requestId, buildPdfQuotaRequestId(userId, jobId)),
+      ),
+    )
+    .get()
+
+  if (!originalUsage) {
+    logger.warn(
+      "[documentRetranslate] refund skipped: original usage row not found",
+      { jobId },
+      { env, executionCtx },
+    )
+    return
+  }
+
+  const now = new Date()
+  const refundRequestId = `refund:${jobId}`
+  const pk = periodKey(originalUsage.bucket as Parameters<typeof periodKey>[0], now)
+
+  try {
+    await db.insert(schema.usageLog).values({
+      id: crypto.randomUUID(),
+      userId,
+      bucket: originalUsage.bucket,
+      amount: -originalUsage.amount,
+      requestId: refundRequestId,
+      createdAt: now,
+    })
+    await db
+      .update(schema.quotaPeriod)
+      .set({
+        used: sql`MAX(${schema.quotaPeriod.used} - ${originalUsage.amount}, 0)`,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(schema.quotaPeriod.userId, userId),
+          eq(schema.quotaPeriod.bucket, originalUsage.bucket),
+          eq(schema.quotaPeriod.periodKey, pk),
+        ),
+      )
+  } catch (err) {
+    if (err instanceof Error && /UNIQUE/i.test(err.message)) return
+    logger.error(
+      "[documentRetranslate] quota refund failed",
+      { jobId, err },
+      { env, executionCtx },
+    )
+  }
 }
 
 function resolvePlan(tier: string | undefined): Plan {
@@ -381,20 +459,26 @@ export const documentPreview = authed
 
     const { segmentsKey } = buildDocumentOutputKeys(job.userId, job.id)
     const bucket = context.env.BUCKET_PDFS
+    let htmlExists = Boolean(job.outputHtmlKey)
+    let mdExists = Boolean(job.outputMdKey)
     if (bucket) {
-      const [sourceHead, segmentsHead] = await Promise.all([
+      const [sourceHead, segmentsHead, htmlHead, mdHead] = await Promise.all([
         bucket.head(job.sourceKey),
         bucket.head(segmentsKey),
+        job.outputHtmlKey ? bucket.head(job.outputHtmlKey) : Promise.resolve(null),
+        job.outputMdKey ? bucket.head(job.outputMdKey) : Promise.resolve(null),
       ])
       if (!sourceHead || !segmentsHead) {
         throw new ORPCError("NOT_FOUND", { message: "Preview assets not available" })
       }
+      htmlExists = Boolean(htmlHead)
+      mdExists = Boolean(mdHead)
     }
 
     const sourcePdfUrl = await signR2GetUrl(context.env, job.sourceKey)
     const segmentsJsonUrl = await signR2GetUrl(context.env, segmentsKey)
-    const htmlUrl = job.outputHtmlKey ? await signR2GetUrl(context.env, job.outputHtmlKey) : null
-    const mdUrl = job.outputMdKey ? await signR2GetUrl(context.env, job.outputMdKey) : null
+    const htmlUrl = job.outputHtmlKey && htmlExists ? await signR2GetUrl(context.env, job.outputHtmlKey) : null
+    const mdUrl = job.outputMdKey && mdExists ? await signR2GetUrl(context.env, job.outputMdKey) : null
 
     return {
       job: {
@@ -498,10 +582,10 @@ export const documentRetry = authed
         userId,
         "web_pdf_translate_monthly",
         origJob.sourcePages,
-        `web-pdf:${userId}:${newJobId}`,
+        buildPdfQuotaRequestId(userId, newJobId),
       )
     } catch (err) {
-      await db.delete(translationJobs).where(eq(translationJobs.id, newJobId)).run()
+      await rollbackRetranslateJob(db, newJobId, userId)
       throw err
     }
 
@@ -593,15 +677,21 @@ export const documentRetranslate = authed
         userId,
         "web_pdf_translate_monthly",
         origJob.sourcePages,
-        `web-pdf:${userId}:${newJobId}`,
+        buildPdfQuotaRequestId(userId, newJobId),
       )
     } catch (err) {
-      await db.delete(translationJobs).where(eq(translationJobs.id, newJobId)).run()
+      await rollbackRetranslateJob(db, newJobId, userId)
       throw err
     }
 
     if (context.env.TRANSLATE_QUEUE) {
-      await context.env.TRANSLATE_QUEUE.send({ jobId: newJobId })
+      try {
+        await context.env.TRANSLATE_QUEUE.send({ jobId: newJobId })
+      } catch (err) {
+        await rollbackRetranslateJob(db, newJobId, userId)
+        await refundRetranslateQuota(db, userId, newJobId, context.env, context.executionCtx)
+        throw err
+      }
     }
 
     return { jobId: newJobId }

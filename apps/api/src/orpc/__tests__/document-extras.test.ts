@@ -33,17 +33,33 @@ let pendingActiveJobs: { id: string }[] = []
 let insertedJobs: Record<string, unknown>[] = []
 let usageLogRows: Record<string, unknown>[] = []
 let deletedIds: string[] = []
+let updatedQuotaPeriods: Record<string, unknown>[] = []
+
+function tableName(table: unknown): string {
+  const direct = (table as any)?._?.name ?? (table as any)?.[Symbol.for("drizzle:Name")]
+  if (direct) return direct
+  const symbol = Object.getOwnPropertySymbols(table as object)
+    .find(sym => sym.description === "drizzle:Name")
+  return symbol ? String((table as any)[symbol]) : ""
+}
 
 const fakeDb = {
-  insert: vi.fn(() => ({
+  insert: vi.fn((table?: unknown) => ({
     values: vi.fn(async (row: Record<string, unknown>) => {
-      insertedJobs.push(row)
+      if (tableName(table) === "usage_log") {
+        usageLogRows.push(row)
+      } else {
+        insertedJobs.push(row)
+      }
     }),
   })),
   select: vi.fn((..._cols: unknown[]) => ({
-    from: vi.fn(() => ({
+    from: vi.fn((table?: unknown) => ({
       where: vi.fn((..._args: unknown[]) => ({
-        get: async () => pendingJobRow ?? undefined,
+        get: async () => {
+          if (tableName(table) === "usage_log") return usageLogRows[0] ?? undefined
+          return pendingJobRow ?? undefined
+        },
         limit: vi.fn(() => ({
           all: async () => pendingActiveJobs,
         })),
@@ -56,7 +72,18 @@ const fakeDb = {
   })),
   delete: vi.fn(() => ({
     where: vi.fn((_arg: unknown) => ({
-      run: async () => undefined,
+      run: async () => {
+        const ids = insertedJobs.map(job => job.id).filter((id): id is string => typeof id === "string")
+        deletedIds.push(...ids)
+        insertedJobs = []
+      },
+    })),
+  })),
+  update: vi.fn(() => ({
+    set: vi.fn((values: Record<string, unknown>) => ({
+      where: vi.fn(async (_arg: unknown) => {
+        updatedQuotaPeriods.push(values)
+      }),
     })),
   })),
 }
@@ -114,6 +141,7 @@ beforeEach(() => {
   insertedJobs = []
   usageLogRows = []
   deletedIds = []
+  updatedQuotaPeriods = []
 })
 
 // ---- documentDownloadUrl ----
@@ -248,6 +276,26 @@ describe("translate.document.preview", () => {
     })
     await expect(client.translate.document.preview({ jobId: "job-done" }))
       .rejects.toMatchObject({ code: "NOT_FOUND" })
+  })
+
+  it("returns null for optional outputs missing from R2", async () => {
+    pendingJobRow = doneJob
+    const bucket = {
+      head: vi.fn(async (key: string) => {
+        if (key.endsWith("output.html")) return null
+        return { size: 1 }
+      }),
+    }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { ...R2_ENV, BUCKET_PDFS: bucket as any }),
+    })
+
+    const out = await client.translate.document.preview({ jobId: "job-done" })
+
+    expect(out.htmlUrl).toBeNull()
+    expect(out.mdUrl).toContain("output.md")
+    expect(bucket.head).toHaveBeenCalledWith("pdfs/u-free/job-done/output.html")
+    expect(bucket.head).toHaveBeenCalledWith("pdfs/u-free/job-done/output.md")
   })
 })
 
@@ -413,5 +461,83 @@ describe("translate.document.retranslate", () => {
       sourceLang: "en",
       targetLang: "zh-CN",
     })).rejects.toMatchObject({ code: "CONFLICT" })
+  })
+
+  it("rejects NOT_FOUND when source PDF has expired before inserting or consuming quota", async () => {
+    pendingJobRow = doneJob
+    pendingActiveJobs = []
+    const bucket = { head: vi.fn(async () => null) }
+    const translateQuota = await import("../translate/quota")
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { BUCKET_PDFS: bucket as any }),
+    })
+
+    await expect(client.translate.document.retranslate({
+      jobId: "job-done",
+      modelId: "google",
+      sourceLang: "en",
+      targetLang: "zh-CN",
+    })).rejects.toMatchObject({ code: "NOT_FOUND" })
+
+    expect(insertedJobs).toHaveLength(0)
+    expect(translateQuota.consumeTranslateQuota).not.toHaveBeenCalled()
+    expect(bucket.head).toHaveBeenCalledWith(doneJob.sourceKey)
+  })
+
+  it("rolls back the inserted job row when quota consumption fails", async () => {
+    pendingJobRow = doneJob
+    pendingActiveJobs = []
+    const translateQuota = await import("../translate/quota")
+    ;(translateQuota.consumeTranslateQuota as any).mockRejectedValueOnce(new ORPCError("QUOTA_EXCEEDED"))
+    const client = createRouterClient(router, { context: ctx(freeSession) })
+
+    await expect(client.translate.document.retranslate({
+      jobId: "job-done",
+      modelId: "google",
+      sourceLang: "en",
+      targetLang: "zh-CN",
+    })).rejects.toMatchObject({ code: "QUOTA_EXCEEDED" })
+
+    expect(insertedJobs).toHaveLength(0)
+    expect(deletedIds).toHaveLength(1)
+  })
+
+  it("rolls back the inserted job row and refunds quota when enqueue fails", async () => {
+    pendingJobRow = doneJob
+    pendingActiveJobs = []
+    const translateQuota = await import("../translate/quota")
+    ;(translateQuota.consumeTranslateQuota as any).mockImplementationOnce(
+      async (_db: unknown, userId: string, bucket: string, amount: number, requestId: string) => {
+        usageLogRows.push({
+          id: "usage-original",
+          userId,
+          bucket,
+          amount,
+          requestId,
+          createdAt: new Date(),
+        })
+      },
+    )
+    const queue = { send: vi.fn(async () => { throw new Error("queue unavailable") }) }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { TRANSLATE_QUEUE: queue as any }),
+    })
+
+    await expect(client.translate.document.retranslate({
+      jobId: "job-done",
+      modelId: "google",
+      sourceLang: "en",
+      targetLang: "zh-CN",
+    })).rejects.toThrow("queue unavailable")
+
+    expect(insertedJobs).toHaveLength(0)
+    expect(deletedIds).toHaveLength(1)
+    expect(usageLogRows).toContainEqual(expect.objectContaining({
+      userId: "u-free",
+      bucket: "web_pdf_translate_monthly",
+      amount: -doneJob.sourcePages,
+      requestId: `refund:${deletedIds[0]}`,
+    }))
+    expect(updatedQuotaPeriods).toHaveLength(1)
   })
 })
