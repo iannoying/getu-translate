@@ -37,6 +37,16 @@ cd apps/api && pnpm smoke:prod
 
 Expected: all checks pass, including `documentDownloadUrl` (which exercises presigned GET signing).
 
+Also verify browser upload CORS is still present on the bucket:
+
+```bash
+cd apps/api
+pnpm exec wrangler r2 bucket cors list getu-pdfs
+```
+
+Expected: the output includes the `r2-cors.json` rule allowing `PUT` from
+`https://getutranslate.com`.
+
 ## Rollback
 
 If the rotation breaks signing:
