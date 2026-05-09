@@ -28,6 +28,7 @@ import {
   type TranslatePlan,
 } from "./translate-state"
 import { runColumnTranslations, type ColumnTask } from "./translate-orchestrator"
+import { runTranslateColumn } from "./browser-free-providers"
 
 /**
  * Client-side i18n shape mirrors `Messages["translate"]` exactly. We avoid
@@ -242,7 +243,7 @@ export function TranslateClient({
     const tasks: ColumnTask[] = modelsToFire.map((modelId) => ({
       modelId,
       run: (signal: AbortSignal) =>
-        orpcClient.translate.translate(
+        runTranslateColumn(
           {
             text: trimmed,
             sourceLang: source,
@@ -251,15 +252,13 @@ export function TranslateClient({
             columnId: `col-${modelId}`,
             clickId,
           },
-          { signal },
+          {
+            signal,
+            serverTranslate: (input, opts) =>
+              orpcClient.translate.translate(input, opts),
+          },
         ),
     }))
-
-    const columnResults = await runColumnTranslations(tasks, ac.signal)
-
-    // If the component unmounted or a new translate was fired while we were
-    // in-flight, ac.signal is now aborted — skip all state updates.
-    if (ac.signal.aborted) return
 
     // Track per-column outcomes locally so we can save the complete row to
     // history at the end. We can't read the final React state synchronously
@@ -267,7 +266,8 @@ export function TranslateClient({
     // is the source of truth for the saveHistory payload.
     const localResults: Record<string, { text: string } | { error: string }> = {}
 
-    for (const result of columnResults) {
+    const columnResults = await runColumnTranslations(tasks, ac.signal, (result) => {
+      if (ac.signal.aborted) return
       if ("text" in result) {
         localResults[result.modelId] = { text: result.text }
         setResults(prev => ({ ...prev, [result.modelId]: { status: "done", text: result.text } }))
@@ -291,7 +291,11 @@ export function TranslateClient({
           openUpgradeModal("free_quota_exceeded")
         }
       }
-    }
+    })
+
+    // If the component unmounted or a new translate was fired while we were
+    // in-flight, ac.signal is now aborted — skip all state updates.
+    if (ac.signal.aborted) return
 
     // Refresh entitlements if at least one column succeeded — the server only
     // consumed quota in that case (M6.3 atomic behavior). On full failure we

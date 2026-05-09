@@ -53,6 +53,27 @@ describe("runColumnTranslations", () => {
     expect("error" in failed && failed.error.code).toBe("UNKNOWN")
   })
 
+  it("reports each column as soon as it settles", async () => {
+    let releaseSlow!: () => void
+    const slow = new Promise<{ text: string }>((resolve) => {
+      releaseSlow = () => resolve({ text: "slow" })
+    })
+    const seen: string[] = []
+    const tasks = [
+      { modelId: "google", run: async () => ({ text: "fast" }) },
+      { modelId: "microsoft", run: async () => slow },
+    ]
+    const ac = new AbortController()
+
+    const all = runColumnTranslations(tasks, ac.signal, result => seen.push(result.modelId))
+    await Promise.resolve()
+
+    expect(seen).toEqual(["google"])
+    releaseSlow()
+    await expect(all).resolves.toHaveLength(2)
+    expect(seen).toEqual(["google", "microsoft"])
+  })
+
   it("captures synchronously-thrown errors as UNKNOWN", async () => {
     const tasks = [
       {
