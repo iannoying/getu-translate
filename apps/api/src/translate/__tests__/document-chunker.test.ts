@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { chunkParagraphs } from "../document-chunker"
 
 describe("chunkParagraphs", () => {
-  it("merges short paragraphs up to ~1500 chars", () => {
+  it("merges short paragraphs up to ~3500 chars", () => {
     const text = "Para1.\n\nPara2.\n\nPara3.\n\n" + "x".repeat(200)
     const chunks = chunkParagraphs([{ pageNumber: 1, text }])
     expect(chunks.length).toBe(1)
@@ -13,11 +13,12 @@ describe("chunkParagraphs", () => {
   })
 
   it("splits a long paragraph at sentence boundary", () => {
-    const sent = "This is a sentence. ".repeat(100) // ~2000 chars
+    const sent = "This is a sentence. ".repeat(250) // ~5000 chars
     const chunks = chunkParagraphs([{ pageNumber: 1, text: sent }])
     expect(chunks.length).toBeGreaterThan(1)
     for (const c of chunks) {
-      expect(c.text.length).toBeLessThanOrEqual(1500)
+      expect(c.text.length).toBeLessThanOrEqual(3500)
+      expect(new URLSearchParams({ q: c.text }).toString().length).toBeLessThanOrEqual(12_000)
       // Each chunk should END on a sentence boundary
       expect(c.text.trim()).toMatch(/[.!?]$/)
     }
@@ -41,17 +42,18 @@ describe("chunkParagraphs", () => {
     expect(chunks.length).toBe(0)
   })
 
-  it("handles single very long unpunctuated line by hard-splitting at 1500 chars", () => {
-    const longLine = "x".repeat(3500)
+  it("handles single very long unpunctuated line by hard-splitting at 3500 chars", () => {
+    const longLine = "x".repeat(8000)
     const chunks = chunkParagraphs([{ pageNumber: 1, text: longLine }])
     expect(chunks.length).toBeGreaterThanOrEqual(2)
-    expect(chunks.every((c) => c.text.length <= 1500)).toBe(true)
+    expect(chunks.every((c) => c.text.length <= 3500)).toBe(true)
   })
 
   it("assigns sequential indices starting at 0", () => {
-    const text = "Sentence. ".repeat(200) // forces multiple chunks
+    const text = "Sentence. ".repeat(400) // forces multiple chunks
     const chunks = chunkParagraphs([{ pageNumber: 1, text }])
     expect(chunks[0].index).toBe(0)
+    expect(chunks.length).toBeGreaterThan(1)
     expect(chunks[chunks.length - 1].index).toBe(chunks.length - 1)
   })
 
@@ -60,13 +62,27 @@ describe("chunkParagraphs", () => {
   })
 
   it("splits oversized Chinese paragraph at Chinese sentence boundary", () => {
-    const sent = "这是一句话。".repeat(300) // ~1800 chars, all Chinese
+    const sent = "这是一句话。".repeat(700) // ~4200 chars, all Chinese
     const chunks = chunkParagraphs([{ pageNumber: 1, text: sent }])
     expect(chunks.length).toBeGreaterThan(1)
     for (const c of chunks) {
-      expect(c.text.length).toBeLessThanOrEqual(1500)
+      expect(c.text.length).toBeLessThanOrEqual(3500)
+      expect(new URLSearchParams({ q: c.text }).toString().length).toBeLessThanOrEqual(12_000)
       // Each chunk must end on a Chinese OR English sentence boundary
       expect(c.text.trim()).toMatch(/[.!?。！？]$/)
     }
+  })
+
+  it("splits non-ASCII text before Google GET query encoding gets too large", () => {
+    const text = "这是一个很长的中文段落，包含需要百分号编码的字符。".repeat(500)
+    const chunks = chunkParagraphs([{ pageNumber: 1, text }])
+    expect(chunks.length).toBeGreaterThan(1)
+    expect(chunks.every((c) => new URLSearchParams({ q: c.text }).toString().length <= 12_000)).toBe(true)
+  })
+
+  it("preserves an unpunctuated tail after punctuated sentences", () => {
+    const text = `First sentence. ${"tail".repeat(1000)}`
+    const chunks = chunkParagraphs([{ pageNumber: 1, text }])
+    expect(chunks.map((c) => c.text).join("")).toBe(text)
   })
 })

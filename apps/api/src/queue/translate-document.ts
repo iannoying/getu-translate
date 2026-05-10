@@ -17,12 +17,15 @@ const FAILURE_MSG_GENERIC = "翻译失败，请重试"
 const FAILURE_MSG_OUTPUT = "结果保存失败，请重试或联系客服"
 const FAILURE_MSG_LLM_5XX = "翻译模型暂时不可用，请稍后重试"
 const FAILURE_MSG_LLM_429 = "当前翻译压力较大，请稍后重试"
+const FAILURE_MSG_DOCUMENT_TOO_LONG = "文档文本过长，请拆分 PDF 后重试"
+const MAX_TRANSLATION_CHUNKS_PER_JOB = 40
 
 export const ERROR_CODES = {
   SCANNED_PDF: "scanned_pdf",
   TRANSIENT_LLM: "transient_llm",
   R2_TIMEOUT: "r2_timeout",
   OUTPUT_WRITE: "output_write",
+  DOCUMENT_TOO_LONG: "document_too_long",
   GENERIC: "generic",
 } as const
 
@@ -157,6 +160,11 @@ async function processOne(
 
     // 7. Chunk paragraphs
     const chunks = chunkParagraphs(extracted.pages)
+    if (chunks.length > MAX_TRANSLATION_CHUNKS_PER_JOB) {
+      await fail(db, job, FAILURE_MSG_DOCUMENT_TOO_LONG, ERROR_CODES.DOCUMENT_TOO_LONG)
+      await refundQuota(db, job, opts.env, ctx)
+      return
+    }
 
     // 8. Progress writer — updates the D1 progress column at each milestone
     const writeProgress = async (p: {
