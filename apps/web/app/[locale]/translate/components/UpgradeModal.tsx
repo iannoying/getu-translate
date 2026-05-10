@@ -32,7 +32,7 @@ const PERK_ROWS: Array<{ key: keyof UpgradeModalLabels["perks"]; free: string; p
   { key: "rowRequests", free: "100 / mo",  pro: "2M tokens / mo" },
   { key: "rowModels",   free: "2",          pro: "11" },
   { key: "rowChars",    free: "2,000",      pro: "20,000" },
-  { key: "rowPdf",      free: "10 pages",   pro: "500 pages" },
+  { key: "rowPdf",      free: "1000 pages", pro: "1000 pages" },
   { key: "rowHistory",  free: "30 days",    pro: "Permanent" },
 ]
 
