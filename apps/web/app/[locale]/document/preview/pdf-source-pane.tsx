@@ -16,12 +16,14 @@ export type PdfOutlineItem = {
 export function PdfSourcePane({
   url,
   pageCount,
+  scrollPage,
   zoom,
   onPageChange,
   onOutline,
 }: {
   url: string
   pageCount: number
+  scrollPage: number | null
   zoom: number
   onPageChange: (page: number) => void
   onOutline: (items: PdfOutlineItem[]) => void
@@ -167,6 +169,15 @@ export function PdfSourcePane({
       observer.disconnect()
     }
   }, [pageCount, onPageChange])
+
+  useEffect(() => {
+    if (!scrollPage) return
+    const host = pagesRef.current
+    const page = host?.querySelector(`[data-page="${scrollPage}"]`)
+    if (page instanceof HTMLElement) {
+      page.scrollIntoView({ block: "start", behavior: "smooth" })
+    }
+  }, [scrollPage])
 
   return (
     <div className="pdf-source-pane" ref={containerRef} aria-label="Source PDF">
