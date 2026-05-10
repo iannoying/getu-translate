@@ -39,6 +39,7 @@ coverage/
 .claude/scheduled_tasks.lock
 .omc/
 .codex
+.superpowers/
 tsconfig.local.json
 
 /repos

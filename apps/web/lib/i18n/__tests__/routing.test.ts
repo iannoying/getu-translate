@@ -8,6 +8,16 @@ describe("web i18n routing", () => {
     expect(localeHref("zh-TW", "privacy")).toBe("/zh-TW/privacy/")
   })
 
+  it("keeps search params and hashes outside the trailing slash", () => {
+    expect(localeHref("en", "/document/preview?jobId=job_123")).toBe(
+      "/en/document/preview/?jobId=job_123",
+    )
+    expect(localeHref("zh-CN", "/log-in?redirect=%2Fen%2Fdocument%2F")).toBe(
+      "/zh-CN/log-in/?redirect=%2Fen%2Fdocument%2F",
+    )
+    expect(localeHref("zh-TW", "/document/preview#done")).toBe("/zh-TW/document/preview/#done")
+  })
+
   it("switches locale while preserving known pages", () => {
     expect(switchLocalePath("/en/price/", "zh-CN")).toBe("/zh-CN/price/")
     expect(switchLocalePath("/zh-CN/log-in/", "en")).toBe("/en/log-in/")

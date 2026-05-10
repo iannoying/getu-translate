@@ -31,6 +31,23 @@ function trimSlashes(path: string): string {
   return path.replace(/^\/+|\/+$/g, "")
 }
 
+function splitPathSuffix(path: string): { pathname: string; suffix: string } {
+  const queryIndex = path.indexOf("?")
+  const hashIndex = path.indexOf("#")
+  const suffixIndex = [queryIndex, hashIndex]
+    .filter(index => index >= 0)
+    .sort((a, b) => a - b)[0]
+
+  if (suffixIndex == null) {
+    return { pathname: path, suffix: "" }
+  }
+
+  return {
+    pathname: path.slice(0, suffixIndex),
+    suffix: path.slice(suffixIndex),
+  }
+}
+
 function withoutLocale(path: string): string {
   const trimmed = trimSlashes(path)
   const parts = trimmed.split("/").filter(Boolean)
@@ -43,8 +60,9 @@ function withoutLocale(path: string): string {
 }
 
 export function localeHref(locale: Locale, path: string): string {
-  const inner = trimSlashes(path)
-  return inner.length === 0 ? `/${locale}/` : `/${locale}/${inner}/`
+  const { pathname, suffix } = splitPathSuffix(path)
+  const inner = trimSlashes(pathname)
+  return inner.length === 0 ? `/${locale}/${suffix}` : `/${locale}/${inner}/${suffix}`
 }
 
 export function switchLocalePath(currentPath: string, targetLocale: Locale): string {

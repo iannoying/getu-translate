@@ -33,17 +33,47 @@ let pendingActiveJobs: { id: string }[] = []
 let insertedJobs: Record<string, unknown>[] = []
 let usageLogRows: Record<string, unknown>[] = []
 let deletedIds: string[] = []
+let updatedQuotaPeriods: Record<string, unknown>[] = []
+let updatedQuotaWhereArgs: unknown[][] = []
+let batchQueryKinds: string[][] = []
+
+function tableName(table: unknown): string {
+  const direct = (table as any)?._?.name ?? (table as any)?.[Symbol.for("drizzle:Name")]
+  if (direct) return direct
+  const symbol = Object.getOwnPropertySymbols(table as object)
+    .find(sym => sym.description === "drizzle:Name")
+  return symbol ? String((table as any)[symbol]) : ""
+}
+
+function containsValue(obj: unknown, needle: string, visited = new Set<object>()): boolean {
+  if (obj === needle) return true
+  if (obj === null || typeof obj !== "object") return false
+  if (visited.has(obj)) return false
+  visited.add(obj)
+  return Object.values(obj as Record<string, unknown>).some(value => containsValue(value, needle, visited))
+}
 
 const fakeDb = {
-  insert: vi.fn(() => ({
+  insert: vi.fn((table?: unknown) => ({
     values: vi.fn(async (row: Record<string, unknown>) => {
-      insertedJobs.push(row)
+      if (tableName(table) === "usage_log") {
+        usageLogRows.push(row)
+      } else {
+        insertedJobs.push(row)
+      }
     }),
   })),
   select: vi.fn((..._cols: unknown[]) => ({
-    from: vi.fn(() => ({
+    from: vi.fn((table?: unknown) => ({
       where: vi.fn((..._args: unknown[]) => ({
-        get: async () => pendingJobRow ?? undefined,
+        get: async () => {
+          if (tableName(table) === "usage_log") {
+            return usageLogRows.find(row => (
+              typeof row.requestId === "string" && containsValue(_args, row.requestId)
+            )) ?? undefined
+          }
+          return pendingJobRow ?? undefined
+        },
         limit: vi.fn(() => ({
           all: async () => pendingActiveJobs,
         })),
@@ -55,10 +85,37 @@ const fakeDb = {
     })),
   })),
   delete: vi.fn(() => ({
-    where: vi.fn((_arg: unknown) => ({
-      run: async () => undefined,
+    where: vi.fn((...args: unknown[]) => {
+      const runDelete = async () => {
+        const ids = insertedJobs
+          .map(job => job.id)
+          .filter((id): id is string => typeof id === "string" && containsValue(args, id))
+        deletedIds.push(...ids)
+        insertedJobs = insertedJobs.filter(job => typeof job.id !== "string" || !containsValue(args, job.id))
+      }
+      return { kind: "delete", run: runDelete }
+    }),
+  })),
+  update: vi.fn(() => ({
+    set: vi.fn((values: Record<string, unknown>) => ({
+      where: vi.fn(async (...args: unknown[]) => {
+        updatedQuotaPeriods.push(values)
+        updatedQuotaWhereArgs.push(args)
+      }),
     })),
   })),
+  batch: vi.fn(async (queries: Array<Promise<unknown> | { kind?: string; run?: () => Promise<unknown> }>) => {
+    batchQueryKinds.push(queries.map(query => (
+      query && typeof query === "object" && "kind" in query && typeof query.kind === "string"
+        ? query.kind
+        : "promise"
+    )))
+    await Promise.all(queries.map(query => (
+      query && typeof query === "object" && "run" in query && typeof query.run === "function"
+        ? query.run()
+        : query
+    )))
+  }),
 }
 
 function ctx(session: Ctx["session"], envOverrides: Partial<Ctx["env"]> = {}): Ctx {
@@ -95,6 +152,8 @@ const doneJob = {
   engine: "simple",
   errorMessage: null,
   progress: null,
+  createdAt: new Date("2026-05-09T00:00:00.000Z"),
+  expiresAt: new Date("2026-06-08T00:00:00.000Z"),
 }
 
 const failedJob = {
@@ -112,6 +171,10 @@ beforeEach(() => {
   insertedJobs = []
   usageLogRows = []
   deletedIds = []
+  updatedQuotaPeriods = []
+  updatedQuotaWhereArgs = []
+  batchQueryKinds = []
+  fakeDb.batch.mockClear()
 })
 
 // ---- documentDownloadUrl ----
@@ -204,6 +267,124 @@ describe("translate.document.downloadUrl", () => {
   })
 })
 
+describe("translate.document.preview", () => {
+  it("returns signed source, segments, html, and md URLs for a done job", async () => {
+    pendingJobRow = doneJob
+    const bucket = { head: vi.fn(async () => ({ size: 1 })) }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { ...R2_ENV, BUCKET_PDFS: bucket as any }),
+    })
+    const out = await client.translate.document.preview({ jobId: "job-done" })
+    expect(out.job).toMatchObject({
+      id: "job-done",
+      sourceFilename: "test.pdf",
+      sourcePages: 5,
+      modelId: "google",
+      sourceLang: "en",
+      targetLang: "zh-CN",
+      status: "done",
+      engine: "simple",
+    })
+    expect(out.sourcePdfUrl).toContain("source.pdf")
+    expect(out.segmentsJsonUrl).toContain("segments.json")
+    expect(out.htmlUrl).toContain("output.html")
+    expect(out.mdUrl).toContain("output.md")
+    expect(out.sourcePdfUrl).toContain("X-Amz-Signature")
+    expect(bucket.head).toHaveBeenCalledWith("pdfs/u-free/job-done/source.pdf")
+    expect(bucket.head).toHaveBeenCalledWith("pdfs/u-free/job-done/segments.json")
+  })
+
+  it("rejects BAD_REQUEST when preview job is not done", async () => {
+    pendingJobRow = { ...doneJob, status: "processing" }
+    const client = createRouterClient(router, { context: ctx(freeSession, R2_ENV) })
+    await expect(client.translate.document.preview({ jobId: "job-done" }))
+      .rejects.toMatchObject({ code: "BAD_REQUEST" })
+  })
+
+  it("rejects NOT_FOUND when source or segments asset is missing", async () => {
+    pendingJobRow = doneJob
+    const bucket = { head: vi.fn(async (key: string) => key.endsWith("source.pdf") ? { size: 1 } : null) }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { ...R2_ENV, BUCKET_PDFS: bucket as any }),
+    })
+    await expect(client.translate.document.preview({ jobId: "job-done" }))
+      .rejects.toMatchObject({ code: "NOT_FOUND" })
+  })
+
+  it("returns null for optional outputs missing from R2", async () => {
+    pendingJobRow = doneJob
+    const bucket = {
+      head: vi.fn(async (key: string) => {
+        if (key.endsWith("output.html")) return null
+        return { size: 1 }
+      }),
+    }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { ...R2_ENV, BUCKET_PDFS: bucket as any }),
+    })
+
+    const out = await client.translate.document.preview({ jobId: "job-done" })
+
+    expect(out.htmlUrl).toBeNull()
+    expect(out.mdUrl).toContain("output.md")
+    expect(bucket.head).toHaveBeenCalledWith("pdfs/u-free/job-done/output.html")
+    expect(bucket.head).toHaveBeenCalledWith("pdfs/u-free/job-done/output.md")
+  })
+})
+
+describe("translate.document.create enqueue rollback", () => {
+  it("rolls back the inserted job row and refunds quota when enqueue fails", async () => {
+    pendingActiveJobs = []
+    const translateQuota = await import("../translate/quota")
+    ;(translateQuota.consumeTranslateQuota as any).mockImplementationOnce(
+      async (_db: unknown, userId: string, bucket: string, amount: number, requestId: string) => {
+        usageLogRows.push({
+          id: "usage-unrelated",
+          userId,
+          bucket,
+          amount: 99,
+          requestId: "web-pdf:u-free:unrelated-job",
+          createdAt: new Date("2026-05-09T00:00:00.000Z"),
+        })
+        usageLogRows.push({
+          id: "usage-original",
+          userId,
+          bucket,
+          amount,
+          requestId,
+          createdAt: new Date("2026-04-30T23:59:59.000Z"),
+        })
+      },
+    )
+    const queue = { send: vi.fn(async () => { throw new Error("queue unavailable") }) }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { TRANSLATE_QUEUE: queue as any }),
+    })
+
+    await expect(client.translate.document.create({
+      sourceKey: "pdfs/u-free/create-source/source.pdf",
+      sourcePages: 4,
+      sourceBytes: 100_000,
+      modelId: "google",
+      sourceLang: "en",
+      targetLang: "zh-CN",
+    })).rejects.toThrow("queue unavailable")
+
+    expect(insertedJobs).toHaveLength(0)
+    expect(deletedIds).toHaveLength(1)
+    expect(usageLogRows).toContainEqual(expect.objectContaining({
+      userId: "u-free",
+      bucket: "web_pdf_translate_monthly",
+      amount: -4,
+      requestId: `refund:${deletedIds[0]}`,
+    }))
+    expect(fakeDb.batch).toHaveBeenCalledTimes(1)
+    expect(batchQueryKinds[0]).toContain("delete")
+    expect(updatedQuotaPeriods).toHaveLength(1)
+    expect(containsValue(updatedQuotaWhereArgs, "2026-04")).toBe(true)
+  })
+})
+
 // ---- documentRetry ----
 
 describe("translate.document.retry", () => {
@@ -274,6 +455,52 @@ describe("translate.document.retry", () => {
     expect(queue.send).toHaveBeenCalledWith({ jobId: out.jobId })
   })
 
+  it("rolls back the inserted job row and refunds quota when enqueue fails", async () => {
+    pendingJobRow = failedJob
+    pendingActiveJobs = []
+    const translateQuota = await import("../translate/quota")
+    ;(translateQuota.consumeTranslateQuota as any).mockImplementationOnce(
+      async (_db: unknown, userId: string, bucket: string, amount: number, requestId: string) => {
+        usageLogRows.push({
+          id: "usage-unrelated",
+          userId,
+          bucket,
+          amount: 99,
+          requestId: "web-pdf:u-free:unrelated-job",
+          createdAt: new Date("2026-05-09T00:00:00.000Z"),
+        })
+        usageLogRows.push({
+          id: "usage-original",
+          userId,
+          bucket,
+          amount,
+          requestId,
+          createdAt: new Date("2026-04-30T23:59:59.000Z"),
+        })
+      },
+    )
+    const queue = { send: vi.fn(async () => { throw new Error("queue unavailable") }) }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { TRANSLATE_QUEUE: queue as any }),
+    })
+
+    await expect(client.translate.document.retry({ jobId: "job-failed" }))
+      .rejects.toThrow("queue unavailable")
+
+    expect(insertedJobs).toHaveLength(0)
+    expect(deletedIds).toHaveLength(1)
+    expect(usageLogRows).toContainEqual(expect.objectContaining({
+      userId: "u-free",
+      bucket: "web_pdf_translate_monthly",
+      amount: -failedJob.sourcePages,
+      requestId: `refund:${deletedIds[0]}`,
+    }))
+    expect(fakeDb.batch).toHaveBeenCalledTimes(1)
+    expect(batchQueryKinds[0]).toContain("delete")
+    expect(updatedQuotaPeriods).toHaveLength(1)
+    expect(containsValue(updatedQuotaWhereArgs, "2026-04")).toBe(true)
+  })
+
   it("consumes quota with new web-pdf:{userId}:{newJobId} requestId", async () => {
     pendingJobRow = failedJob
     pendingActiveJobs = []
@@ -299,5 +526,161 @@ describe("translate.document.retry", () => {
       client.translate.document.retry({ jobId: "job-failed" }),
     ).rejects.toMatchObject({ code: "NOT_FOUND", message: expect.stringContaining("源文件") })
     expect(bucket.head).toHaveBeenCalledWith(failedJob.sourceKey)
+  })
+})
+
+describe("translate.document.retranslate", () => {
+  it("creates a new queued job from a done source job with new settings", async () => {
+    pendingJobRow = doneJob
+    pendingActiveJobs = []
+    const bucket = { head: vi.fn(async () => ({ size: 1 })) }
+    const queue = { send: vi.fn(async () => undefined) }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { BUCKET_PDFS: bucket as any, TRANSLATE_QUEUE: queue as any }),
+    })
+
+    const out = await client.translate.document.retranslate({
+      jobId: "job-done",
+      modelId: "microsoft",
+      sourceLang: "en",
+      targetLang: "zh-TW",
+    })
+
+    expect(out.jobId).toBeTruthy()
+    expect(out.jobId).not.toBe("job-done")
+    expect(insertedJobs[0]).toMatchObject({
+      userId: "u-free",
+      sourceKey: doneJob.sourceKey,
+      sourcePages: doneJob.sourcePages,
+      sourceFilename: doneJob.sourceFilename,
+      sourceBytes: doneJob.sourceBytes,
+      modelId: "microsoft",
+      sourceLang: "en",
+      targetLang: "zh-TW",
+      status: "queued",
+      engine: "simple",
+    })
+    expect(queue.send).toHaveBeenCalledWith({ jobId: out.jobId })
+    expect(bucket.head).toHaveBeenCalledWith(doneJob.sourceKey)
+  })
+
+  it("consumes quota for retranslation using the new job id", async () => {
+    pendingJobRow = doneJob
+    pendingActiveJobs = []
+    const translateQuota = await import("../translate/quota")
+    const client = createRouterClient(router, { context: ctx(freeSession) })
+    const out = await client.translate.document.retranslate({
+      jobId: "job-done",
+      modelId: "google",
+      sourceLang: "en",
+      targetLang: "zh-CN",
+    })
+    const [, calledUserId, calledBucket, calledPages, calledRequestId] =
+      (translateQuota.consumeTranslateQuota as any).mock.calls[0]
+    expect(calledUserId).toBe("u-free")
+    expect(calledBucket).toBe("web_pdf_translate_monthly")
+    expect(calledPages).toBe(doneJob.sourcePages)
+    expect(calledRequestId).toBe(`web-pdf:u-free:${out.jobId}`)
+  })
+
+  it("rejects CONFLICT when another PDF job is active", async () => {
+    pendingJobRow = doneJob
+    pendingActiveJobs = [{ id: "active-job" }]
+    const client = createRouterClient(router, { context: ctx(freeSession) })
+    await expect(client.translate.document.retranslate({
+      jobId: "job-done",
+      modelId: "google",
+      sourceLang: "en",
+      targetLang: "zh-CN",
+    })).rejects.toMatchObject({ code: "CONFLICT" })
+  })
+
+  it("rejects NOT_FOUND when source PDF has expired before inserting or consuming quota", async () => {
+    pendingJobRow = doneJob
+    pendingActiveJobs = []
+    const bucket = { head: vi.fn(async () => null) }
+    const translateQuota = await import("../translate/quota")
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { BUCKET_PDFS: bucket as any }),
+    })
+
+    await expect(client.translate.document.retranslate({
+      jobId: "job-done",
+      modelId: "google",
+      sourceLang: "en",
+      targetLang: "zh-CN",
+    })).rejects.toMatchObject({ code: "NOT_FOUND" })
+
+    expect(insertedJobs).toHaveLength(0)
+    expect(translateQuota.consumeTranslateQuota).not.toHaveBeenCalled()
+    expect(bucket.head).toHaveBeenCalledWith(doneJob.sourceKey)
+  })
+
+  it("rolls back the inserted job row when quota consumption fails", async () => {
+    pendingJobRow = doneJob
+    pendingActiveJobs = []
+    const translateQuota = await import("../translate/quota")
+    ;(translateQuota.consumeTranslateQuota as any).mockRejectedValueOnce(new ORPCError("QUOTA_EXCEEDED"))
+    const client = createRouterClient(router, { context: ctx(freeSession) })
+
+    await expect(client.translate.document.retranslate({
+      jobId: "job-done",
+      modelId: "google",
+      sourceLang: "en",
+      targetLang: "zh-CN",
+    })).rejects.toMatchObject({ code: "QUOTA_EXCEEDED" })
+
+    expect(insertedJobs).toHaveLength(0)
+    expect(deletedIds).toHaveLength(1)
+  })
+
+  it("rolls back the inserted job row and refunds quota when enqueue fails", async () => {
+    pendingJobRow = doneJob
+    pendingActiveJobs = []
+    const translateQuota = await import("../translate/quota")
+    ;(translateQuota.consumeTranslateQuota as any).mockImplementationOnce(
+      async (_db: unknown, userId: string, bucket: string, amount: number, requestId: string) => {
+        usageLogRows.push({
+          id: "usage-unrelated",
+          userId,
+          bucket,
+          amount: 99,
+          requestId: "web-pdf:u-free:unrelated-job",
+          createdAt: new Date("2026-05-09T00:00:00.000Z"),
+        })
+        usageLogRows.push({
+          id: "usage-original",
+          userId,
+          bucket,
+          amount,
+          requestId,
+          createdAt: new Date("2026-04-30T23:59:59.000Z"),
+        })
+      },
+    )
+    const queue = { send: vi.fn(async () => { throw new Error("queue unavailable") }) }
+    const client = createRouterClient(router, {
+      context: ctx(freeSession, { TRANSLATE_QUEUE: queue as any }),
+    })
+
+    await expect(client.translate.document.retranslate({
+      jobId: "job-done",
+      modelId: "google",
+      sourceLang: "en",
+      targetLang: "zh-CN",
+    })).rejects.toThrow("queue unavailable")
+
+    expect(insertedJobs).toHaveLength(0)
+    expect(deletedIds).toHaveLength(1)
+    expect(usageLogRows).toContainEqual(expect.objectContaining({
+      userId: "u-free",
+      bucket: "web_pdf_translate_monthly",
+      amount: -doneJob.sourcePages,
+      requestId: `refund:${deletedIds[0]}`,
+    }))
+    expect(fakeDb.batch).toHaveBeenCalledTimes(1)
+    expect(batchQueryKinds[0]).toContain("delete")
+    expect(updatedQuotaPeriods).toHaveLength(1)
+    expect(containsValue(updatedQuotaWhereArgs, "2026-04")).toBe(true)
   })
 })

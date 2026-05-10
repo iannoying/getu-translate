@@ -197,6 +197,28 @@ export type Messages = {
         statusProcessing: string
         statusQueued: string
       }
+      reader: {
+        serviceLabel: string
+        sourceLanguageLabel: string
+        targetLanguageLabel: string
+        retranslateButton: string
+        retranslatingButton: string
+        openNewFile: string
+        download: string
+        standardMode: string
+        layoutModeComingSoon: string
+        previousPage: string
+        nextPage: string
+        pageTemplate: string
+        fitWidth: string
+        zoomIn: string
+        zoomOut: string
+        showSidebar: string
+        hideSidebar: string
+        searchDisabled: string
+        translatedPageTemplate: string
+        emptyPage: string
+      }
     }
   }
 }
@@ -689,6 +711,28 @@ export const messages: Record<Locale, Messages> = {
           statusProcessing: "Processing",
           statusQueued: "Queued",
         },
+        reader: {
+          serviceLabel: "Translation service",
+          sourceLanguageLabel: "Source language",
+          targetLanguageLabel: "Target language",
+          retranslateButton: "Retranslate",
+          retranslatingButton: "Retranslating...",
+          openNewFile: "Open new file",
+          download: "Download",
+          standardMode: "Standard Mode",
+          layoutModeComingSoon: "Layout Mode coming soon",
+          previousPage: "Previous page",
+          nextPage: "Next page",
+          pageTemplate: "{page} / {total}",
+          fitWidth: "Fit width",
+          zoomIn: "Zoom in",
+          zoomOut: "Zoom out",
+          showSidebar: "Show sidebar",
+          hideSidebar: "Hide sidebar",
+          searchDisabled: "Search unavailable in Standard Mode",
+          translatedPageTemplate: "Translated page {page}",
+          emptyPage: "No translated text detected on this page.",
+        },
       },
     },
   },
@@ -1177,6 +1221,28 @@ export const messages: Record<Locale, Messages> = {
           statusProcessing: "翻译中",
           statusQueued: "排队中",
         },
+        reader: {
+          serviceLabel: "翻译服务",
+          sourceLanguageLabel: "源语言",
+          targetLanguageLabel: "目标语言",
+          retranslateButton: "重新翻译",
+          retranslatingButton: "重新翻译中...",
+          openNewFile: "打开新文件",
+          download: "下载",
+          standardMode: "标准模式",
+          layoutModeComingSoon: "版式模式即将推出",
+          previousPage: "上一页",
+          nextPage: "下一页",
+          pageTemplate: "{page} / {total}",
+          fitWidth: "适合页宽",
+          zoomIn: "放大",
+          zoomOut: "缩小",
+          showSidebar: "显示侧边栏",
+          hideSidebar: "隐藏侧边栏",
+          searchDisabled: "标准模式暂不支持搜索",
+          translatedPageTemplate: "译文第 {page} 页",
+          emptyPage: "这一页没有检测到可翻译文本。",
+        },
       },
     },
   },
@@ -1664,6 +1730,28 @@ export const messages: Record<Locale, Messages> = {
           statusFailed: "失敗",
           statusProcessing: "翻譯中",
           statusQueued: "佇列中",
+        },
+        reader: {
+          serviceLabel: "翻譯服務",
+          sourceLanguageLabel: "來源語言",
+          targetLanguageLabel: "目標語言",
+          retranslateButton: "重新翻譯",
+          retranslatingButton: "重新翻譯中...",
+          openNewFile: "開啟新檔案",
+          download: "下載",
+          standardMode: "標準模式",
+          layoutModeComingSoon: "版式模式即將推出",
+          previousPage: "上一頁",
+          nextPage: "下一頁",
+          pageTemplate: "{page} / {total}",
+          fitWidth: "適合頁寬",
+          zoomIn: "放大",
+          zoomOut: "縮小",
+          showSidebar: "顯示側邊欄",
+          hideSidebar: "隱藏側邊欄",
+          searchDisabled: "標準模式暫不支援搜尋",
+          translatedPageTemplate: "譯文第 {page} 頁",
+          emptyPage: "這一頁沒有偵測到可翻譯文字。",
         },
       },
     },

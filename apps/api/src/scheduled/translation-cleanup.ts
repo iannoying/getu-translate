@@ -1,6 +1,7 @@
 import { lt, isNotNull, and } from "drizzle-orm"
 import type { Db } from "@getu/db"
 import { schema } from "@getu/db"
+import { buildSegmentsKey } from "../translate/document-keys"
 
 export type CleanupResult = {
   textTranslationsDeleted: number
@@ -54,11 +55,13 @@ export async function runTranslationCleanup(
   if (jobs.length > 0) {
     const r2Keys: string[] = []
     for (const job of jobs) {
-      r2Keys.push(job.sourceKey)
-      const segmentsKey = job.sourceKey.replace(/source\.pdf$/, "segments.json")
-      r2Keys.push(segmentsKey)
-      if (job.outputHtmlKey) r2Keys.push(job.outputHtmlKey)
-      if (job.outputMdKey) r2Keys.push(job.outputMdKey)
+      const keys = [
+        job.sourceKey,
+        buildSegmentsKey(job.userId, job.id),
+        job.outputHtmlKey,
+        job.outputMdKey,
+      ].filter((key): key is string => typeof key === "string" && key.length > 0)
+      r2Keys.push(...keys)
     }
 
     if (!opts.dryRun && bucket) {

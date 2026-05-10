@@ -30,20 +30,31 @@ export const TARGET_LANGUAGES: LangOption[] = SOURCE_LANGUAGES.filter(l => l.cod
 export function LangPicker({
   source,
   target,
+  sourceLabel,
+  targetLabel,
+  swapLabel,
   onSourceChange,
   onTargetChange,
   onSwap,
 }: {
   source: string
   target: string
+  sourceLabel?: string
+  targetLabel?: string
+  swapLabel?: string
   onSourceChange: (code: string) => void
   onTargetChange: (code: string) => void
   onSwap: () => void
 }) {
+  const swap = swapLabel ?? "交换源语言和目标语言"
   return (
     <div className="lang-picker">
       <label>
-        <select value={source} onChange={e => onSourceChange(e.target.value)}>
+        <select
+          value={source}
+          aria-label={sourceLabel}
+          onChange={e => onSourceChange(e.target.value)}
+        >
           {SOURCE_LANGUAGES.map(l => (
             <option key={l.code} value={l.code}>{l.label}</option>
           ))}
@@ -55,13 +66,17 @@ export function LangPicker({
         onClick={onSwap}
         // Swap is a no-op when source is "auto" since it has no concrete code to swap into target.
         disabled={source === "auto"}
-        aria-label="交换源语言和目标语言"
-        title="交换源语言和目标语言"
+        aria-label={swap}
+        title={swap}
       >
         ⇄
       </button>
       <label>
-        <select value={target} onChange={e => onTargetChange(e.target.value)}>
+        <select
+          value={target}
+          aria-label={targetLabel}
+          onChange={e => onTargetChange(e.target.value)}
+        >
           {TARGET_LANGUAGES.map(l => (
             <option key={l.code} value={l.code}>{l.label}</option>
           ))}

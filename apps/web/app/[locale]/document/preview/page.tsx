@@ -53,6 +53,7 @@ export default async function DocumentPreviewPage({
           locale={locale}
           messages={t.document.preview}
           shellLabels={t.translate.shell}
+          upgradeLabels={t.translate.upgradeModal}
         />
       </Suspense>
     </SiteShell>

@@ -39,12 +39,19 @@ async function insertTextTranslation(
 
 async function insertJob(
   db: ReturnType<typeof makeTestDb>["db"],
-  opts: { id: string; userId: string; expiresAt: Date; outputHtmlKey?: string; outputMdKey?: string },
+  opts: {
+    id: string
+    userId: string
+    expiresAt: Date
+    sourceKey?: string
+    outputHtmlKey?: string
+    outputMdKey?: string
+  },
 ) {
   await db.insert(schema.translationJobs).values({
     id: opts.id,
     userId: opts.userId,
-    sourceKey: `pdfs/${opts.userId}/${opts.id}/source.pdf`,
+    sourceKey: opts.sourceKey ?? `pdfs/${opts.userId}/${opts.id}/source.pdf`,
     sourcePages: 1,
     modelId: "google",
     sourceLang: "en",
@@ -181,5 +188,28 @@ describe("runTranslationCleanup", () => {
     expect(deletedKeys).toHaveLength(2)
     expect(deletedKeys).toContain("pdfs/u6/job-noout/source.pdf")
     expect(deletedKeys).toContain("pdfs/u6/job-noout/segments.json")
+  })
+
+  it("deletes per-job outputs without assuming they share the source prefix", async () => {
+    const { db } = makeTestDb()
+    await insertUser(db, "u1")
+    await insertJob(db, {
+      id: "job-retranslated",
+      userId: "u1",
+      expiresAt: new Date(EXPIRED_MS),
+      sourceKey: "pdfs/u1/original-job/source.pdf",
+      outputHtmlKey: "pdfs/u1/job-retranslated/output.html",
+      outputMdKey: "pdfs/u1/job-retranslated/output.md",
+    })
+    const r2Delete = vi.fn<(keys: string[]) => Promise<undefined>>(async () => undefined)
+    const bucket = { delete: r2Delete } as unknown as R2Bucket
+
+    await runTranslationCleanup(db as any, bucket, { now: NOW_MS })
+
+    const deletedKeys = r2Delete.mock.calls[0]![0] as unknown as string[]
+    expect(deletedKeys).toContain("pdfs/u1/original-job/source.pdf")
+    expect(deletedKeys).toContain("pdfs/u1/job-retranslated/segments.json")
+    expect(deletedKeys).toContain("pdfs/u1/job-retranslated/output.html")
+    expect(deletedKeys).toContain("pdfs/u1/job-retranslated/output.md")
   })
 })

@@ -26,7 +26,7 @@ vi.mock("../../billing/quota", () => ({
       ai_translate_monthly: 0,
       web_text_translate_monthly: 100,
       web_text_translate_token_monthly: 0,
-      web_pdf_translate_monthly: 10,
+      web_pdf_translate_monthly: 1000,
     },
     pro: {
       input_translate_daily: null,
@@ -35,7 +35,7 @@ vi.mock("../../billing/quota", () => ({
       ai_translate_monthly: 100_000,
       web_text_translate_monthly: null,
       web_text_translate_token_monthly: 2_000_000,
-      web_pdf_translate_monthly: 500,
+      web_pdf_translate_monthly: 1000,
     },
     enterprise: {
       input_translate_daily: null,

@@ -164,7 +164,7 @@ describe("loadEntitlements — quota enrichment (M6.7)", () => {
     const e = await loadEntitlements(makeDb([]), "u1", false)
     expect(e.quota["web_text_translate_monthly"]).toEqual({ used: 0, limit: 100 })
     expect(e.quota["web_text_translate_token_monthly"]).toEqual({ used: 0, limit: 0 })
-    expect(e.quota["web_pdf_translate_monthly"]).toEqual({ used: 0, limit: 10 })
+    expect(e.quota["web_pdf_translate_monthly"]).toEqual({ used: 0, limit: 1000 })
   })
 
   it("free tier: quota used reflects quota_period rows", async () => {
@@ -174,7 +174,7 @@ describe("loadEntitlements — quota enrichment (M6.7)", () => {
     ]
     const e = await loadEntitlements(makeDb([], quotaRows), "u1", false)
     expect(e.quota["web_text_translate_monthly"]).toEqual({ used: 42, limit: 100 })
-    expect(e.quota["web_pdf_translate_monthly"]).toEqual({ used: 3, limit: 10 })
+    expect(e.quota["web_pdf_translate_monthly"]).toEqual({ used: 3, limit: 1000 })
     // token bucket had no row → used = 0
     expect(e.quota["web_text_translate_token_monthly"]).toEqual({ used: 0, limit: 0 })
   })
@@ -192,7 +192,7 @@ describe("loadEntitlements — quota enrichment (M6.7)", () => {
     expect(e.quota["web_text_translate_monthly"]?.limit).toBe(Number.MAX_SAFE_INTEGER)
     // Pro has limit=2_000_000 for token bucket
     expect(e.quota["web_text_translate_token_monthly"]?.limit).toBe(2_000_000)
-    // Pro has limit=500 for PDF
-    expect(e.quota["web_pdf_translate_monthly"]?.limit).toBe(500)
+    // Pro matches the temporary testing limit for PDF.
+    expect(e.quota["web_pdf_translate_monthly"]?.limit).toBe(1000)
   })
 })

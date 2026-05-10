@@ -7,7 +7,8 @@ export type Chunk = {
   endPage: number
 }
 
-const TARGET_MAX = 1500
+const TARGET_MAX = 3500
+const TARGET_MAX_ENCODED_Q = 12_000
 // TARGET_MIN is aspirational only — short total inputs may produce sub-500 chunks
 
 export function chunkParagraphs(pages: PdfPage[]): Chunk[] {
@@ -46,7 +47,7 @@ export function chunkParagraphs(pages: PdfPage[]): Chunk[] {
     }
 
     for (const para of paragraphs) {
-      if (para.length > TARGET_MAX) {
+      if (exceedsTarget(para)) {
         // Flush current buffer first to preserve order
         flush()
         bufferStartPage = page.pageNumber
@@ -66,7 +67,7 @@ export function chunkParagraphs(pages: PdfPage[]): Chunk[] {
 
       // Would adding this paragraph push us over the limit?
       const separator = buffer.length > 0 ? "\n\n" : ""
-      if (buffer.length + separator.length + para.length > TARGET_MAX) {
+      if (exceedsTarget(buffer + separator + para)) {
         flush()
         bufferStartPage = page.pageNumber
       }
@@ -83,18 +84,15 @@ export function chunkParagraphs(pages: PdfPage[]): Chunk[] {
 
 function splitOversized(text: string): string[] {
   // Try sentence boundaries first (includes Chinese sentence terminators)
-  const sentences = text.match(/[^.!?。！？]+[.!?。！？]+["')\]」』]?\s*/gu) ?? [text]
+  const sentences = text.match(/[^.!?。！？]+(?:[.!?。！？]+["')\]」』]?\s*|$)/gu) ?? [text]
   const out: string[] = []
   let buf = ""
 
   for (const s of sentences) {
-    if (buf.length + s.length > TARGET_MAX) {
-      if (buf.trim()) out.push(buf.trim())
-      if (s.length > TARGET_MAX) {
-        // Hard split at TARGET_MAX
-        for (let i = 0; i < s.length; i += TARGET_MAX) {
-          out.push(s.slice(i, i + TARGET_MAX).trim())
-        }
+    if (exceedsTarget(buf + s)) {
+      pushPiece(out, buf)
+      if (exceedsTarget(s)) {
+        out.push(...splitByBudget(s))
         buf = ""
       } else {
         buf = s
@@ -104,6 +102,33 @@ function splitOversized(text: string): string[] {
     }
   }
 
-  if (buf.trim()) out.push(buf.trim())
+  pushPiece(out, buf)
   return out
+}
+
+function exceedsTarget(text: string): boolean {
+  return text.length > TARGET_MAX || encodedQueryLength(text) > TARGET_MAX_ENCODED_Q
+}
+
+function encodedQueryLength(text: string): number {
+  return new URLSearchParams({ q: text }).toString().length
+}
+
+function splitByBudget(text: string): string[] {
+  const out: string[] = []
+  let buf = ""
+  for (const ch of text) {
+    if (buf && exceedsTarget(buf + ch)) {
+      pushPiece(out, buf)
+      buf = ch
+    } else {
+      buf += ch
+    }
+  }
+  pushPiece(out, buf)
+  return out
+}
+
+function pushPiece(out: string[], piece: string): void {
+  if (piece.trim()) out.push(piece)
 }

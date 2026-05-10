@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs"
 import { resolve, dirname } from "node:path"
 import { fileURLToPath } from "node:url"
 import { eq } from "drizzle-orm"
+import { PDFDocument, StandardFonts } from "pdf-lib"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -26,6 +27,7 @@ async function setupJob(
     sourcePages: number
     bucket?: string
     amount?: number
+    sourceKey?: string
   },
 ) {
   const { jobId, userId, sourcePages } = opts
@@ -46,7 +48,7 @@ async function setupJob(
   await db.insert(schema.translationJobs).values({
     id: jobId,
     userId,
-    sourceKey: `pdfs/${userId}/${jobId}/source.pdf`,
+    sourceKey: opts.sourceKey ?? `pdfs/${userId}/${jobId}/source.pdf`,
     sourcePages,
     modelId: "google",
     sourceLang: "auto",
@@ -93,6 +95,17 @@ function makeBatch(jobId: string) {
     messages: [{ id: `msg-${jobId}`, body: { jobId }, ack, retry }],
   }
   return { batch, ack, retry }
+}
+
+async function makeManyPagePdf(pageCount: number): Promise<ArrayBuffer> {
+  const pdf = await PDFDocument.create()
+  const font = await pdf.embedFont(StandardFonts.Helvetica)
+  for (let i = 1; i <= pageCount; i++) {
+    const page = pdf.addPage([300, 200])
+    page.drawText(`Page ${i} paragraph.`, { x: 32, y: 120, size: 12, font })
+  }
+  const bytes = await pdf.save()
+  return Uint8Array.from(bytes).buffer
 }
 
 // ---------------------------------------------------------------------------
@@ -149,6 +162,51 @@ describe("queue translate-document handler", () => {
     expect(job?.outputMdKey).toBe("pdfs/u1/j1/output.md")
     expect(job?.progressUpdatedAt).toBeInstanceOf(Date)
     expect(job?.progressUpdatedAt?.getTime()).toBeGreaterThan(0)
+  })
+
+  it("writes outputs under the processing job id when source belongs to an older job", async () => {
+    const { db } = makeTestDb()
+    const sourceKey = "pdfs/u1/original-job/source.pdf"
+    await setupJob(db, {
+      jobId: "retranslated-job",
+      userId: "u1",
+      sourcePages: 1,
+      sourceKey,
+    })
+    const pdfBuf = readFileSync(resolve(FIXTURE_DIR, "hello-world.pdf"))
+    const pdfAb = pdfBuf.buffer.slice(pdfBuf.byteOffset, pdfBuf.byteOffset + pdfBuf.byteLength)
+
+    const r2Get = vi.fn(async (key: string) =>
+      key === sourceKey
+        ? { arrayBuffer: async () => pdfAb }
+        : null,
+    )
+    const r2Put = vi.fn(async () => undefined)
+
+    const handler = createQueueHandler({
+      db: db as unknown as Db,
+      bucket: { get: r2Get, put: r2Put } as unknown as R2Bucket,
+      env: {} as any,
+      translateChunk: async () => "你好",
+    })
+
+    const { batch } = makeBatch("retranslated-job")
+    await handler.queue(batch as any, {} as any, {} as any)
+
+    const putKeys = r2Put.mock.calls.map((c) => (c as unknown[])[0] as string)
+    expect(r2Get).toHaveBeenCalledWith(sourceKey)
+    expect(putKeys).toContain("pdfs/u1/retranslated-job/segments.json")
+    expect(putKeys).toContain("pdfs/u1/retranslated-job/output.html")
+    expect(putKeys).toContain("pdfs/u1/retranslated-job/output.md")
+    expect(putKeys).not.toContain("pdfs/u1/original-job/output.html")
+
+    const job = await db
+      .select()
+      .from(schema.translationJobs)
+      .where(eq(schema.translationJobs.id, "retranslated-job"))
+      .get()
+    expect(job?.outputHtmlKey).toBe("pdfs/u1/retranslated-job/output.html")
+    expect(job?.outputMdKey).toBe("pdfs/u1/retranslated-job/output.md")
   })
 
   it("sets progressUpdatedAt when transitioning queued jobs to processing", async () => {
@@ -298,6 +356,46 @@ describe("queue translate-document handler", () => {
     expect(job?.progressUpdatedAt).toBeInstanceOf(Date)
     expect(job?.progressUpdatedAt?.getTime()).toBeGreaterThan(0)
     expect(job?.progressUpdatedAt?.getTime()).toBe(job?.failedAt?.getTime())
+  })
+
+  it("fails with a clear message before translation when a document creates too many chunks", async () => {
+    const { db } = makeTestDb()
+    const ctx = await setupJob(db, { jobId: "j-too-long", userId: "u-too-long", sourcePages: 45 })
+    const pdfAb = await makeManyPagePdf(45)
+    const translateChunk = vi.fn(async () => "你好")
+
+    const handler = createQueueHandler({
+      db: db as unknown as Db,
+      bucket: {
+        get: vi.fn(async () => ({ arrayBuffer: async () => pdfAb })),
+        put: vi.fn(),
+      } as unknown as R2Bucket,
+      env: {} as any,
+      translateChunk,
+    })
+
+    const { batch, ack } = makeBatch("j-too-long")
+    await handler.queue(batch as any, {} as any, {} as any)
+
+    expect(ack).toHaveBeenCalled()
+    expect(translateChunk).not.toHaveBeenCalled()
+
+    const job = await db
+      .select()
+      .from(schema.translationJobs)
+      .where(eq(schema.translationJobs.id, "j-too-long"))
+      .get()
+    expect(job?.status).toBe("failed")
+    expect(job?.errorMessage).toBe("文档文本过长，请拆分 PDF 后重试")
+    expect(job?.errorCode).toBe("document_too_long")
+
+    const refunds = await db
+      .select()
+      .from(schema.usageLog)
+      .where(eq(schema.usageLog.requestId, "refund:j-too-long"))
+      .all()
+    expect(refunds.length).toBe(1)
+    expect(refunds[0].amount).toBe(-ctx.amount)
   })
 
   it("translateChunk throws 503 after retries: status=failed + canonical LLM 5xx message + refunded", async () => {
