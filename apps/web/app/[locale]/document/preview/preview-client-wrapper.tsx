@@ -6,7 +6,7 @@ import { useEffect } from "react"
 import { localeHref } from "@/lib/i18n/routing"
 import type { Locale } from "@/lib/i18n/locales"
 import { PreviewClient } from "./preview-client"
-import type { PreviewMessages, ShellLabels } from "./preview-client"
+import type { PreviewMessages, ShellLabels, UpgradeLabels } from "./preview-client"
 
 /**
  * Reads `?jobId=` from the URL and renders PreviewClient.
@@ -17,10 +17,12 @@ export function PreviewClientWrapper({
   locale,
   messages,
   shellLabels,
+  upgradeLabels,
 }: {
   locale: Locale
   messages: PreviewMessages
   shellLabels: ShellLabels
+  upgradeLabels: UpgradeLabels
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -36,10 +38,12 @@ export function PreviewClientWrapper({
 
   return (
     <PreviewClient
+      key={jobId}
       jobId={jobId}
       locale={locale}
       messages={messages}
       shellLabels={shellLabels}
+      upgradeLabels={upgradeLabels}
     />
   )
 }

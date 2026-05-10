@@ -65,7 +65,7 @@ export function PdfDualReader({
   )
   const changed = draftModel !== job.modelId || draftSource !== job.sourceLang || draftTarget !== job.targetLang
   const downloadUrl = htmlUrl ?? mdUrl
-  const plan = entitlements?.tier ?? "free"
+  const plan = entitlements?.tier
   const draftModelLocked = plan === "free" && !isFreeTranslateModel(draftModel)
 
   function goToPage(page: number) {
